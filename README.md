@@ -1,4 +1,4 @@
-# 型番商品チェッカー
+# 型番商品確認くん
 
 型番ごとに関連URL（楽天・ランキングページ・仕入元など）をまとめて置いておくための静的Webツール。
 ビルド不要、GitHub Pages にそのまま置ける。
@@ -9,7 +9,8 @@
 index.html          画面
 app.js              ロジック
 style.css           スタイル
-favicon.svg
+favicon.png
+logo.png
 data/products.json  データ本体（GitHubに保存される）
 SETUP.md            セットアップ手順
 ```

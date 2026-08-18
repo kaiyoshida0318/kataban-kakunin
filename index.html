@@ -4,22 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>型番商品チェッカー</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>型番商品確認くん</title>
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.2.0">
+<link rel="stylesheet" href="style.css?v=0.2.2">
 </head>
 <body>
 
 <header class="app-header">
   <div class="app-header-in">
-    <div class="logo-wrap">
-      <span class="logo-mark">型</span>
-      <h1 class="logo">型番商品チェッカー</h1>
-      <span class="ver" id="verLabel">v0.2.0</span>
-    </div>
+    <h1 class="logo-wrap">
+      <img class="logo-img" src="logo.png?v=2" alt="型番商品確認くん" width="746" height="96">
+      <span class="ver" id="verLabel">v0.2.2</span>
+    </h1>
     <div class="header-actions">
       <span class="save-state" id="saveState">—</span>
       <button class="btn btn-ghost" id="btnSettings">⚙️ 設定</button>
@@ -148,6 +148,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.2.0"></script>
+<script src="app.js?v=0.2.2"></script>
 </body>
 </html>
