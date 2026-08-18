@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-18T00:00:00.000Z",
+  "items": [
+    {
+      "id": "itm_sample01",
+      "model": "SD-1200X",
+      "name": "折りたたみ電動キックボード（サンプル）",
+      "category": "モビリティ",
+      "links": [
+        { "type": "rakuten", "label": "商品ページ", "url": "https://item.rakuten.co.jp/example/sd1200x/" },
+        { "type": "rakuten_rank", "label": "デイリーランキング", "url": "https://ranking.rakuten.co.jp/daily/101070/" },
+        { "type": "alibaba", "label": "仕入元", "url": "https://detail.1688.com/offer/000000000000.html" }
+      ],
+      "createdAt": "2026-08-18T00:00:00.000Z",
+      "updatedAt": "2026-08-18T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>型番商品チェッカー</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=0.2.0">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-in">
+    <div class="logo-wrap">
+      <span class="logo-mark">型</span>
+      <h1 class="logo">型番商品チェッカー</h1>
+      <span class="ver" id="verLabel">v0.2.0</span>
+    </div>
+    <div class="header-actions">
+      <span class="save-state" id="saveState">—</span>
+      <button class="btn btn-ghost" id="btnSettings">⚙️ 設定</button>
+      <button class="btn btn-primary" id="btnSaveGh">💾 GitHubに保存</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="search" id="q" class="search" placeholder="型番・商品名・URLで検索…" autocomplete="off">
+      <button class="search-clear" id="qClear" title="クリア">✕</button>
+    </div>
+    <button class="btn btn-add" id="btnNew">＋ 型番を追加</button>
+  </div>
+
+  <nav class="cat-tabs" id="catTabs"></nav>
+
+  <div class="list" id="list"></div>
+
+  <div class="empty" id="emptyState" hidden>
+    <p class="empty-ttl">まだ型番が登録されていません</p>
+    <p class="empty-sub">「＋ 型番を追加」から、監視したい商品のURLを登録してください。</p>
+  </div>
+
+  <p class="foot-note" id="footNote"></p>
+</div>
+
+<!-- ===== 編集モーダル ===== -->
+<div class="modal-overlay" id="itemModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-ttl" id="itemModalTtl">型番を追加</h2>
+      <button class="icon-btn" id="itemClose" title="閉じる">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field">
+          <label for="fModel">型番 <span class="req">*</span></label>
+          <input id="fModel" type="text" placeholder="例) SD-1200X">
+        </div>
+        <div class="field">
+          <label for="fCat">カテゴリ</label>
+          <input id="fCat" type="text" list="catList" placeholder="未分類">
+          <datalist id="catList"></datalist>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fName">商品名</label>
+        <input id="fName" type="text" placeholder="例) 折りたたみ電動キックボード">
+      </div>
+
+      <section class="block-section">
+        <h3 class="sec-ttl">URL <span class="sec-sub">何本でも追加できます</span></h3>
+        <div class="link-add">
+          <select id="lType" class="select select-sm">
+            <option value="rakuten">楽天</option>
+            <option value="rakuten_rank">楽天ランキング</option>
+            <option value="amazon">Amazon</option>
+            <option value="yahoo">Yahoo!</option>
+            <option value="mercari">メルカリ</option>
+            <option value="alibaba">1688 / Alibaba</option>
+            <option value="taobao">タオバオ</option>
+            <option value="official">公式・メーカー</option>
+            <option value="other">その他</option>
+          </select>
+          <input id="lLabel" class="input-sm" type="text" placeholder="ラベル（任意）">
+          <input id="lUrl" class="input-sm grow" type="url" placeholder="https://…">
+          <button class="btn btn-add btn-sm" id="btnAddLink">追加</button>
+        </div>
+        <ul class="link-list" id="linkList"></ul>
+        <p class="hint">URL欄でEnterを押しても追加できます。</p>
+      </section>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-danger" id="btnDelItem">削除</button>
+      <div class="grow"></div>
+      <button class="btn btn-ghost" id="btnCancelItem">キャンセル</button>
+      <button class="btn btn-primary" id="btnSaveItem">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 設定モーダル ===== -->
+<div class="modal-overlay" id="cfgModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-ttl">設定</h2>
+      <button class="icon-btn" id="cfgClose" title="閉じる">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field">
+          <label for="cOwner">オーナー</label>
+          <input id="cOwner" type="text" placeholder="kaiyoshida0318">
+        </div>
+        <div class="field">
+          <label for="cRepo">リポジトリ</label>
+          <input id="cRepo" type="text" placeholder="kataban-kakunin">
+        </div>
+        <div class="field w-sm">
+          <label for="cBranch">ブランチ</label>
+          <input id="cBranch" type="text" placeholder="main">
+        </div>
+      </div>
+      <div class="field">
+        <label for="cPat">Personal Access Token</label>
+        <input id="cPat" type="password" placeholder="github_pat_…" autocomplete="off">
+        <p class="hint">Contents の Read and write 権限が必要です。この端末のブラウザ内にのみ保存されます。</p>
+      </div>
+      <div class="cfg-actions">
+        <button class="btn btn-ghost" id="btnPullGh">⤓ GitHubから読み込む</button>
+        <span class="hint" id="cfgStatus"></span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="grow"></div>
+      <button class="btn btn-primary" id="btnSaveCfg">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js?v=0.2.0"></script>
+</body>
+</html>
