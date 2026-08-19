@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.17.0";
+const VERSION   = "0.18.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -72,7 +72,8 @@ let isNew = false;
 let view = SECTIONS[0].key;
 let tableEdit = false;   // 表からの直接編集モード
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
-const openRows  = new Set();   // 商品リストを開いているランキング行
+const openRows  = new Set();   // 商品欄を開いている行
+const addRows   = new Set();   // 入力行（新規追加）を出している行
 const filters = {
   products: { q: "", cat: "*", sort: "updatedAt", dir: "desc" },
   rakuten:  { q: "", cat: "*", sort: "checkedAt", dir: "desc" },
@@ -405,6 +406,7 @@ function renderBody() {
     b.onclick = () => {
       const id = b.dataset.addpick;
       openRows.add(id);
+      addRows.add(id);
       renderBody();
       setTimeout(() => {
         const row = $("list").querySelector(`tr.pick-new[data-for="${id}"]`);
@@ -418,7 +420,8 @@ function renderBody() {
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
       const id = b.dataset.expand;
-      openRows.has(id) ? openRows.delete(id) : openRows.add(id);
+      if (openRows.has(id)) { openRows.delete(id); addRows.delete(id); }
+      else openRows.add(id);
       renderBody();
     };
   });
@@ -447,7 +450,7 @@ function renderBody() {
 
   // 商品欄を閉じる
   root.querySelectorAll("[data-rowclose]").forEach((b) => {
-    b.onclick = () => { openRows.delete(b.dataset.rowclose); renderBody(); };
+    b.onclick = () => { const id = b.dataset.rowclose; openRows.delete(id); addRows.delete(id); renderBody(); };
   });
 
   /* 常設の入力行（表の1行目）から追加 */
@@ -688,7 +691,7 @@ function rankRow(it) {
 
   const cntCell = `
     <td class="c-cnt">
-      <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件 ${open ? "▲" : "▼"}</button>
+      <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
     </td>`;
 
   const body = tableEdit ? `
@@ -796,15 +799,16 @@ function pickPanel(it) {
         <th class="td-st">確認</th><th class="td-st">買付</th><th class="td-acts">操作</th>
       </tr></thead>
       <tbody>
-        <tr class="pick-new" data-for="${esc(it.id)}">
+        ${addRows.has(it.id) ? `<tr class="pick-new" data-for="${esc(it.id)}">
           <td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>
           <td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>
           <td class="td-title"><input class="input-sm pick-title" type="text" placeholder="商品名"></td>
           <td class="td-url"><input class="input-sm pick-url" type="url" placeholder="商品URL  https://…"></td>
           <td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>
           <td class="td-st"></td><td class="td-st"></td><td class="td-acts"></td>
-        </tr>
+        </tr>` : ""}
         ${picks}
+        ${!it.picks.length && !addRows.has(it.id) ? `<tr><td class="pick-empty" colspan="8">まだありません。右の「＋ 商品」から追加できます。</td></tr>` : ""}
       </tbody>
     </table></div>
   </section>`;

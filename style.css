@@ -413,6 +413,7 @@ body.resizing *{cursor:col-resize !important}
 .pick-tbl tr.pick-new input{width:100%;font-size:12px;padding:5px 8px}
 .pick-tbl tr.pick-new .pick-added{font-family:ui-monospace,Menlo,Consolas,monospace}
 .pick-tbl tr.pick-new .pick-image{font-size:10.5px}
+.pick-empty{font-size:12px;color:var(--muted);text-align:center;padding:14px 10px}
 .pick-close{color:var(--muted)}
 .pick-close:hover{color:var(--text)}
 
