@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-08-19T00:00:00.000Z",
+  "updatedAt": "2026-08-19T03:34:41.679Z",
   "sections": {
     "products": {
       "items": [
@@ -32,76 +32,53 @@
       ]
     },
     "rakuten": {
-      "items": [
-        {
-          "id": "rk_sample01",
-          "name": "家電 > 扇風機・サーキュレーター",
-          "category": "家電",
-          "url": "https://ranking.rakuten.co.jp/daily/562637/",
-          "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
-          "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_r01",
-              "addedAt": "2026-08-12",
-              "url": "https://item.rakuten.co.jp/example/dc-fan/",
-              "note": "3位・静音DC。レビュー1200件",
-              "image": "https://via.placeholder.com/120x120.png?text=FAN"
-            },
-            {
-              "id": "pk_r02",
-              "addedAt": "2026-08-19",
-              "url": "https://item.rakuten.co.jp/example/slim-fan/",
-              "note": "新顔。価格が一段安い",
-              "image": ""
-            }
-          ],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z",
-          "image": "https://via.placeholder.com/120x120.png?text=FAN"
-        },
-        {
-          "id": "rk_sample02",
-          "name": "総合ランキング",
-          "category": "総合",
-          "url": "https://ranking.rakuten.co.jp/realtime/",
-          "checkNote": "",
-          "checkedAt": "",
-          "picks": [],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z",
-          "image": ""
-        }
-      ]
+      "items": []
     },
     "amazon": {
       "items": [
         {
-          "id": "am_sample01",
+          "id": "itm_f8u59p96341",
           "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
-          "category": "家電",
+          "category": "未分類",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71KN3-p0MqL._AC_UL600_SR600,400_.jpg",
           "url": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
-          "checkNote": "Garmin等の新商品を確認実施。上位に食い込む型番と、対応機種の広さを見る。",
+          "checkNote": "Garmin等の新商品を確認実施",
           "checkedAt": "2026-08-19",
           "picks": [
             {
-              "id": "pk_a01",
+              "id": "itm_o7c1yr9ubys",
               "addedAt": "2026-08-19",
-              "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB/dp/B0EXAMPLE9",
-              "note": "Garmin対応の汎用ケーブル",
-              "image": "https://via.placeholder.com/120x120.png?text=CABLE"
-            },
-            {
-              "id": "pk_a02",
-              "addedAt": "2026-08-05",
-              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
-              "note": "",
-              "image": ""
+              "image": "",
+              "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB-GARMIN%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81%E5%85%85%E9%9B%BB%E5%99%A8-%E3%83%81%E3%83%A3%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0%E3%82%B1%E3%83%BC%E3%83%96-Forerunner-Vivoactive/dp/B0FJ23374F/ref=zg_bs_g_14616559051_d_sccl_4/355-8190517-1304632?th=1",
+              "note": ""
             }
           ],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z",
-          "image": "https://via.placeholder.com/120x120.png?text=CABLE"
+          "createdAt": "2026-08-19T02:03:09.505Z",
+          "updatedAt": "2026-08-19T03:19:20.003Z"
+        },
+        {
+          "id": "itm_l7plowx4grx",
+          "name": "スマートウォッチ用スクリーンプロテクター・ホイルの売れ筋ランキング",
+          "category": "未分類",
+          "image": "",
+          "url": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616557051/ref=zg_bs_nav_electronics_4_14616555051",
+          "checkNote": "",
+          "checkedAt": "2026-08-19",
+          "picks": [],
+          "createdAt": "2026-08-19T02:57:53.133Z",
+          "updatedAt": "2026-08-19T02:58:06.659Z"
+        },
+        {
+          "id": "itm_d19g7p56jye",
+          "name": "スマートウォッチ交換ベルトの売れ筋ランキング",
+          "category": "未分類",
+          "image": "",
+          "url": "https://www.amazon.co.jp/gp/bestsellers/electronics/18195127051/ref=zg_bs_nav_electronics_4_14616561051",
+          "checkNote": "",
+          "checkedAt": "2026-08-19",
+          "picks": [],
+          "createdAt": "2026-08-19T02:59:30.566Z",
+          "updatedAt": "2026-08-19T03:00:53.835Z"
         }
       ]
     }
