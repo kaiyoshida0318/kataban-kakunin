@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.13.0";
+const VERSION   = "0.14.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -43,6 +43,21 @@ const SECTIONS = [
     emptySub: "よく見るAmazonの売れ筋ランキングページを登録しておくと、ここから一発で開けます。" },
 ];
 const SEC = (k) => SECTIONS.find((s) => s.key === k);
+
+/* 商品行のステータス（2つのドロップダウン） */
+const PICK_CHECK = [
+  { v: "before", label: "確認前",   cls: "st-todo" },
+  { v: "after",  label: "確認後",   cls: "st-done" },
+  { v: "skip",   label: "スキップ", cls: "st-skip" },
+];
+const PICK_BUY = [
+  { v: "before", label: "買付前",   cls: "st-todo" },
+  { v: "done",   label: "買付済",   cls: "st-done" },
+  { v: "skip",   label: "スキップ", cls: "st-skip" },
+];
+const stCls = (list, v) => (list.find((o) => o.v === v) || list[0]).cls;
+const stOptions = (list, v) =>
+  list.map((o) => `<option value="${o.v}"${o.v === v ? " selected" : ""}>${o.label}</option>`).join("");
 
 const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を付ける
 
@@ -172,6 +187,8 @@ function normRank(it) {
         image:   p.image || "",                    // メイン画像URL
         url:     p.url || "",
         note:    p.note || p.name || "",           // メモ（旧 name から移行）
+        check:   PICK_CHECK.some((o) => o.v === p.check) ? p.check : "before",
+        buy:     PICK_BUY.some((o) => o.v === p.buy)     ? p.buy   : "before",
       }))
       .filter((p) => p.url),
     createdAt: it.createdAt || nowIso(),
@@ -458,6 +475,8 @@ function renderBody() {
         image,
         url,
         note:    box.querySelector(".pick-memo").value.trim(),
+        check:   "before",
+        buy:     "before",
       });
       it.updatedAt = nowIso();
       openPicks.add(id);
@@ -481,6 +500,19 @@ function renderBody() {
   });
 
   // 商品行のインライン編集
+  root.querySelectorAll("[data-pickstatus]").forEach((sel) => {
+    sel.onchange = () => {
+      const [id, pid, field] = sel.dataset.pickstatus.split("|");
+      const it = itemsOf(view).find((i) => i.id === id);
+      const p  = it?.picks.find((x) => x.id === pid);
+      if (!p) return;
+      p[field] = sel.value;
+      it.updatedAt = nowIso();
+      persistLocal(); markDirty(true);
+      const list = field === "check" ? PICK_CHECK : PICK_BUY;
+      sel.className = "st-sel " + stCls(list, sel.value);
+    };
+  });
   root.querySelectorAll("[data-pickedit]").forEach((b) => {
     b.onclick = () => { editPicks.add(b.dataset.pickedit); renderBody(); };
   });
@@ -707,6 +739,13 @@ function thumbTag(src, cls, id) {
     : `<span class="thumb ${cls} none"${mark}></span>`;
 }
 
+function statusCells(itemId, p) {
+  const sel = (field, list, v) =>
+    `<select class="st-sel ${stCls(list, v)}" data-pickstatus="${esc(itemId)}|${esc(p.id)}|${field}">${stOptions(list, v)}</select>`;
+  return `<td class="td-st">${sel("check", PICK_CHECK, p.check)}</td>` +
+         `<td class="td-st">${sel("buy", PICK_BUY, p.buy)}</td>`;
+}
+
 function pickPanel(it) {
   const thumb = (p) => p.image
     ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
@@ -736,6 +775,7 @@ function pickPanel(it) {
         <td class="td-img">${thumb(p)}</td>
         <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
         <td class="td-note${p.note ? "" : " none"}">${esc(p.note || "—")}</td>
+        ${statusCells(it.id, p)}
         <td class="td-acts">
           <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
           <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
@@ -763,7 +803,8 @@ function pickPanel(it) {
     ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
       <thead><tr>
         <th class="td-date">追加日</th><th class="td-img">画像</th>
-        <th class="td-url">商品URL</th><th class="td-note">メモ</th><th class="td-acts">操作</th>
+        <th class="td-url">商品URL</th><th class="td-note">メモ</th>
+        <th class="td-st">確認</th><th class="td-st">買付</th><th class="td-acts">操作</th>
       </tr></thead>
       <tbody>${picks}</tbody>
     </table></div>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
