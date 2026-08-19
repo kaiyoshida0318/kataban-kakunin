@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.18.0";
+const VERSION   = "0.19.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -22,10 +22,25 @@ const RANK_COLS = [
   { key: "addp",  label: "商品追加",   w: 96,  cls: "c-addp"  },
   { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
 ];
+/* ---------- チェックした商品の表の列 ---------- */
+const PICK_COLS = [
+  { key: "p_date",  label: "追加日",  w: 104, cls: "td-date"  },
+  { key: "p_img",   label: "画像",    w: 64,  cls: "td-img"   },
+  { key: "p_title", label: "商品名",  w: 280, cls: "td-title" },
+  { key: "p_url",   label: "商品URL", w: 0,   cls: "td-url"   },   // 0 = 自動
+  { key: "p_edit",  label: "編集",    w: 78,  cls: "td-edit"  },
+  { key: "p_check", label: "確認",    w: 98,  cls: "td-st"    },
+  { key: "p_buy",   label: "買付",    w: 98,  cls: "td-st"    },
+  { key: "p_act",   label: "操作",    w: 76,  cls: "td-acts"  },
+];
+
 let colW = {};
-const ROW_H_KEY = "_rowH";
-const ROW_H_DEF = 96;
-const rowH = () => colW[ROW_H_KEY] || ROW_H_DEF;
+const ROW_H_KEY  = "_rowH";
+const ROW_H_DEF  = 96;
+const PROW_H_KEY = "_pickRowH";
+const PROW_H_DEF = 66;
+const rowH  = () => colW[ROW_H_KEY]  || ROW_H_DEF;
+const pRowH = () => colW[PROW_H_KEY] || PROW_H_DEF;
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
@@ -597,35 +612,36 @@ function fitColumns() {
 
 /* 列幅パネル（上部の「⇔ 幅調整」） */
 function renderColPanel() {
-  const body = $("colPanelBody");
-  body.innerHTML = `
-    <label class="col-item row-h">
-      <span class="col-item-name">行の高さ</span>
-      <input type="number" min="44" max="240" step="4" id="rowHInput" value="${rowH()}">
+  const item = (key, label, val, ph, cls) => `
+    <label class="col-item${cls ? " " + cls : ""}">
+      <span class="col-item-name">${esc(label)}</span>
+      <input type="number" min="40" max="1200" step="4" data-colw="${key}" value="${val || ""}" placeholder="${ph || "自動"}">
       <span class="col-item-unit">px</span>
-    </label>` + RANK_COLS.map((c) => `
-    <label class="col-item">
-      <span class="col-item-name">${esc(c.label)}</span>
-      <input type="number" min="44" max="1200" step="10" data-colw="${c.key}"
-             value="${colW[c.key] || c.w || ""}" placeholder="自動">
-      <span class="col-item-unit">px</span>
-    </label>`).join("");
+    </label>`;
 
-  $("rowHInput").oninput = () => {
-    const v = parseInt($("rowHInput").value, 10);
-    if (Number.isFinite(v) && v >= 44) colW[ROW_H_KEY] = v; else delete colW[ROW_H_KEY];
-    saveCols();
-    const t = $("list").querySelector("table.rank-tbl");
-    if (t) t.style.setProperty("--row-h", rowH() + "px");
-  };
+  $("colPanelBody").innerHTML = `
+    <div class="col-grp">
+      <span class="col-grp-ttl">一覧表</span>
+      <div class="col-grp-items">
+        ${item(ROW_H_KEY, "行の高さ", rowH(), ROW_H_DEF, "row-h")}
+        ${RANK_COLS.map((c) => item(c.key, c.key === "name" ? SEC(view).nameLabel : c.label, colW[c.key] || c.w)).join("")}
+      </div>
+    </div>
+    <div class="col-grp">
+      <span class="col-grp-ttl">チェックした商品</span>
+      <div class="col-grp-items">
+        ${item(PROW_H_KEY, "行の高さ", pRowH(), PROW_H_DEF, "row-h")}
+        ${PICK_COLS.map((c) => item(c.key, c.label, colW[c.key] || c.w)).join("")}
+      </div>
+    </div>`;
 
-  body.querySelectorAll("[data-colw]").forEach((inp) => {
+  $("colPanelBody").querySelectorAll("[data-colw]").forEach((inp) => {
     inp.oninput = () => {
       const key = inp.dataset.colw;
       const v = parseInt(inp.value, 10);
-      if (Number.isFinite(v) && v >= 44) colW[key] = v; else delete colW[key];
+      if (Number.isFinite(v) && v >= 40) colW[key] = v; else delete colW[key];
       saveCols();
-      fitColumns();
+      renderBody();
     };
   });
 }
@@ -789,15 +805,15 @@ function pickPanel(it) {
     <div class="pick-hdr">
       <span class="pick-hdr-ttl">チェックした商品</span>
       <span class="pick-hdr-cnt">${it.picks.length} 件</span>
-      <button class="btn btn-ghost btn-xs pick-close" data-rowclose="${esc(it.id)}">× 商品欄を閉じる</button>
+      <button class="btn btn-cancel btn-xs pick-close" data-rowclose="${esc(it.id)}">キャンセル</button>
     </div>
 
-    <div class="pick-tbl-wrap"><table class="pick-tbl">
-      <thead><tr>
-        <th class="td-date">追加日</th><th class="td-img">画像</th>
-        <th class="td-title">商品名</th><th class="td-url">商品URL</th><th class="td-edit">編集</th>
-        <th class="td-st">確認</th><th class="td-st">買付</th><th class="td-acts">操作</th>
-      </tr></thead>
+    <div class="pick-tbl-wrap"><table class="pick-tbl" style="--pick-row-h:${pRowH()}px">
+      <colgroup>${PICK_COLS.map((c) => {
+        const w = colW[c.key] || c.w;
+        return `<col${w ? ` style="width:${w}px"` : ""}>`;
+      }).join("")}</colgroup>
+      <thead><tr>${PICK_COLS.map((c) => `<th class="${c.cls}">${esc(c.label)}</th>`).join("")}</tr></thead>
       <tbody>
         ${addRows.has(it.id) ? `<tr class="pick-new" data-for="${esc(it.id)}">
           <td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>
@@ -863,7 +879,8 @@ function renderRankPicks() {
     $("rPickList").innerHTML = `<p class="pick-none">まだありません。一覧の「商品」列を開くと追加できます。</p>`;
     return;
   }
-  $("rPickList").innerHTML = `<div class="pick-tbl-wrap"><table class="pick-tbl">
+  $("rPickList").innerHTML = `<div class="pick-tbl-wrap"><table class="pick-tbl pick-tbl-view">
+    <colgroup><col style="width:104px"><col style="width:64px"><col style="width:280px"><col></colgroup>
     <thead><tr>
       <th class="td-date">追加日</th><th class="td-img">画像</th>
       <th class="td-title">商品名</th><th class="td-url">商品URL</th>
