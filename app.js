@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.14.1";
+const VERSION   = "0.14.2";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -450,10 +450,18 @@ function renderBody() {
   // 商品URLの追加フォームを開閉
   root.querySelectorAll("[data-pickopen]").forEach((b) => {
     b.onclick = () => {
-      const box = root.querySelector(`.pick-form[data-for="${b.dataset.pickopen}"]`);
-      box.hidden = !box.hidden;
-      b.classList.toggle("on", !box.hidden);
-      if (!box.hidden) box.querySelector(".pick-url").focus();
+      const id = b.dataset.pickopen;
+      openPicks.add(id);
+      const box = root.querySelector(`.pick-form[data-for="${id}"]`);
+      box.hidden = false;
+      box.querySelector(".pick-url").focus();
+    };
+  });
+  root.querySelectorAll("[data-pickclose]").forEach((b) => {
+    b.onclick = () => {
+      const id = b.dataset.pickclose;
+      openPicks.delete(id);
+      root.querySelector(`.pick-form[data-for="${id}"]`).hidden = true;
     };
   });
   root.querySelectorAll(".pick-form").forEach((box) => {
@@ -787,9 +795,7 @@ function pickPanel(it) {
     <div class="pick-hdr">
       <span class="pick-hdr-ttl">チェックした商品</span>
       <span class="pick-hdr-cnt">${it.picks.length} 件</span>
-      <button class="btn btn-add btn-xs pick-open${openPicks.has(it.id) ? " on" : ""}" data-pickopen="${esc(it.id)}">
-        ${openPicks.has(it.id) ? "× 閉じる" : "＋ 商品を追加"}
-      </button>
+      <button class="btn btn-add btn-xs pick-open" data-pickopen="${esc(it.id)}">＋ 商品を追加</button>
     </div>
 
     <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
@@ -798,6 +804,7 @@ function pickPanel(it) {
       <input class="input-sm pick-url" type="url" placeholder="商品URL  https://…">
       <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
       <button class="btn btn-add btn-sm pick-add">追加</button>
+      <button class="btn btn-ghost btn-sm pick-cancel" data-pickclose="${esc(it.id)}">やめる</button>
     </div>
 
     ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
