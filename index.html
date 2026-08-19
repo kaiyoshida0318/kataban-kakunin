@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.8.0">
+<link rel="stylesheet" href="style.css?v=0.9.0">
 </head>
 <body>
 
@@ -27,7 +27,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.8.0</span>
+      <span class="ver-badge" id="verLabel">v0.9.0</span>
       <span class="dirty-badge" id="saveState" hidden>● 未保存</span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -118,46 +118,59 @@
 
 <!-- ===== ランキングURLモーダル ===== -->
 <div class="modal-overlay" id="rankModal" hidden>
-  <div class="modal">
+  <div class="modal modal-wide">
     <div class="modal-head">
       <h2 class="modal-ttl" id="rankModalTtl">ランキングURLを追加</h2>
       <button class="icon-btn" id="rankClose" title="閉じる">✕</button>
     </div>
 
     <div class="modal-body">
-      <div class="field">
-        <label for="rName">ジャンル名 <span class="req">*</span></label>
-        <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター">
-      </div>
-      <div class="field">
-        <label for="rUrl">URL <span class="req">*</span></label>
-        <input id="rUrl" type="url" placeholder="https://…">
-      </div>
-      <div class="field">
-        <label for="rImage">アイキャッチ画像URL</label>
-        <div class="img-row">
-          <input id="rImage" type="url" placeholder="https://…（任意）">
-          <span class="img-preview" id="rImagePrev"></span>
+      <div class="rank-grid">
+
+        <!-- 左：アイキャッチ画像 -->
+        <div class="rank-col-img">
+          <label for="rImage">アイキャッチ画像</label>
+          <div class="img-box" id="rImagePrev"></div>
+          <input id="rImage" type="url" placeholder="画像URL（任意）">
+          <p class="hint">商品ページの画像を右クリック →「画像アドレスをコピー」で貼れます。</p>
         </div>
-      </div>
-      <div class="field">
-        <label for="rNote">確認内容</label>
-        <textarea id="rNote" rows="3" placeholder="何を見るか・気づいたこと（例：上位の価格帯が下がってきている）"></textarea>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="rCat">カテゴリ</label>
-          <input id="rCat" type="text" list="rankCatList" placeholder="未分類">
-          <datalist id="rankCatList"></datalist>
-        </div>
-        <div class="field">
-          <label for="rChecked">最終確認日</label>
-          <div class="date-row">
-            <input id="rChecked" type="date">
-            <button class="btn btn-ghost btn-sm" id="btnToday" type="button">本日反映</button>
+
+        <!-- 右：その他の項目 -->
+        <div class="rank-col-fields">
+          <div class="field">
+            <label for="rName">ジャンル名 <span class="req">*</span></label>
+            <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター">
+          </div>
+          <div class="field">
+            <label for="rUrl">URL <span class="req">*</span></label>
+            <input id="rUrl" type="url" placeholder="https://…">
+          </div>
+          <div class="field">
+            <label for="rNote">確認内容</label>
+            <textarea id="rNote" rows="3" placeholder="何を見るか・気づいたこと（例：上位の価格帯が下がってきている）"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="rCat">カテゴリ</label>
+              <input id="rCat" type="text" list="rankCatList" placeholder="未分類">
+              <datalist id="rankCatList"></datalist>
+            </div>
+            <div class="field">
+              <label for="rChecked">最終確認日</label>
+              <div class="date-row">
+                <input id="rChecked" type="date">
+                <button class="btn btn-ghost btn-sm" id="btnToday" type="button">本日反映</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <!-- 下：追加した商品 -->
+      <section class="modal-picks">
+        <h3 class="sec-ttl">追加した商品 <span class="sec-sub" id="rPickCnt"></span></h3>
+        <div id="rPickList"></div>
+      </section>
     </div>
 
     <div class="modal-foot">
@@ -212,6 +225,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.8.0"></script>
+<script src="app.js?v=0.9.0"></script>
 </body>
 </html>

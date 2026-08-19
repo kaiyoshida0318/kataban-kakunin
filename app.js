@@ -4,10 +4,24 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.8.0";
+const VERSION   = "0.9.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
+const LS_COLS   = "kata_cols_v1";
+
+/* ---------- ランキング表の列 ---------- */
+const RANK_COLS = [
+  { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
+  { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
+  { key: "cat",   label: "カテゴリ",   w: 100, cls: "c-cat",   sort: "category"  },
+  { key: "url",   label: "URL",        w: 240, cls: "c-url"   },
+  { key: "note",  label: "確認内容",   w: 300, cls: "c-note"  },
+  { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
+  { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
+  { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
+];
+let colW = {};
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
@@ -168,6 +182,12 @@ function loadCfg() {
 }
 function saveCfg() { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }
 
+function loadCols() {
+  try { colW = JSON.parse(localStorage.getItem(LS_COLS)) || {}; } catch { colW = {}; }
+}
+function saveCols() { localStorage.setItem(LS_COLS, JSON.stringify(colW)); }
+const colWidth = (c) => colW[c.key] || c.w;
+
 function persistLocal() {
   data.updatedAt = nowIso();
   localStorage.setItem(LS_DATA, JSON.stringify(data));
@@ -298,6 +318,7 @@ function renderBody() {
   root.querySelectorAll("th.sortable").forEach((h) => {
     h.onclick = () => setSort(h.dataset.sort);
   });
+  bindResizers(root);
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
       const id = b.dataset.expand;
@@ -439,19 +460,55 @@ function productCard(it) {
 /* ===== ランキング一覧（表） ===== */
 function rankTable(list) {
   if (!list.length) return "";
+  const cols = RANK_COLS.map((c) => `<col data-col="${c.key}" style="width:${colWidth(c)}px">`).join("");
+  const heads = RANK_COLS.map((c) => {
+    const on = c.sort && F().sort === c.sort;
+    return `<th class="${c.cls}${c.sort ? " sortable" : ""}${on ? " on" : ""}"${c.sort ? ` data-sort="${c.sort}"` : ""}>` +
+      `${esc(c.label)}${c.sort ? sortMark(c.sort) : ""}` +
+      `<span class="col-resizer" data-col="${c.key}"></span></th>`;
+  }).join("");
+
   return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl">
-    <thead><tr>
-      <th class="c-img">画像</th>
-      ${th("name", "ジャンル名", "c-name")}
-      ${th("category", "カテゴリ", "c-cat")}
-      <th class="c-url">URL</th>
-      <th class="c-note">確認内容</th>
-      ${th("checkedAt", "確認日", "c-check")}
-      ${th("picks", "商品", "c-cnt")}
-      <th class="c-act">操作</th>
-    </tr></thead>
+    <colgroup>${cols}</colgroup>
+    <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
   </table></div>`;
+}
+
+/* 列幅ドラッグ */
+function bindResizers(root) {
+  root.querySelectorAll(".col-resizer").forEach((rz) => {
+    rz.onclick = (e) => e.stopPropagation();
+    rz.onmousedown = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const table = rz.closest("table");
+      const col   = table.querySelector(`col[data-col="${rz.dataset.col}"]`);
+      const startX = e.clientX;
+      const startW = col.getBoundingClientRect().width;
+      document.body.classList.add("resizing");
+      rz.classList.add("dragging");
+
+      const move = (ev) => {
+        col.style.width = Math.max(44, Math.round(startW + ev.clientX - startX)) + "px";
+      };
+      const up = () => {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+        document.body.classList.remove("resizing");
+        rz.classList.remove("dragging");
+        colW[rz.dataset.col] = parseInt(col.style.width, 10);
+        saveCols();
+      };
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    };
+    // ダブルクリックで既定値に戻す
+    rz.ondblclick = (e) => {
+      e.stopPropagation();
+      delete colW[rz.dataset.col];
+      saveCols(); renderBody();
+    };
+  });
 }
 
 function rankRow(it) {
@@ -645,6 +702,7 @@ function openRank(item) {
   $("rUrl").value     = entry.url;
   $("rImage").value   = entry.image;
   renderImgPrev();
+  renderRankPicks();
   $("rNote").value    = entry.checkNote;
   $("rChecked").value = entry.checkedAt;
   $("btnDelRank").style.visibility = isNew ? "hidden" : "visible";
@@ -656,7 +714,40 @@ function closeRank() { $("rankModal").hidden = true; entry = null; }
 
 function renderImgPrev() {
   const url = $("rImage").value.trim();
-  $("rImagePrev").innerHTML = url ? thumbTag(url, "eyecatch") : `<span class="thumb eyecatch none"></span>`;
+  $("rImagePrev").innerHTML = url
+    ? `<img class="img-big" src="${esc(url)}" alt="" referrerpolicy="no-referrer"
+           onerror="this.onerror=null;this.parentNode.classList.add('broken');this.remove()">`
+    : "";
+  $("rImagePrev").classList.toggle("empty", !url);
+  $("rImagePrev").classList.remove("broken");
+}
+
+/* モーダル下部：この行に追加済みの商品 */
+function renderRankPicks() {
+  const picks = (entry.picks || []).slice()
+    .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
+  $("rPickCnt").textContent = picks.length ? `${picks.length} 件` : "";
+
+  if (!picks.length) {
+    $("rPickList").innerHTML = `<p class="pick-none">まだありません。一覧の「商品」列を開くと追加できます。</p>`;
+    return;
+  }
+  $("rPickList").innerHTML = `<div class="pick-tbl-wrap"><table class="pick-tbl">
+    <thead><tr>
+      <th class="td-date">追加日</th><th class="td-img">画像</th>
+      <th class="td-url">商品URL</th><th class="td-note">メモ</th>
+    </tr></thead>
+    <tbody>${picks.map((p) => `
+      <tr>
+        <td class="td-date">${esc(p.addedAt || "—")}</td>
+        <td class="td-img">${p.image
+          ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
+                 onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
+          : `<span class="pick-thumb none"></span>`}</td>
+        <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 56))}</a></td>
+        <td class="td-note${p.note ? "" : " none"}">${esc(p.note || "—")}</td>
+      </tr>`).join("")}</tbody>
+  </table></div>`;
 }
 
 function saveRank() {
@@ -935,6 +1026,7 @@ function bind() {
 
 async function boot() {
   loadCfg();
+  loadCols();
   bind();
   renderHeadBits();
 
