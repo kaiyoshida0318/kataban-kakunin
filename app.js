@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.3.0";
+const VERSION   = "0.4.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -38,7 +38,7 @@ const LINK_TYPES = {
   official:     "公式",
   other:        "その他",
 };
-const PERIODS = { daily: "デイリー", weekly: "週間", monthly: "月間", realtime: "リアルタイム", other: "その他" };
+const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を付ける
 
 /* ---------- 状態 ---------- */
 let cfg   = { owner: "", repo: "", branch: "main", pat: "" };
@@ -49,7 +49,8 @@ let entry = null;
 let isNew = false;
 
 let view = "products";
-const filters = { products: { q: "", cat: "*" }, rakuten: { q: "", cat: "*" }, amazon: { q: "", cat: "*" } };
+const openPicks = new Set();   // 商品URL追加フォームを開いたままにするID
+const filters ={ products: { q: "", cat: "*" }, rakuten: { q: "", cat: "*" }, amazon: { q: "", cat: "*" } };
 const F = () => filters[view];
 
 /* ---------- 小物 ---------- */
@@ -59,6 +60,22 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
 const uid = () => "itm_" + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 const nowIso = () => new Date().toISOString();
 const ymd = (iso) => (iso || "").slice(0, 10);
+const today = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+function daysSince(ymdStr) {
+  if (!ymdStr) return null;
+  const diff = (new Date(today()) - new Date(ymdStr)) / 86400000;
+  return Number.isFinite(diff) ? Math.round(diff) : null;
+}
+function agoLabel(ymdStr) {
+  const d = daysSince(ymdStr);
+  if (d == null) return "未確認";
+  if (d <= 0) return "今日";
+  if (d === 1) return "昨日";
+  return `${d}日前`;
+}
 
 function toast(msg, isErr) {
   const t = $("toast");
@@ -95,11 +112,15 @@ function normProduct(it) {
 }
 function normRank(it) {
   return {
-    id:       it.id || uid(),
-    name:     it.name || "",
-    category: it.category || "未分類",
-    period:   PERIODS[it.period] ? it.period : "daily",
-    url:      it.url || "",
+    id:        it.id || uid(),
+    name:      it.name || "",
+    category:  it.category || "未分類",
+    url:       it.url || "",
+    checkNote: it.checkNote || "",          // 確認内容
+    checkedAt: ymd(it.checkedAt) || "",     // 最終確認日 (YYYY-MM-DD)
+    picks: (Array.isArray(it.picks) ? it.picks : [])
+      .map((p) => ({ id: p.id || uid(), name: p.name || "", url: p.url || "" }))
+      .filter((p) => p.url),
     createdAt: it.createdAt || nowIso(),
     updatedAt: it.updatedAt || it.createdAt || nowIso(),
   };
@@ -202,7 +223,7 @@ function visibleItems() {
       if (!q) return true;
       const hay = isProduct
         ? [it.model, it.name, it.category, it.links.map((l) => l.url + " " + l.label).join(" ")].join(" ")
-        : [it.name, it.category, it.url].join(" ");
+        : [it.name, it.category, it.url, it.checkNote, it.picks.map((p) => p.name + " " + p.url).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     })
     .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
@@ -218,16 +239,67 @@ function renderBody() {
   $("emptyTtl").textContent = total ? "条件に合うものがありません" : s.emptyTtl;
   $("emptySub").textContent = total ? "検索語やカテゴリの絞り込みを外してみてください。" : s.emptySub;
 
-  $("list").innerHTML = s.kind === "product" ? list.map(productCard).join("") : list.map(rankRow).join("");
+  $("list").innerHTML = s.kind === "product" ? list.map(productCard).join("") : list.map(rankCard).join("");
 
-  $("list").querySelectorAll("[data-edit]").forEach((b) => {
+  const root = $("list");
+  root.querySelectorAll("[data-edit]").forEach((b) => {
     b.onclick = () => {
       const it = itemsOf(view).find((i) => i.id === b.dataset.edit);
       s.kind === "product" ? openItem(it) : openRank(it);
     };
   });
-  $("list").querySelectorAll("[data-copy]").forEach((b) => {
+  root.querySelectorAll("[data-copy]").forEach((b) => {
     b.onclick = () => { navigator.clipboard?.writeText(b.dataset.copy); toast("URLをコピーしました"); };
+  });
+  if (s.kind !== "rank") return;
+
+  // 「今日確認した」スタンプ
+  root.querySelectorAll("[data-check]").forEach((b) => {
+    b.onclick = () => {
+      const it = itemsOf(view).find((i) => i.id === b.dataset.check);
+      it.checkedAt = today();
+      it.updatedAt = nowIso();
+      upsert(view, it);
+      toast("最終確認日を今日にしました");
+    };
+  });
+
+  // 商品URLの追加フォームを開閉
+  root.querySelectorAll("[data-pickopen]").forEach((b) => {
+    b.onclick = () => {
+      const box = root.querySelector(`.pick-form[data-for="${b.dataset.pickopen}"]`);
+      box.hidden = !box.hidden;
+      b.classList.toggle("on", !box.hidden);
+      if (!box.hidden) box.querySelector(".pick-url").focus();
+    };
+  });
+  root.querySelectorAll(".pick-form").forEach((box) => {
+    const id  = box.dataset.for;
+    const add = () => {
+      const url  = box.querySelector(".pick-url").value.trim();
+      const name = box.querySelector(".pick-name").value.trim();
+      if (!url) { toast("URLを入力してください", true); return; }
+      const it = itemsOf(view).find((i) => i.id === id);
+      it.picks.push({ id: uid(), name, url });
+      it.updatedAt = nowIso();
+      openPicks.add(id);
+      upsert(view, it);
+      toast("商品URLを追加しました");
+    };
+    box.querySelector(".pick-add").onclick = add;
+    box.querySelectorAll("input").forEach((inp) => {
+      inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+    });
+  });
+  root.querySelectorAll("[data-pickdel]").forEach((b) => {
+    b.onclick = () => {
+      const [id, pid] = b.dataset.pickdel.split("|");
+      const it = itemsOf(view).find((i) => i.id === id);
+      it.picks = it.picks.filter((p) => p.id !== pid);
+      it.updatedAt = nowIso();
+      openPicks.add(id);
+      upsert(view, it);
+    };
   });
 }
 
@@ -253,18 +325,46 @@ function productCard(it) {
   </article>`;
 }
 
-function rankRow(it) {
-  return `<article class="item item-flat">
-    <div class="rank-row">
-      <span class="chip period-${esc(it.period)}">${esc(PERIODS[it.period] || "—")}</span>
+function rankCard(it) {
+  const d = daysSince(it.checkedAt);
+  const stale = d == null || d > STALE_DAYS;
+
+  const picks = it.picks.map((p) => `
+    <li class="pick-row">
+      <span class="pick-mark">▸</span>
+      <a class="pick-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">
+        ${p.name ? `<span class="pick-name">${esc(p.name)}</span>` : ""}<span class="url-text">${esc(p.url)}</span>
+      </a>
+      <button class="icon-btn" data-copy="${esc(p.url)}" title="URLをコピー">⧉</button>
+      <button class="icon-btn" data-pickdel="${esc(it.id)}|${esc(p.id)}" title="削除">✕</button>
+    </li>`).join("");
+
+  return `<article class="item">
+    <div class="item-head">
       <a class="rank-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">
         <span class="rank-name">${esc(it.name || hostOf(it.url))}</span>
         <span class="url-text">${esc(it.url)}</span>
       </a>
       <span class="pill">${esc(it.category || "未分類")}</span>
-      <span class="item-date">${esc(ymd(it.updatedAt))}</span>
+      <span class="check-badge${stale ? " stale" : ""}" title="最終確認日${it.checkedAt ? "：" + it.checkedAt : "なし"}">◷ ${esc(agoLabel(it.checkedAt))}</span>
+      <button class="btn btn-ghost btn-xs" data-check="${esc(it.id)}" title="最終確認日を今日にする">✓ 今日確認</button>
       <button class="icon-btn" data-copy="${esc(it.url)}" title="URLをコピー">⧉</button>
       <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
+    </div>
+
+    ${it.checkNote ? `<p class="check-note">${esc(it.checkNote)}</p>` : ""}
+
+    <ul class="pick-list">${picks}</ul>
+
+    <div class="pick-foot">
+      <button class="pick-open${openPicks.has(it.id) ? " on" : ""}" data-pickopen="${esc(it.id)}" title="ランキング内の良い商品URLを追加">＋</button>
+      <span class="pick-cnt">${it.picks.length ? `商品 ${it.picks.length} 件` : "良かった商品のURLをここに足していけます"}</span>
+    </div>
+
+    <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
+      <input class="input-sm pick-name" type="text" placeholder="商品名・メモ（任意）">
+      <input class="input-sm grow pick-url" type="url" placeholder="https://…">
+      <button class="btn btn-add btn-sm pick-add">追加</button>
     </div>
   </article>`;
 }
@@ -350,13 +450,15 @@ function openRank(item) {
   isNew = !item;
   entry = item
     ? JSON.parse(JSON.stringify(item))
-    : { id: uid(), name: "", category: "", period: "daily", url: "", createdAt: nowIso(), updatedAt: nowIso() };
+    : { id: uid(), name: "", category: "", url: "", checkNote: "", checkedAt: today(), picks: [],
+        createdAt: nowIso(), updatedAt: nowIso() };
 
   $("rankModalTtl").textContent = `${SEC(view).label}のURLを${isNew ? "追加" : "編集"}`;
-  $("rName").value   = entry.name;
-  $("rCat").value    = isNew ? "" : entry.category;
-  $("rPeriod").value = entry.period;
-  $("rUrl").value    = entry.url;
+  $("rName").value    = entry.name;
+  $("rCat").value     = isNew ? "" : entry.category;
+  $("rUrl").value     = entry.url;
+  $("rNote").value    = entry.checkNote;
+  $("rChecked").value = entry.checkedAt;
   $("btnDelRank").style.visibility = isNew ? "hidden" : "visible";
 
   $("rankModal").hidden = false;
@@ -373,7 +475,8 @@ function saveRank() {
   entry.name      = name;
   entry.url       = url;
   entry.category  = $("rCat").value.trim() || "未分類";
-  entry.period    = $("rPeriod").value;
+  entry.checkNote = $("rNote").value.trim();
+  entry.checkedAt = $("rChecked").value || "";
   entry.updatedAt = nowIso();
 
   upsert(view, entry);
@@ -517,6 +620,7 @@ function bind() {
   $("btnCancelRank").onclick = closeRank;
   $("btnSaveRank").onclick   = saveRank;
   $("btnDelRank").onclick    = deleteRank;
+  $("btnToday").onclick      = () => { $("rChecked").value = today(); };
   $("rUrl").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveRank(); } };
 
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-08-18T00:00:00.000Z",
+  "updatedAt": "2026-08-19T00:00:00.000Z",
   "sections": {
     "products": {
       "items": [
@@ -25,17 +25,23 @@
           "id": "rk_sample01",
           "name": "家電 > 扇風機・サーキュレーター",
           "category": "家電",
-          "period": "daily",
           "url": "https://ranking.rakuten.co.jp/daily/562637/",
+          "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
+          "checkedAt": "2026-08-19",
+          "picks": [
+            { "id": "pk_s01", "name": "静音DCサーキュレーター 3位", "url": "https://item.rakuten.co.jp/example/dc-fan/" }
+          ],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z"
+          "updatedAt": "2026-08-19T00:00:00.000Z"
         },
         {
           "id": "rk_sample02",
           "name": "総合ランキング",
           "category": "総合",
-          "period": "realtime",
           "url": "https://ranking.rakuten.co.jp/realtime/",
+          "checkNote": "",
+          "checkedAt": "",
+          "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
           "updatedAt": "2026-08-18T00:00:00.000Z"
         }
@@ -45,12 +51,17 @@
       "items": [
         {
           "id": "am_sample01",
-          "name": "ホーム&キッチン 売れ筋ランキング",
-          "category": "ホーム",
-          "period": "daily",
-          "url": "https://www.amazon.co.jp/gp/bestsellers/kitchen/",
+          "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
+          "category": "家電",
+          "url": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
+          "checkNote": "上位に食い込んでいる型番と、対応機種の広さを確認する。",
+          "checkedAt": "2026-08-19",
+          "picks": [
+            { "id": "pk_a01", "name": "1位の汎用充電ケーブル", "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1" },
+            { "id": "pk_a02", "name": "レビュー数が伸びている新顔", "url": "https://www.amazon.co.jp/dp/B0EXAMPLE2" }
+          ],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z"
+          "updatedAt": "2026-08-19T00:00:00.000Z"
         }
       ]
     }

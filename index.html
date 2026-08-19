@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.3.0">
+<link rel="stylesheet" href="style.css?v=0.4.0">
 </head>
 <body>
 
@@ -27,7 +27,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.3.0</span>
+      <span class="ver-badge" id="verLabel">v0.4.0</span>
       <span class="dirty-badge" id="saveState" hidden>● 未保存</span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -129,6 +129,14 @@
         <label for="rName">ジャンル名 <span class="req">*</span></label>
         <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター">
       </div>
+      <div class="field">
+        <label for="rUrl">URL <span class="req">*</span></label>
+        <input id="rUrl" type="url" placeholder="https://…">
+      </div>
+      <div class="field">
+        <label for="rNote">確認内容</label>
+        <textarea id="rNote" rows="3" placeholder="何を見るか・気づいたこと（例：上位の価格帯が下がってきている）"></textarea>
+      </div>
       <div class="field-row">
         <div class="field">
           <label for="rCat">カテゴリ</label>
@@ -136,19 +144,12 @@
           <datalist id="rankCatList"></datalist>
         </div>
         <div class="field">
-          <label for="rPeriod">期間</label>
-          <select id="rPeriod">
-            <option value="daily">デイリー</option>
-            <option value="weekly">週間</option>
-            <option value="monthly">月間</option>
-            <option value="realtime">リアルタイム</option>
-            <option value="other">その他</option>
-          </select>
+          <label for="rChecked">最終確認日</label>
+          <div class="date-row">
+            <input id="rChecked" type="date">
+            <button class="btn btn-ghost btn-sm" id="btnToday" type="button">今日</button>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label for="rUrl">URL <span class="req">*</span></label>
-        <input id="rUrl" type="url" placeholder="https://…">
       </div>
     </div>
 
@@ -202,6 +203,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.3.0"></script>
+<script src="app.js?v=0.4.0"></script>
 </body>
 </html>
