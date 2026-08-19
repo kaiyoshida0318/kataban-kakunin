@@ -55,16 +55,11 @@ a:hover{text-decoration:underline}
 .head-brand{padding-bottom:8px}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .brand-icon{
-  width:36px;height:36px;border-radius:10px;flex:0 0 auto;
+  width:40px;height:40px;border-radius:10px;flex:0 0 auto;
   background:var(--accent);display:grid;place-items:center;overflow:hidden;
 }
-.brand-icon img{width:26px;height:26px;filter:brightness(0) invert(1)}
-.brand-text{display:flex;flex-direction:column;gap:1px;min-width:0}
-.brand-logo{height:21px;width:auto;display:block}
-.brand-sub{
-  font-size:9.5px;letter-spacing:.14em;color:var(--muted);
-  font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;
-}
+.brand-icon img{width:29px;height:29px;filter:brightness(0) invert(1)}
+.brand-logo{height:32px;width:auto;display:block}
 .head-actions{margin-left:auto;display:flex;align-items:center;gap:7px}
 
 .repo-badge{
@@ -219,6 +214,7 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .rank-tbl .c-check{text-align:center;white-space:nowrap}
 .rank-tbl .c-cnt{text-align:center}
 .rank-tbl .c-act{text-align:center}
+.rank-tbl .c-addp{text-align:center}
 
 
 
@@ -472,7 +468,6 @@ body.resizing *{cursor:col-resize !important}
   .head-row{padding-left:14px;padding-right:14px}
   .gnav{padding-left:14px;padding-right:14px}
   .container{padding-left:14px;padding-right:14px}
-  .brand-sub{display:none}
   .repo-badge,.ver-badge{display:none}
   .search-wrap{flex:1 1 100%}
   .count{display:none}

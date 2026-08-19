@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.12.1";
+const VERSION   = "0.13.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -19,6 +19,7 @@ const RANK_COLS = [
   { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
   { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
   { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
+  { key: "addp",  label: "商品追加",   w: 96,  cls: "c-addp"  },
   { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
 ];
 let colW = {};
@@ -384,6 +385,21 @@ function renderBody() {
       toast("削除しました");
     };
   });
+  root.querySelectorAll("[data-addpick]").forEach((b) => {
+    b.onclick = () => {
+      const id = b.dataset.addpick;
+      openRows.add(id);
+      openPicks.add(id);
+      renderBody();
+      setTimeout(() => {
+        const box = $("list").querySelector(`.pick-form[data-for="${id}"]`);
+        if (box) {
+          box.querySelector(".pick-url").focus();
+          box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      }, 30);
+    };
+  });
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
       const id = b.dataset.expand;
@@ -656,6 +672,9 @@ function rankRow(it) {
     <td class="c-note"><textarea class="cell-input cell-area" data-f="checkNote" data-id="${esc(it.id)}" rows="2">${esc(it.checkNote)}</textarea></td>
     ${checkCell}
     ${cntCell}
+    <td class="c-addp">
+      <button class="btn btn-add btn-xs" data-addpick="${esc(it.id)}" title="この行に商品URLを追加">＋ 商品</button>
+    </td>
     <td class="c-act">
       <button class="btn btn-ghost btn-xs btn-danger" data-del="${esc(it.id)}">削除</button>
     </td>`
@@ -669,12 +688,15 @@ function rankRow(it) {
     <td class="c-note" title="${esc(it.checkNote)}">${it.checkNote ? esc(it.checkNote) : '<span class="dash">—</span>'}</td>
     ${checkCell}
     ${cntCell}
+    <td class="c-addp">
+      <button class="btn btn-add btn-xs" data-addpick="${esc(it.id)}" title="この行に商品URLを追加">＋ 商品</button>
+    </td>
     <td class="c-act">
       <button class="btn btn-ghost btn-xs" data-edit="${esc(it.id)}">編集</button>
     </td>`;
 
   return `<tr class="r-main${open ? " open" : ""}">${body}</tr>
-  ${open ? `<tr class="r-sub"><td colspan="8">${pickPanel(it)}</td></tr>` : ""}`;
+  ${open ? `<tr class="r-sub"><td colspan="9">${pickPanel(it)}</td></tr>` : ""}`;
 }
 
 function thumbTag(src, cls, id) {
