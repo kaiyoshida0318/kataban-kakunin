@@ -87,8 +87,9 @@ a:hover{text-decoration:underline}
   max-width:none;margin:0;
   display:flex;gap:2px;padding:0 20px;
   border-bottom:1px solid var(--border);
-  overflow-x:auto;
+  overflow-x:auto;scrollbar-width:none;
 }
+.gnav::-webkit-scrollbar{display:none}
 .gnav-item{
   font-family:inherit;font-size:13px;font-weight:500;
   border:0;background:transparent;color:var(--muted);
@@ -187,15 +188,16 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 /* ===== ランキング一覧（表） ===== */
 .tbl-wrap{
   background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;
+  border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
 }
 .grid-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
-.grid-tbl th,.grid-tbl td{border:1px solid var(--border);padding:8px 10px;vertical-align:middle}
+.grid-tbl th,.grid-tbl td{border:1px solid var(--border);padding:9px 11px;vertical-align:middle;overflow:hidden}
 .grid-tbl thead th{
-  background:#eef1f6;font-size:11.5px;font-weight:700;color:#4b5563;
+  height:44px;background:#eef1f6;font-size:11.5px;font-weight:700;color:#4b5563;
   text-align:center;white-space:nowrap;position:sticky;top:0;z-index:1;
 }
 .grid-tbl th{position:relative}
+.rank-tbl tbody td{height:var(--row-h,96px)}
 .grid-tbl th.sortable{cursor:pointer;user-select:none}
 .grid-tbl th.sortable:hover{background:#e4e9f2;color:var(--text)}
 .grid-tbl th.sortable.on{color:var(--accent)}
@@ -208,6 +210,10 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 
 
 .rank-tbl .c-img{text-align:center;padding:4px}
+.rank-tbl .thumb{
+  width:min(calc(var(--row-h,96px) - 22px), 92px);
+  height:min(calc(var(--row-h,96px) - 22px), 92px);
+}
 .rank-tbl .c-cat{text-align:center;font-size:12px;color:var(--muted)}
 .rank-tbl .c-note{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-tbl .c-check{text-align:center;white-space:nowrap}
@@ -241,10 +247,6 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   width:124px;padding:2px 5px;font-size:11.5px;border-radius:6px;
   font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--surface);
 }
-.check-ago{
-  display:block;margin-top:2px;font-size:10px;color:var(--muted);
-  font-family:ui-monospace,Menlo,Consolas,monospace;
-}
 .btn-xs{padding:3px 9px;font-size:11px;border-radius:7px;flex:0 0 auto}
 
 .cnt-btn{
@@ -271,6 +273,8 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   padding:3px 8px;
 }
 .col-item-name{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.col-item.row-h{background:var(--accent-soft);border-color:#c3d8f3}
+.col-item.row-h .col-item-name{color:var(--accent-dark);font-weight:700}
 .col-item input{width:66px;padding:2px 6px;font-size:11.5px;border-radius:6px;font-family:ui-monospace,Menlo,Consolas,monospace}
 .col-item-unit{font-size:10.5px;color:#b6bcc7}
 .col-panel-hint{margin:0}
@@ -331,12 +335,15 @@ body.resizing *{cursor:col-resize !important}
 .pick-hdr .pick-open.on{background:var(--muted);border-color:var(--muted)}
 .pick-none{margin:0;padding:14px 16px;font-size:12px;color:var(--muted);background:var(--surface)}
 
-.pick-tbl-wrap{background:var(--surface);overflow-x:auto}
+.pick-tbl-wrap{background:var(--surface);overflow:hidden}
 .pick-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.pick-tbl th,.pick-tbl td{overflow:hidden}
 .pick-tbl th,.pick-tbl td{
   border:1px solid var(--border);
-  padding:7px 10px;vertical-align:middle;
+  padding:8px 11px;vertical-align:middle;
 }
+.pick-tbl tbody td{height:66px}
+.pick-tbl thead th{height:38px}
 .pick-tbl th{
   background:#f2f5f9;font-size:11px;font-weight:700;color:#4b5563;
   text-align:center;white-space:nowrap;padding-top:8px;padding-bottom:8px;

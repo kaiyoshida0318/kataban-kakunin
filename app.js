@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.10.0";
+const VERSION   = "0.10.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -22,6 +22,9 @@ const RANK_COLS = [
   { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
 ];
 let colW = {};
+const ROW_H_KEY = "_rowH";
+const ROW_H_DEF = 96;
+const rowH = () => colW[ROW_H_KEY] || ROW_H_DEF;
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
@@ -429,7 +432,7 @@ function rankTable(list) {
       `<span class="col-resizer" data-col="${c.key}"></span></th>`;
   }).join("");
 
-  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl">
+  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl" style="--row-h:${rowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
@@ -463,13 +466,26 @@ function fitColumns() {
 /* 列幅パネル（上部の「⇔ 幅調整」） */
 function renderColPanel() {
   const body = $("colPanelBody");
-  body.innerHTML = RANK_COLS.map((c) => `
+  body.innerHTML = `
+    <label class="col-item row-h">
+      <span class="col-item-name">行の高さ</span>
+      <input type="number" min="44" max="240" step="4" id="rowHInput" value="${rowH()}">
+      <span class="col-item-unit">px</span>
+    </label>` + RANK_COLS.map((c) => `
     <label class="col-item">
       <span class="col-item-name">${esc(c.label)}</span>
       <input type="number" min="44" max="1200" step="10" data-colw="${c.key}"
              value="${colW[c.key] || c.w || ""}" placeholder="自動">
       <span class="col-item-unit">px</span>
     </label>`).join("");
+
+  $("rowHInput").oninput = () => {
+    const v = parseInt($("rowHInput").value, 10);
+    if (Number.isFinite(v) && v >= 44) colW[ROW_H_KEY] = v; else delete colW[ROW_H_KEY];
+    saveCols();
+    const t = $("list").querySelector("table.rank-tbl");
+    if (t) t.style.setProperty("--row-h", rowH() + "px");
+  };
 
   body.querySelectorAll("[data-colw]").forEach((inp) => {
     inp.oninput = () => {
@@ -921,7 +937,7 @@ function bind() {
   $("btnCols").onclick     = () => toggleColPanel();
   $("btnColsReset").onclick = () => {
     colW = {}; saveCols(); renderBody(); renderColPanel();
-    toast("列幅を既定に戻しました");
+    toast("幅と高さを既定に戻しました");
   };
   $("btnSaveGh").onclick   = saveToGitHub;
 
