@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.9.1";
+const VERSION   = "0.10.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -25,33 +25,21 @@ let colW = {};
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "products", icon: "📦", label: "型番商品",          kind: "product",
-    search: "型番・商品名・URLで検索…", add: "＋ 型番を追加",
-    emptyTtl: "まだ型番が登録されていません",
-    emptySub: "「＋ 型番を追加」から、監視したい商品のURLを登録してください。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",     kind: "rank",
+  { key: "products", icon: "📦", label: "型番商品",        nameLabel: "商品名",
+    search: "商品名・型番・URLで検索…", add: "＋ 商品を追加",
+    emptyTtl: "まだ登録がありません",
+    emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
+  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
     search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
-    emptyTtl: "まだランキングURLが登録されていません",
+    emptyTtl: "まだ登録がありません",
     emptySub: "よく見る楽天のランキングページを登録しておくと、ここから一発で開けます。" },
-  { key: "amazon",   icon: "📊", label: "Amazonランキング",   kind: "rank",
+  { key: "amazon",   icon: "📊", label: "Amazonランキング", nameLabel: "ジャンル名",
     search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
-    emptyTtl: "まだランキングURLが登録されていません",
+    emptyTtl: "まだ登録がありません",
     emptySub: "よく見るAmazonの売れ筋ランキングページを登録しておくと、ここから一発で開けます。" },
 ];
 const SEC = (k) => SECTIONS.find((s) => s.key === k);
 
-const LINK_TYPES = {
-  rakuten:      "楽天",
-  rakuten_rank: "楽天ランキング",
-  amazon:       "Amazon",
-  amazon_rank:  "Amazonランキング",
-  yahoo:        "Yahoo!",
-  mercari:      "メルカリ",
-  alibaba:      "1688",
-  taobao:       "タオバオ",
-  official:     "公式",
-  other:        "その他",
-};
 const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を付ける
 
 /* ---------- 状態 ---------- */
@@ -89,14 +77,6 @@ function daysSince(ymdStr) {
   const diff = (new Date(today()) - new Date(ymdStr)) / 86400000;
   return Number.isFinite(diff) ? Math.round(diff) : null;
 }
-function agoLabel(ymdStr) {
-  const d = daysSince(ymdStr);
-  if (d == null) return "未確認";
-  if (d <= 0) return "今日";
-  if (d === 1) return "昨日";
-  return `${d}日前`;
-}
-
 function toast(msg, isErr) {
   const t = $("toast");
   t.textContent = msg;
@@ -121,23 +101,10 @@ function prettyUrl(url, max = 80) {
    データ
    ========================================================= */
 function emptyData() {
-  return { version: 2, updatedAt: "", sections: { products: { items: [] }, rakuten: { items: [] }, amazon: { items: [] } } };
+  return { version: 3, updatedAt: "", sections: { products: { items: [] }, rakuten: { items: [] }, amazon: { items: [] } } };
 }
 const itemsOf = (key) => data.sections[key].items;
 
-function normProduct(it) {
-  return {
-    id:       it.id || uid(),
-    model:    it.model || "",
-    name:     it.name || "",
-    category: it.category || "未分類",
-    links: (Array.isArray(it.links) ? it.links : [])
-      .map((l) => ({ type: LINK_TYPES[l.type] ? l.type : "other", label: l.label || "", url: l.url || "" }))
-      .filter((l) => l.url),
-    createdAt: it.createdAt || nowIso(),
-    updatedAt: it.updatedAt || it.createdAt || nowIso(),
-  };
-}
 function normRank(it) {
   return {
     id:        it.id || uid(),
@@ -161,13 +128,31 @@ function normRank(it) {
   };
 }
 
+/* v1/v2 の型番商品（model + links[]）を共通形式へ */
+function fromLegacyProduct(it) {
+  const links = Array.isArray(it.links) ? it.links : [];
+  const day = ymd(it.createdAt) || today();
+  return normRank({
+    id: it.id,
+    name: [it.model, it.name].filter(Boolean).join("  "),
+    category: it.category,
+    url: links[0]?.url || "",
+    picks: links.slice(1).map((l) => ({ addedAt: day, url: l.url, note: l.label || "" })),
+    createdAt: it.createdAt,
+    updatedAt: it.updatedAt,
+  });
+}
+const isLegacyProduct = (it) => it && (it.model !== undefined || Array.isArray(it.links));
+
 function normalize(d) {
   const out = emptyData();
   out.updatedAt = d?.updatedAt || "";
   const s = d?.sections || {};
   // v1（items が直下）からの移行
   const legacy = Array.isArray(d?.items) ? d.items : null;
-  out.sections.products.items = (legacy || s.products?.items || []).map(normProduct);
+  out.sections.products.items = (legacy || s.products?.items || [])
+    .map((it) => (isLegacyProduct(it) ? fromLegacyProduct(it) : normRank(it)))
+    .filter((x) => x.url || x.name);
   out.sections.rakuten.items  = (s.rakuten?.items || []).map(normRank).filter((x) => x.url);
   out.sections.amazon.items   = (s.amazon?.items  || []).map(normRank).filter((x) => x.url);
   return out;
@@ -248,11 +233,7 @@ function renderToolbar() {
     b.onclick = () => { F().cat = b.dataset.k; renderToolbar(); renderBody(); };
   });
 
-  $("btnCols").hidden = SEC(view).kind !== "rank";
-  if (SEC(view).kind !== "rank") toggleColPanel(false);
-
-  const dl = view === "products" ? "catList" : "rankCatList";
-  $(dl).innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
+  $("rankCatList").innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
 }
 
 /* =========================================================
@@ -260,14 +241,12 @@ function renderToolbar() {
    ========================================================= */
 function visibleItems() {
   const q = F().q.trim().toLowerCase();
-  const isProduct = SEC(view).kind === "product";
   return itemsOf(view)
     .filter((it) => {
       if (F().cat !== "*" && (it.category || "未分類") !== F().cat) return false;
       if (!q) return true;
-      const hay = isProduct
-        ? [it.model, it.name, it.category, it.links.map((l) => l.url + " " + l.label).join(" ")].join(" ")
-        : [it.name, it.category, it.url, it.checkNote, it.picks.map((p) => p.note + " " + p.url).join(" ")].join(" ");
+      const hay = [it.name, it.category, it.url, it.checkNote,
+                   it.picks.map((p) => p.note + " " + p.url).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     })
     .sort(comparator());
@@ -315,13 +294,14 @@ function renderBody() {
   $("emptyTtl").textContent = total ? "条件に合うものがありません" : s.emptyTtl;
   $("emptySub").textContent = total ? "検索語やカテゴリの絞り込みを外してみてください。" : s.emptySub;
 
-  $("list").innerHTML = s.kind === "product" ? list.map(productCard).join("") : rankTable(list);
+  $("list").innerHTML = rankTable(list);
 
   const root = $("list");
   root.querySelectorAll("th.sortable").forEach((h) => {
     h.onclick = () => setSort(h.dataset.sort);
   });
   bindResizers(root);
+  fitColumns();
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
       const id = b.dataset.expand;
@@ -330,15 +310,11 @@ function renderBody() {
     };
   });
   root.querySelectorAll("[data-edit]").forEach((b) => {
-    b.onclick = () => {
-      const it = itemsOf(view).find((i) => i.id === b.dataset.edit);
-      s.kind === "product" ? openItem(it) : openRank(it);
-    };
+    b.onclick = () => openRank(itemsOf(view).find((i) => i.id === b.dataset.edit));
   });
   root.querySelectorAll("[data-copy]").forEach((b) => {
     b.onclick = () => { navigator.clipboard?.writeText(b.dataset.copy); toast("URLをコピーしました"); };
   });
-  if (s.kind !== "rank") return;
 
   // 確認日：直接入力
   root.querySelectorAll("[data-checkdate]").forEach((inp) => {
@@ -438,28 +414,6 @@ function renderBody() {
   });
 }
 
-function productCard(it) {
-  const links = it.links.map((l) => `
-    <li class="url-row">
-      <span class="chip ${esc(l.type)}">${esc(LINK_TYPES[l.type] || "その他")}</span>
-      <a class="url-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">
-        ${l.label ? `<span class="url-label">${esc(l.label)}</span>` : ""}<span class="url-text">${esc(l.url)}</span>
-      </a>
-      <button class="icon-btn" data-copy="${esc(l.url)}" title="URLをコピー">⧉</button>
-    </li>`).join("");
-
-  return `<article class="item">
-    <div class="item-head">
-      <span class="model">${esc(it.model || "—")}</span>
-      <span class="item-name">${esc(it.name || "")}</span>
-      <span class="pill">${esc(it.category || "未分類")}</span>
-      <span class="item-date">${esc(ymd(it.updatedAt))}</span>
-      <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
-    </div>
-    <ul class="url-list">${links || '<li class="url-row muted">URL未登録</li>'}</ul>
-  </article>`;
-}
-
 /* ===== ランキング一覧（表） ===== */
 function rankTable(list) {
   if (!list.length) return "";
@@ -469,8 +423,9 @@ function rankTable(list) {
   }).join("");
   const heads = RANK_COLS.map((c) => {
     const on = c.sort && F().sort === c.sort;
+    const label = c.key === "name" ? SEC(view).nameLabel : c.label;
     return `<th class="${c.cls}${c.sort ? " sortable" : ""}${on ? " on" : ""}"${c.sort ? ` data-sort="${c.sort}"` : ""}>` +
-      `${esc(c.label)}${c.sort ? sortMark(c.sort) : ""}` +
+      `${esc(label)}${c.sort ? sortMark(c.sort) : ""}` +
       `<span class="col-resizer" data-col="${c.key}"></span></th>`;
   }).join("");
 
@@ -479,6 +434,30 @@ function rankTable(list) {
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
   </table></div>`;
+}
+
+/* 画面が狭いときは、はみ出さないよう全列を比率のまま縮める（横スクロールを出さない） */
+function fitColumns() {
+  const wrap = $("list").querySelector(".tbl-wrap");
+  if (!wrap) return;
+  const table = wrap.querySelector("table.rank-tbl");
+  if (!table) return;
+
+  const setW = (key, px) => {
+    const col = table.querySelector(`col[data-col="${key}"]`);
+    if (col) col.style.width = px ? px + "px" : "";
+  };
+  RANK_COLS.forEach((c) => setW(c.key, colWidth(c)));   // いったん素の幅に戻す
+
+  const AUTO_MIN = 90;
+  const fixed = RANK_COLS.filter((c) => colWidth(c));
+  const autos = RANK_COLS.length - fixed.length;
+  const sum   = fixed.reduce((t, c) => t + colWidth(c), 0);
+  const avail = wrap.clientWidth - 2;
+  if (sum + autos * AUTO_MIN <= avail) return;          // そのまま収まる
+
+  const factor = Math.max(0.3, (avail - autos * AUTO_MIN) / sum);
+  fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(colWidth(c) * factor))));
 }
 
 /* 列幅パネル（上部の「⇔ 幅調整」） */
@@ -498,8 +477,7 @@ function renderColPanel() {
       const v = parseInt(inp.value, 10);
       if (Number.isFinite(v) && v >= 44) colW[key] = v; else delete colW[key];
       saveCols();
-      const col = $("list").querySelector(`col[data-col="${key}"]`);
-      if (col) col.style.width = colW[key] ? colW[key] + "px" : "";
+      fitColumns();
     };
   });
 }
@@ -568,7 +546,6 @@ function rankRow(it) {
         <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
         <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
       </span>
-      <span class="check-ago">${esc(agoLabel(it.checkedAt))}</span>
     </td>
     <td class="c-cnt">
       <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件 ${open ? "▲" : "▼"}</button>
@@ -654,79 +631,7 @@ function pickPanel(it) {
 function renderAll() { renderNav(); renderToolbar(); renderBody(); }
 
 /* =========================================================
-   型番商品モーダル
-   ========================================================= */
-function openItem(item) {
-  isNew = !item;
-  entry = item
-    ? JSON.parse(JSON.stringify(item))
-    : { id: uid(), model: "", name: "", category: "", links: [], createdAt: nowIso(), updatedAt: nowIso() };
-
-  $("itemModalTtl").textContent = isNew ? "型番を追加" : `${entry.model || "（型番未設定）"} を編集`;
-  $("fModel").value = entry.model;
-  $("fName").value  = entry.name;
-  $("fCat").value   = isNew ? "" : entry.category;
-  $("lLabel").value = "";
-  $("lUrl").value   = "";
-  $("btnDelItem").style.visibility = isNew ? "hidden" : "visible";
-
-  renderLinks();
-  $("itemModal").hidden = false;
-  setTimeout(() => $("fModel").focus(), 30);
-}
-function closeItem() { $("itemModal").hidden = true; entry = null; }
-
-function renderLinks() {
-  const ul = $("linkList");
-  if (!entry.links.length) { ul.innerHTML = `<li class="hint">URLがまだありません。</li>`; return; }
-
-  ul.innerHTML = entry.links.map((l, i) => `
-    <li class="link-item">
-      <span class="chip ${esc(l.type)}">${esc(LINK_TYPES[l.type] || "その他")}</span>
-      <div class="link-body">
-        <div class="link-label">${esc(l.label || hostOf(l.url))}</div>
-        <a class="link-url" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.url)}</a>
-      </div>
-      <button class="icon-btn" data-del="${i}" title="削除">✕</button>
-    </li>`).join("");
-
-  ul.querySelectorAll("[data-del]").forEach((b) => {
-    b.onclick = () => { entry.links.splice(Number(b.dataset.del), 1); renderLinks(); };
-  });
-}
-
-function addLink() {
-  const url = $("lUrl").value.trim();
-  if (!url) { toast("URLを入力してください", true); return; }
-  entry.links.push({ type: $("lType").value, label: $("lLabel").value.trim(), url });
-  $("lUrl").value = ""; $("lLabel").value = "";
-  renderLinks();
-  $("lUrl").focus();
-}
-
-function saveItem() {
-  const model = $("fModel").value.trim();
-  if (!model) { toast("型番は必須です", true); $("fModel").focus(); return; }
-
-  entry.model     = model;
-  entry.name      = $("fName").value.trim();
-  entry.category  = $("fCat").value.trim() || "未分類";
-  entry.updatedAt = nowIso();
-
-  upsert("products", entry);
-  closeItem();
-  toast(isNew ? "追加しました" : "保存しました");
-}
-
-function deleteItem() {
-  if (!confirm(`「${entry.model}」を削除します。よろしいですか？`)) return;
-  removeById("products", entry.id);
-  closeItem();
-  toast("削除しました");
-}
-
-/* =========================================================
-   ランキングURLモーダル
+   編集モーダル
    ========================================================= */
 function openRank(item) {
   isNew = !item;
@@ -735,7 +640,8 @@ function openRank(item) {
     : { id: uid(), name: "", category: "", image: "", url: "", checkNote: "", checkedAt: today(), picks: [],
         createdAt: nowIso(), updatedAt: nowIso() };
 
-  $("rankModalTtl").textContent = `${SEC(view).label}のURLを${isNew ? "追加" : "編集"}`;
+  $("rankModalTtl").textContent = `${SEC(view).label}を${isNew ? "追加" : "編集"}`;
+  $("rNameLabel").textContent = SEC(view).nameLabel;
   $("rName").value    = entry.name;
   $("rCat").value     = isNew ? "" : entry.category;
   $("rUrl").value     = entry.url;
@@ -792,7 +698,7 @@ function renderRankPicks() {
 function saveRank() {
   const name = $("rName").value.trim();
   const url  = $("rUrl").value.trim();
-  if (!name) { toast("ジャンル名は必須です", true); $("rName").focus(); return; }
+  if (!name) { toast(`${SEC(view).nameLabel}は必須です`, true); $("rName").focus(); return; }
   if (!url)  { toast("URLは必須です", true); $("rUrl").focus(); return; }
 
   entry.name      = name;
@@ -1010,7 +916,7 @@ function renderCfgUrl() {
    起動
    ========================================================= */
 function bind() {
-  $("btnNew").onclick      = () => (SEC(view).kind === "product" ? openItem(null) : openRank(null));
+  $("btnNew").onclick      = () => openRank(null);
   $("btnSettings").onclick = openCfg;
   $("btnCols").onclick     = () => toggleColPanel();
   $("btnColsReset").onclick = () => {
@@ -1022,12 +928,6 @@ function bind() {
   $("q").oninput      = (e) => { F().q = e.target.value; renderBody(); };
   $("qClear").onclick = () => { $("q").value = ""; F().q = ""; renderBody(); };
 
-  $("itemClose").onclick     = closeItem;
-  $("btnCancelItem").onclick = closeItem;
-  $("btnSaveItem").onclick   = saveItem;
-  $("btnDelItem").onclick    = deleteItem;
-  $("btnAddLink").onclick    = addLink;
-  $("lUrl").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } };
 
   $("rankClose").onclick     = closeRank;
   $("btnCancelRank").onclick = closeRank;
@@ -1056,12 +956,17 @@ function bind() {
     $("cfgStatus").textContent = ok ? "読み込み完了" : "読み込めませんでした";
   };
 
-  ["itemModal", "rankModal", "cfgModal"].forEach((id) => {
+  ["rankModal", "cfgModal"].forEach((id) => {
     $(id).onclick = (e) => { if (e.target.id === id) $(id).hidden = true; };
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") ["itemModal", "rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
+    if (e.key === "Escape") ["rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
     if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveToGitHub(); }
+  });
+  let fitTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(fitColumns, 120);
   });
   window.addEventListener("beforeunload", (e) => {
     if (dirty) { e.preventDefault(); e.returnValue = ""; }

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.9.1">
+<link rel="stylesheet" href="style.css?v=0.10.0">
 </head>
 <body>
 
@@ -27,7 +27,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.9.1</span>
+      <span class="ver-badge" id="verLabel">v0.10.0</span>
       <span class="dirty-badge" id="saveState" hidden>● 未保存</span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -69,65 +69,7 @@
   </div>
 </main>
 
-<!-- ===== 型番商品モーダル ===== -->
-<div class="modal-overlay" id="itemModal" hidden>
-  <div class="modal">
-    <div class="modal-head">
-      <h2 class="modal-ttl" id="itemModalTtl">型番を追加</h2>
-      <button class="icon-btn" id="itemClose" title="閉じる">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <div class="field-row">
-        <div class="field">
-          <label for="fModel">型番 <span class="req">*</span></label>
-          <input id="fModel" type="text" placeholder="例) SD-1200X">
-        </div>
-        <div class="field">
-          <label for="fCat">カテゴリ</label>
-          <input id="fCat" type="text" list="catList" placeholder="未分類">
-          <datalist id="catList"></datalist>
-        </div>
-      </div>
-      <div class="field">
-        <label for="fName">商品名</label>
-        <input id="fName" type="text" placeholder="例) 折りたたみ電動キックボード">
-      </div>
-
-      <section class="block-section">
-        <h3 class="sec-ttl">URL <span class="sec-sub">何本でも追加できます</span></h3>
-        <div class="link-add">
-          <select id="lType" class="select select-sm">
-            <option value="rakuten">楽天</option>
-            <option value="rakuten_rank">楽天ランキング</option>
-            <option value="amazon">Amazon</option>
-            <option value="amazon_rank">Amazonランキング</option>
-            <option value="yahoo">Yahoo!</option>
-            <option value="mercari">メルカリ</option>
-            <option value="alibaba">1688 / Alibaba</option>
-            <option value="taobao">タオバオ</option>
-            <option value="official">公式・メーカー</option>
-            <option value="other">その他</option>
-          </select>
-          <input id="lLabel" class="input-sm" type="text" placeholder="ラベル（任意）">
-          <input id="lUrl" class="input-sm grow" type="url" placeholder="https://…">
-          <button class="btn btn-add btn-sm" id="btnAddLink">追加</button>
-        </div>
-        <ul class="link-list" id="linkList"></ul>
-        <p class="hint">URL欄でEnterを押しても追加できます。</p>
-      </section>
-    </div>
-
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-danger" id="btnDelItem">削除</button>
-      <div class="grow"></div>
-      <button class="btn btn-ghost" id="btnCancelItem">キャンセル</button>
-      <button class="btn btn-primary" id="btnSaveItem">保存</button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== ランキングURLモーダル ===== -->
+<!-- ===== 編集モーダル ===== -->
 <div class="modal-overlay" id="rankModal" hidden>
   <div class="modal modal-wide">
     <div class="modal-head">
@@ -149,8 +91,8 @@
         <!-- 右：その他の項目 -->
         <div class="rank-col-fields">
           <div class="field">
-            <label for="rName">ジャンル名 <span class="req">*</span></label>
-            <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター">
+            <label for="rName"><span id="rNameLabel">ジャンル名</span> <span class="req">*</span></label>
+            <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター / SD-1200X 電動キックボード">
           </div>
           <div class="field">
             <label for="rUrl">URL <span class="req">*</span></label>
@@ -236,6 +178,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.9.1"></script>
+<script src="app.js?v=0.10.0"></script>
 </body>
 </html>
