@@ -57,7 +57,8 @@
             }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "updatedAt": "2026-08-19T00:00:00.000Z",
+          "image": "https://via.placeholder.com/120x120.png?text=FAN"
         },
         {
           "id": "rk_sample02",
@@ -68,7 +69,8 @@
           "checkedAt": "",
           "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z"
+          "updatedAt": "2026-08-18T00:00:00.000Z",
+          "image": ""
         }
       ]
     },
@@ -98,7 +100,8 @@
             }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "updatedAt": "2026-08-19T00:00:00.000Z",
+          "image": "https://via.placeholder.com/120x120.png?text=CABLE"
         }
       ]
     }

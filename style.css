@@ -184,56 +184,77 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
-/* ===== ランキングカード ===== */
-.rank-card{overflow:hidden}
-.rank-hd{
-  display:flex;align-items:flex-start;gap:14px;
-  padding:13px 16px 12px;background:var(--surface);
-  border-bottom:1px solid var(--border);
+/* ===== ランキング一覧（表） ===== */
+.tbl-wrap{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;
 }
-.rank-hd-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.rank-title{
-  font-size:15px;font-weight:700;color:var(--text);line-height:1.35;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+.grid-tbl{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1080px}
+.grid-tbl th,.grid-tbl td{border:1px solid var(--border);padding:8px 10px;vertical-align:middle}
+.grid-tbl thead th{
+  background:#eef1f6;font-size:11.5px;font-weight:700;color:#4b5563;
+  text-align:center;white-space:nowrap;position:sticky;top:0;z-index:1;
 }
-.rank-title:hover{color:var(--accent);text-decoration:none}
-.rank-url{
-  font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.rank-url:hover{color:var(--accent)}
-.rank-hd-side{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding-top:2px}
+.grid-tbl th.sortable{cursor:pointer;user-select:none}
+.grid-tbl th.sortable:hover{background:#e4e9f2;color:var(--text)}
+.grid-tbl th.sortable.on{color:var(--accent)}
+.sort-mark{margin-left:4px;font-size:9px}
+.grid-tbl tbody tr.r-main:hover td{background:#f4f8ff}
+.grid-tbl tbody tr.r-main.open td{background:#eef4fd}
 
-/* 確認日（カード上で直接編集） */
-.check-inline{
-  display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
-  padding:3px 4px 3px 10px;border-radius:999px;
+.rank-tbl .c-img{width:66px;text-align:center;padding:4px}
+.rank-tbl .c-name{width:230px}
+.rank-tbl .c-cat{width:96px;text-align:center;font-size:12px;color:var(--muted)}
+.rank-tbl .c-url{width:230px}
+.rank-tbl .c-note{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-tbl .c-check{width:210px;text-align:center;white-space:nowrap}
+.rank-tbl .c-cnt{width:84px;text-align:center}
+.rank-tbl .c-act{width:74px;text-align:center}
+
+.r-name{font-size:13px;font-weight:700;color:var(--text);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-name:hover{color:var(--accent);text-decoration:none}
+.rank-tbl .c-url a{
+  display:block;font-size:11.5px;color:var(--blue);font-family:ui-monospace,Menlo,Consolas,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.dash{color:#c3c8d1}
+
+.thumb{
+  width:52px;height:52px;object-fit:contain;display:block;margin:0 auto;
+  border-radius:6px;background:#fff;border:1px solid var(--border);
+}
+.thumb.none,.thumb.broken{border-style:dashed;background:var(--row-alt)}
+
+.check-cell{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 3px 2px 5px;border-radius:8px;
   background:var(--green-soft);border:1px solid #cbe6da;
 }
-.check-inline.stale{background:var(--warn-soft);border-color:#f0dcbd}
-.check-lbl{font-size:10.5px;font-weight:700;color:#22795a}
-.check-inline.stale .check-lbl{color:var(--warn)}
-.rank-hd input.check-date{
-  width:132px;padding:2px 6px;font-size:11.5px;border-radius:7px;
+.check-cell.stale{background:var(--warn-soft);border-color:#f0dcbd}
+.grid-tbl input.check-date{
+  width:124px;padding:2px 5px;font-size:11.5px;border-radius:6px;
   font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--surface);
 }
 .check-ago{
-  font-size:10.5px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
-  padding-right:7px;white-space:nowrap;
+  display:block;margin-top:2px;font-size:10px;color:var(--muted);
+  font-family:ui-monospace,Menlo,Consolas,monospace;
 }
 .btn-xs{padding:3px 9px;font-size:11px;border-radius:7px;flex:0 0 auto}
 
-/* 確認内容 */
-.note-band{
-  display:flex;gap:11px;align-items:flex-start;
-  padding:10px 16px;background:#fbfcfe;
-  border-bottom:1px solid var(--border);border-left:3px solid var(--accent);
+.cnt-btn{
+  font-family:inherit;font-size:11.5px;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  border-radius:7px;padding:3px 8px;white-space:nowrap;transition:.12s;
 }
-.band-lbl{
-  flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--accent);
-  background:var(--accent-soft);padding:2px 8px;border-radius:5px;margin-top:1px;
-}
-.band-body{margin:0;font-size:12.5px;line-height:1.65;white-space:pre-wrap}
+.cnt-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cnt-btn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+.r-sub > td{padding:0;background:var(--row-alt)}
+
+/* モーダルの画像プレビュー */
+.img-row{display:flex;gap:10px;align-items:center}
+.img-row input{flex:1}
+.img-preview .thumb{margin:0}
 
 /* ===== ランキング内の良い商品（表） ===== */
 .pick-block{background:var(--row-alt)}
@@ -257,7 +278,7 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   padding:7px 10px;vertical-align:middle;
 }
 .pick-tbl th{
-  background:#eef1f6;font-size:11px;font-weight:700;color:#4b5563;
+  background:#f2f5f9;font-size:11px;font-weight:700;color:#4b5563;
   text-align:center;white-space:nowrap;padding-top:8px;padding-bottom:8px;
 }
 .pick-tbl tr:hover td{background:#f4f8ff}

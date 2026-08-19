@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.7.0";
+const VERSION   = "0.8.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -51,7 +51,12 @@ let isNew = false;
 let view = "products";
 const openPicks = new Set();   // 商品URL追加フォームを開いたままにするID
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
-const filters ={ products: { q: "", cat: "*" }, rakuten: { q: "", cat: "*" }, amazon: { q: "", cat: "*" } };
+const openRows  = new Set();   // 商品リストを開いているランキング行
+const filters = {
+  products: { q: "", cat: "*", sort: "updatedAt", dir: "desc" },
+  rakuten:  { q: "", cat: "*", sort: "checkedAt", dir: "desc" },
+  amazon:   { q: "", cat: "*", sort: "checkedAt", dir: "desc" },
+};
 const F = () => filters[view];
 
 /* ---------- 小物 ---------- */
@@ -124,6 +129,7 @@ function normRank(it) {
     id:        it.id || uid(),
     name:      it.name || "",
     category:  it.category || "未分類",
+    image:     it.image || "",              // アイキャッチ画像URL
     url:       it.url || "",
     checkNote: it.checkNote || "",          // 確認内容
     checkedAt: ymd(it.checkedAt) || "",     // 最終確認日 (YYYY-MM-DD)
@@ -241,7 +247,39 @@ function visibleItems() {
         : [it.name, it.category, it.url, it.checkNote, it.picks.map((p) => p.note + " " + p.url).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     })
-    .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+    .sort(comparator());
+}
+
+/* 並べ替え。列見出しクリックで key/dir が切り替わる */
+function comparator() {
+  const { sort, dir } = F();
+  const sgn = dir === "asc" ? 1 : -1;
+  const val = (it) => {
+    switch (sort) {
+      case "name":      return it.name || it.model || "";
+      case "model":     return it.model || "";
+      case "category":  return it.category || "";
+      case "checkedAt": return it.checkedAt || "";
+      case "picks":     return String((it.picks || []).length).padStart(6, "0");
+      case "links":     return String((it.links || []).length).padStart(6, "0");
+      default:          return it.updatedAt || "";
+    }
+  };
+  return (a, b) => sgn * String(val(a)).localeCompare(String(val(b)), "ja", { numeric: true });
+}
+
+function setSort(key) {
+  const f = F();
+  if (f.sort === key) f.dir = f.dir === "asc" ? "desc" : "asc";
+  else { f.sort = key; f.dir = key === "checkedAt" || key === "updatedAt" ? "desc" : "asc"; }
+  renderBody();
+}
+function sortMark(key) {
+  const f = F();
+  return f.sort === key ? `<span class="sort-mark">${f.dir === "asc" ? "▲" : "▼"}</span>` : "";
+}
+function th(key, label, cls) {
+  return `<th class="${cls} sortable${F().sort === key ? " on" : ""}" data-sort="${key}">${esc(label)}${sortMark(key)}</th>`;
 }
 
 function renderBody() {
@@ -254,9 +292,19 @@ function renderBody() {
   $("emptyTtl").textContent = total ? "条件に合うものがありません" : s.emptyTtl;
   $("emptySub").textContent = total ? "検索語やカテゴリの絞り込みを外してみてください。" : s.emptySub;
 
-  $("list").innerHTML = s.kind === "product" ? list.map(productCard).join("") : list.map(rankCard).join("");
+  $("list").innerHTML = s.kind === "product" ? list.map(productCard).join("") : rankTable(list);
 
   const root = $("list");
+  root.querySelectorAll("th.sortable").forEach((h) => {
+    h.onclick = () => setSort(h.dataset.sort);
+  });
+  root.querySelectorAll("[data-expand]").forEach((b) => {
+    b.onclick = () => {
+      const id = b.dataset.expand;
+      openRows.has(id) ? openRows.delete(id) : openRows.add(id);
+      renderBody();
+    };
+  });
   root.querySelectorAll("[data-edit]").forEach((b) => {
     b.onclick = () => {
       const it = itemsOf(view).find((i) => i.id === b.dataset.edit);
@@ -388,10 +436,62 @@ function productCard(it) {
   </article>`;
 }
 
-function rankCard(it) {
+/* ===== ランキング一覧（表） ===== */
+function rankTable(list) {
+  if (!list.length) return "";
+  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl">
+    <thead><tr>
+      <th class="c-img">画像</th>
+      ${th("name", "ジャンル名", "c-name")}
+      ${th("category", "カテゴリ", "c-cat")}
+      <th class="c-url">URL</th>
+      <th class="c-note">確認内容</th>
+      ${th("checkedAt", "確認日", "c-check")}
+      ${th("picks", "商品", "c-cnt")}
+      <th class="c-act">操作</th>
+    </tr></thead>
+    <tbody>${list.map(rankRow).join("")}</tbody>
+  </table></div>`;
+}
+
+function rankRow(it) {
   const d = daysSince(it.checkedAt);
   const stale = d == null || d > STALE_DAYS;
+  const open = openRows.has(it.id);
 
+  return `<tr class="r-main${open ? " open" : ""}">
+    <td class="c-img">${thumbTag(it.image, "eyecatch")}</td>
+    <td class="c-name">
+      <a class="r-name" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(it.url))}</a>
+    </td>
+    <td class="c-cat">${esc(it.category || "未分類")}</td>
+    <td class="c-url"><a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">${esc(prettyUrl(it.url, 42))}</a></td>
+    <td class="c-note" title="${esc(it.checkNote)}">${it.checkNote ? esc(it.checkNote) : '<span class="dash">—</span>'}</td>
+    <td class="c-check">
+      <span class="check-cell${stale ? " stale" : ""}">
+        <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
+        <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
+      </span>
+      <span class="check-ago">${esc(agoLabel(it.checkedAt))}</span>
+    </td>
+    <td class="c-cnt">
+      <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件 ${open ? "▲" : "▼"}</button>
+    </td>
+    <td class="c-act">
+      <button class="btn btn-ghost btn-xs" data-edit="${esc(it.id)}">編集</button>
+    </td>
+  </tr>
+  ${open ? `<tr class="r-sub"><td colspan="8">${pickPanel(it)}</td></tr>` : ""}`;
+}
+
+function thumbTag(src, cls) {
+  return src
+    ? `<img class="thumb ${cls}" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" title="${esc(src)}"
+           onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
+    : `<span class="thumb ${cls} none"></span>`;
+}
+
+function pickPanel(it) {
   const thumb = (p) => p.image
     ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
            title="${esc(p.image)}"
@@ -428,56 +528,31 @@ function rankCard(it) {
       </tr>`;
     }).join("");
 
-  return `<article class="item rank-card">
-    <header class="rank-hd">
-      <div class="rank-hd-main">
-        <a class="rank-title" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(it.url))}</a>
-        <a class="rank-url" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">${esc(prettyUrl(it.url, 90))}</a>
-      </div>
-      <div class="rank-hd-side">
-        <span class="pill">${esc(it.category || "未分類")}</span>
-        <span class="check-inline${stale ? " stale" : ""}">
-          <span class="check-lbl">確認日</span>
-          <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
-          <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
-          <span class="check-ago">${esc(agoLabel(it.checkedAt))}</span>
-        </span>
-        <button class="icon-btn" data-copy="${esc(it.url)}" title="URLをコピー">⧉</button>
-        <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
-      </div>
-    </header>
+  return `<section class="pick-block">
+    <div class="pick-hdr">
+      <span class="pick-hdr-ttl">チェックした商品</span>
+      <span class="pick-hdr-cnt">${it.picks.length} 件</span>
+      <button class="btn btn-add btn-xs pick-open${openPicks.has(it.id) ? " on" : ""}" data-pickopen="${esc(it.id)}">
+        ${openPicks.has(it.id) ? "× 閉じる" : "＋ 商品を追加"}
+      </button>
+    </div>
 
-    ${it.checkNote ? `<div class="note-band">
-      <span class="band-lbl">確認内容</span>
-      <p class="band-body">${esc(it.checkNote)}</p>
-    </div>` : ""}
+    <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
+      <input class="input-sm pick-added" type="date" value="${esc(today())}">
+      <input class="input-sm pick-image" type="url" placeholder="画像URL（任意）">
+      <input class="input-sm pick-url" type="url" placeholder="商品URL  https://…">
+      <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
+      <button class="btn btn-add btn-sm pick-add">追加</button>
+    </div>
 
-    <section class="pick-block">
-      <div class="pick-hdr">
-        <span class="pick-hdr-ttl">チェックした商品</span>
-        <span class="pick-hdr-cnt">${it.picks.length} 件</span>
-        <button class="btn btn-add btn-xs pick-open${openPicks.has(it.id) ? " on" : ""}" data-pickopen="${esc(it.id)}">
-          ${openPicks.has(it.id) ? "× 閉じる" : "＋ 商品を追加"}
-        </button>
-      </div>
-
-      <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
-        <input class="input-sm pick-added" type="date" value="${esc(today())}">
-        <input class="input-sm pick-image" type="url" placeholder="画像URL（任意）">
-        <input class="input-sm pick-url" type="url" placeholder="商品URL  https://…">
-        <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
-        <button class="btn btn-add btn-sm pick-add">追加</button>
-      </div>
-
-      ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
-        <thead><tr>
-          <th class="td-date">追加日</th><th class="td-img">画像</th>
-          <th class="td-url">商品URL</th><th class="td-note">メモ</th><th class="td-acts">操作</th>
-        </tr></thead>
-        <tbody>${picks}</tbody>
-      </table></div>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
-    </section>
-  </article>`;
+    ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
+      <thead><tr>
+        <th class="td-date">追加日</th><th class="td-img">画像</th>
+        <th class="td-url">商品URL</th><th class="td-note">メモ</th><th class="td-acts">操作</th>
+      </tr></thead>
+      <tbody>${picks}</tbody>
+    </table></div>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
+  </section>`;
 }
 
 function renderAll() { renderNav(); renderToolbar(); renderBody(); }
@@ -561,13 +636,15 @@ function openRank(item) {
   isNew = !item;
   entry = item
     ? JSON.parse(JSON.stringify(item))
-    : { id: uid(), name: "", category: "", url: "", checkNote: "", checkedAt: today(), picks: [],
+    : { id: uid(), name: "", category: "", image: "", url: "", checkNote: "", checkedAt: today(), picks: [],
         createdAt: nowIso(), updatedAt: nowIso() };
 
   $("rankModalTtl").textContent = `${SEC(view).label}のURLを${isNew ? "追加" : "編集"}`;
   $("rName").value    = entry.name;
   $("rCat").value     = isNew ? "" : entry.category;
   $("rUrl").value     = entry.url;
+  $("rImage").value   = entry.image;
+  renderImgPrev();
   $("rNote").value    = entry.checkNote;
   $("rChecked").value = entry.checkedAt;
   $("btnDelRank").style.visibility = isNew ? "hidden" : "visible";
@@ -576,6 +653,11 @@ function openRank(item) {
   setTimeout(() => $("rName").focus(), 30);
 }
 function closeRank() { $("rankModal").hidden = true; entry = null; }
+
+function renderImgPrev() {
+  const url = $("rImage").value.trim();
+  $("rImagePrev").innerHTML = url ? thumbTag(url, "eyecatch") : `<span class="thumb eyecatch none"></span>`;
+}
 
 function saveRank() {
   const name = $("rName").value.trim();
@@ -586,6 +668,7 @@ function saveRank() {
   entry.name      = name;
   entry.url       = url;
   entry.category  = $("rCat").value.trim() || "未分類";
+  entry.image     = $("rImage").value.trim();
   entry.checkNote = $("rNote").value.trim();
   entry.checkedAt = $("rChecked").value || "";
   entry.updatedAt = nowIso();
@@ -816,6 +899,7 @@ function bind() {
   $("btnSaveRank").onclick   = saveRank;
   $("btnDelRank").onclick    = deleteRank;
   $("btnToday").onclick      = () => { $("rChecked").value = today(); };
+  $("rImage").oninput        = renderImgPrev;
   $("rUrl").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveRank(); } };
 
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };
