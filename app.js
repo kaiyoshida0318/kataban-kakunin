@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.14.0";
+const VERSION   = "0.14.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -29,18 +29,18 @@ const rowH = () => colW[ROW_H_KEY] || ROW_H_DEF;
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "products", icon: "📦", label: "型番商品",        nameLabel: "商品名",
-    search: "商品名・型番・URLで検索…", add: "＋ 商品を追加",
-    emptyTtl: "まだ登録がありません",
-    emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
-    search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
-    emptyTtl: "まだ登録がありません",
-    emptySub: "よく見る楽天のランキングページを登録しておくと、ここから一発で開けます。" },
   { key: "amazon",   icon: "📊", label: "Amazonランキング", nameLabel: "ジャンル名",
     search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "よく見るAmazonの売れ筋ランキングページを登録しておくと、ここから一発で開けます。" },
+  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
+    search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
+    emptyTtl: "まだ登録がありません",
+    emptySub: "よく見る楽天のランキングページを登録しておくと、ここから一発で開けます。" },
+  { key: "products", icon: "📦", label: "型番商品",        nameLabel: "商品名",
+    search: "商品名・型番・URLで検索…", add: "＋ 商品を追加",
+    emptyTtl: "まだ登録がありません",
+    emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
 ];
 const SEC = (k) => SECTIONS.find((s) => s.key === k);
 
@@ -69,7 +69,7 @@ let dirty = false;
 let entry = null;
 let isNew = false;
 
-let view = "products";
+let view = SECTIONS[0].key;
 let tableEdit = false;   // 表からの直接編集モード
 const openPicks = new Set();   // 商品URL追加フォームを開いたままにするID
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
