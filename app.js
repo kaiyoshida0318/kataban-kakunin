@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.14.3";
+const VERSION   = "0.15.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -186,7 +186,7 @@ function normRank(it) {
         addedAt: ymd(p.addedAt) || today(),        // 追加日
         image:   p.image || "",                    // メイン画像URL
         url:     p.url || "",
-        note:    p.note || p.name || "",           // メモ（旧 name から移行）
+        title:   p.title || p.note || p.name || "", // 商品名（旧 note / name から移行）
         check:   PICK_CHECK.some((o) => o.v === p.check) ? p.check : "before",
         buy:     PICK_BUY.some((o) => o.v === p.buy)     ? p.buy   : "before",
       }))
@@ -316,7 +316,7 @@ function visibleItems() {
       if (F().cat !== "*" && (it.category || "未分類") !== F().cat) return false;
       if (!q) return true;
       const hay = [it.name, it.category, it.url, it.checkNote,
-                   it.picks.map((p) => p.note + " " + p.url).join(" ")].join(" ");
+                   it.picks.map((p) => p.title + " " + p.url).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     })
     .sort(comparator());
@@ -485,7 +485,7 @@ function renderBody() {
         addedAt: box.querySelector(".pick-added").value || today(),
         image,
         url,
-        note:    box.querySelector(".pick-memo").value.trim(),
+        title:   box.querySelector(".pick-title").value.trim(),
         check:   "before",
         buy:     "before",
       });
@@ -543,7 +543,7 @@ function renderBody() {
       p.image   = row.querySelector(".pe-image").value.trim();
       if (!p.image && asinOf(url)) p.image = await guessImage(url);
       p.url     = url;
-      p.note    = row.querySelector(".pe-note").value.trim();
+      p.title   = row.querySelector(".pe-title").value.trim();
       it.updatedAt = nowIso();
       editPicks.delete(key);
       upsert(view, it);
@@ -773,8 +773,8 @@ function pickPanel(it) {
       <tr class="pick-editing" data-row="${esc(key)}">
         <td><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>
         <td><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
+        <td><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
         <td><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
-        <td><input class="input-sm pe-note" type="text" value="${esc(p.note)}" placeholder="メモ"></td>
         <td class="td-acts">
           <button class="icon-btn ok" data-picksave="${esc(key)}" title="保存">✓</button>
           <button class="icon-btn" data-pickcancel="${esc(key)}" title="キャンセル">↩</button>
@@ -784,8 +784,8 @@ function pickPanel(it) {
       <tr>
         <td class="td-date">${esc(p.addedAt || "—")}</td>
         <td class="td-img">${thumb(p)}</td>
+        <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
         <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
-        <td class="td-note${p.note ? "" : " none"}">${esc(p.note || "—")}</td>
         ${statusCells(it.id, p)}
         <td class="td-acts">
           <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
@@ -806,8 +806,8 @@ function pickPanel(it) {
     <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
       <input class="input-sm pick-added" type="date" value="${esc(today())}">
       <input class="input-sm pick-image" type="url" placeholder="画像URL（任意）">
+      <input class="input-sm pick-title" type="text" placeholder="商品名">
       <input class="input-sm pick-url" type="url" placeholder="商品URL  https://…">
-      <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
       <button class="btn btn-add btn-sm pick-add">追加</button>
       <button class="btn btn-ghost btn-sm pick-cancel" data-pickclose="${esc(it.id)}">やめる</button>
     </div>
@@ -815,7 +815,7 @@ function pickPanel(it) {
     ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
       <thead><tr>
         <th class="td-date">追加日</th><th class="td-img">画像</th>
-        <th class="td-url">商品URL</th><th class="td-note">メモ</th>
+        <th class="td-title">商品名</th><th class="td-url">商品URL</th>
         <th class="td-st">確認</th><th class="td-st">買付</th><th class="td-acts">操作</th>
       </tr></thead>
       <tbody>${picks}</tbody>
@@ -875,7 +875,7 @@ function renderRankPicks() {
   $("rPickList").innerHTML = `<div class="pick-tbl-wrap"><table class="pick-tbl">
     <thead><tr>
       <th class="td-date">追加日</th><th class="td-img">画像</th>
-      <th class="td-url">商品URL</th><th class="td-note">メモ</th>
+      <th class="td-title">商品名</th><th class="td-url">商品URL</th>
     </tr></thead>
     <tbody>${picks.map((p) => `
       <tr>
@@ -884,8 +884,8 @@ function renderRankPicks() {
           ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
                  onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
           : `<span class="pick-thumb none"></span>`}</td>
+        <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
         <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 56))}</a></td>
-        <td class="td-note${p.note ? "" : " none"}">${esc(p.note || "—")}</td>
       </tr>`).join("")}</tbody>
   </table></div>`;
 }
