@@ -46,7 +46,7 @@ a:hover{text-decoration:underline}
   border-bottom:1px solid var(--border);
 }
 .head-row{
-  max-width:1240px;margin:0 auto;
+  max-width:none;margin:0;
   display:flex;align-items:center;gap:12px;
   padding:10px 20px;
 }
@@ -84,7 +84,7 @@ a:hover{text-decoration:underline}
 
 /* --- 2段目: グローバルメニュー --- */
 .gnav{
-  max-width:1240px;margin:0 auto;
+  max-width:none;margin:0;
   display:flex;gap:2px;padding:0 20px;
   border-bottom:1px solid var(--border);
   overflow-x:auto;
@@ -154,7 +154,7 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 /* =========================================================
    一覧
    ========================================================= */
-.container{max-width:1240px;margin:0 auto;padding:18px 20px 40px}
+.container{max-width:none;margin:0;padding:16px 20px 40px}
 .list{display:flex;flex-direction:column;gap:9px}
 .item{
   background:var(--surface);border:1px solid var(--border);
@@ -189,7 +189,7 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;
 }
-.grid-tbl{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1080px}
+.grid-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
 .grid-tbl th,.grid-tbl td{border:1px solid var(--border);padding:8px 10px;vertical-align:middle}
 .grid-tbl thead th{
   background:#eef1f6;font-size:11.5px;font-weight:700;color:#4b5563;
@@ -203,14 +203,19 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .grid-tbl tbody tr.r-main:hover td{background:#f4f8ff}
 .grid-tbl tbody tr.r-main.open td{background:#eef4fd}
 
-.rank-tbl .c-img{width:66px;text-align:center;padding:4px}
-.rank-tbl .c-name{width:230px}
-.rank-tbl .c-cat{width:96px;text-align:center;font-size:12px;color:var(--muted)}
-.rank-tbl .c-url{width:230px}
+
+
+
+
+.rank-tbl .c-img{text-align:center;padding:4px}
+.rank-tbl .c-cat{text-align:center;font-size:12px;color:var(--muted)}
 .rank-tbl .c-note{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rank-tbl .c-check{width:210px;text-align:center;white-space:nowrap}
-.rank-tbl .c-cnt{width:84px;text-align:center}
-.rank-tbl .c-act{width:74px;text-align:center}
+.rank-tbl .c-check{text-align:center;white-space:nowrap}
+.rank-tbl .c-cnt{text-align:center}
+.rank-tbl .c-act{text-align:center}
+
+
+
 
 .r-name{font-size:13px;font-weight:700;color:var(--text);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .r-name:hover{color:var(--accent);text-decoration:none}
@@ -251,6 +256,25 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .cnt-btn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 
 .r-sub > td{padding:0;background:var(--row-alt)}
+
+/* 列幅パネル */
+.col-panel{border-bottom:1px solid var(--border);background:var(--row-alt)}
+.col-panel-in{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:9px 20px;
+}
+.col-panel-ttl{font-size:11.5px;font-weight:700;color:var(--muted)}
+.col-panel-body{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.col-item{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:3px 8px;
+}
+.col-item-name{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.col-item input{width:66px;padding:2px 6px;font-size:11.5px;border-radius:6px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.col-item-unit{font-size:10.5px;color:#b6bcc7}
+.col-panel-hint{margin:0}
+#btnCols.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 
 /* 列幅ドラッグ */
 .col-resizer{

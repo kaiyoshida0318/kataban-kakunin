@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.9.0";
+const VERSION   = "0.9.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -16,7 +16,7 @@ const RANK_COLS = [
   { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
   { key: "cat",   label: "カテゴリ",   w: 100, cls: "c-cat",   sort: "category"  },
   { key: "url",   label: "URL",        w: 240, cls: "c-url"   },
-  { key: "note",  label: "確認内容",   w: 300, cls: "c-note"  },
+  { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
   { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
   { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
   { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
@@ -248,6 +248,9 @@ function renderToolbar() {
     b.onclick = () => { F().cat = b.dataset.k; renderToolbar(); renderBody(); };
   });
 
+  $("btnCols").hidden = SEC(view).kind !== "rank";
+  if (SEC(view).kind !== "rank") toggleColPanel(false);
+
   const dl = view === "products" ? "catList" : "rankCatList";
   $(dl).innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
 }
@@ -460,7 +463,10 @@ function productCard(it) {
 /* ===== ランキング一覧（表） ===== */
 function rankTable(list) {
   if (!list.length) return "";
-  const cols = RANK_COLS.map((c) => `<col data-col="${c.key}" style="width:${colWidth(c)}px">`).join("");
+  const cols = RANK_COLS.map((c) => {
+    const w = colWidth(c);
+    return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
+  }).join("");
   const heads = RANK_COLS.map((c) => {
     const on = c.sort && F().sort === c.sort;
     return `<th class="${c.cls}${c.sort ? " sortable" : ""}${on ? " on" : ""}"${c.sort ? ` data-sort="${c.sort}"` : ""}>` +
@@ -473,6 +479,37 @@ function rankTable(list) {
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
   </table></div>`;
+}
+
+/* 列幅パネル（上部の「⇔ 幅調整」） */
+function renderColPanel() {
+  const body = $("colPanelBody");
+  body.innerHTML = RANK_COLS.map((c) => `
+    <label class="col-item">
+      <span class="col-item-name">${esc(c.label)}</span>
+      <input type="number" min="44" max="1200" step="10" data-colw="${c.key}"
+             value="${colW[c.key] || c.w || ""}" placeholder="自動">
+      <span class="col-item-unit">px</span>
+    </label>`).join("");
+
+  body.querySelectorAll("[data-colw]").forEach((inp) => {
+    inp.oninput = () => {
+      const key = inp.dataset.colw;
+      const v = parseInt(inp.value, 10);
+      if (Number.isFinite(v) && v >= 44) colW[key] = v; else delete colW[key];
+      saveCols();
+      const col = $("list").querySelector(`col[data-col="${key}"]`);
+      if (col) col.style.width = colW[key] ? colW[key] + "px" : "";
+    };
+  });
+}
+
+function toggleColPanel(force) {
+  const el = $("colPanel");
+  const show = force !== undefined ? force : el.hidden;
+  el.hidden = !show;
+  $("btnCols").classList.toggle("on", show);
+  if (show) renderColPanel();
 }
 
 /* 列幅ドラッグ */
@@ -498,6 +535,8 @@ function bindResizers(root) {
         rz.classList.remove("dragging");
         colW[rz.dataset.col] = parseInt(col.style.width, 10);
         saveCols();
+        const inp = document.querySelector(`[data-colw="${rz.dataset.col}"]`);
+        if (inp) inp.value = colW[rz.dataset.col];
       };
       document.addEventListener("mousemove", move);
       document.addEventListener("mouseup", up);
@@ -506,7 +545,7 @@ function bindResizers(root) {
     rz.ondblclick = (e) => {
       e.stopPropagation();
       delete colW[rz.dataset.col];
-      saveCols(); renderBody();
+      saveCols(); renderBody(); if (!$("colPanel").hidden) renderColPanel();
     };
   });
 }
@@ -973,6 +1012,11 @@ function renderCfgUrl() {
 function bind() {
   $("btnNew").onclick      = () => (SEC(view).kind === "product" ? openItem(null) : openRank(null));
   $("btnSettings").onclick = openCfg;
+  $("btnCols").onclick     = () => toggleColPanel();
+  $("btnColsReset").onclick = () => {
+    colW = {}; saveCols(); renderBody(); renderColPanel();
+    toast("列幅を既定に戻しました");
+  };
   $("btnSaveGh").onclick   = saveToGitHub;
 
   $("q").oninput      = (e) => { F().q = e.target.value; renderBody(); };
