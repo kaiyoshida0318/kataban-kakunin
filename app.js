@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.5.1";
+const VERSION   = "0.6.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -50,6 +50,7 @@ let isNew = false;
 
 let view = "products";
 const openPicks = new Set();   // 商品URL追加フォームを開いたままにするID
+const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
 const filters ={ products: { q: "", cat: "*" }, rakuten: { q: "", cat: "*" }, amazon: { q: "", cat: "*" } };
 const F = () => filters[view];
 
@@ -87,6 +88,14 @@ function toast(msg, isErr) {
 }
 function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+}
+/* 表示用にURLを読みやすく：%エンコードを戻し、http(s)://www. を落とし、長すぎれば中略 */
+function prettyUrl(url, max = 80) {
+  let s = String(url || "");
+  try { s = decodeURIComponent(s); } catch { /* 壊れたエンコードはそのまま */ }
+  s = s.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+  if (s.length > max) s = s.slice(0, max - 26) + " … " + s.slice(-22);
+  return s;
 }
 
 /* =========================================================
@@ -315,9 +324,42 @@ function renderBody() {
       const it = itemsOf(view).find((i) => i.id === id);
       it.picks = it.picks.filter((p) => p.id !== pid);
       it.updatedAt = nowIso();
-      openPicks.add(id);
+      editPicks.delete(b.dataset.pickdel);
       upsert(view, it);
     };
+  });
+
+  // 商品行のインライン編集
+  root.querySelectorAll("[data-pickedit]").forEach((b) => {
+    b.onclick = () => { editPicks.add(b.dataset.pickedit); renderBody(); };
+  });
+  root.querySelectorAll("[data-pickcancel]").forEach((b) => {
+    b.onclick = () => { editPicks.delete(b.dataset.pickcancel); renderBody(); };
+  });
+  root.querySelectorAll("[data-picksave]").forEach((b) => {
+    const key = b.dataset.picksave;
+    const row = root.querySelector(`.pick-editing[data-row="${key}"]`);
+    const save = () => {
+      const [id, pid] = key.split("|");
+      const url = row.querySelector(".pe-url").value.trim();
+      if (!url) { toast("URLを空にはできません", true); return; }
+      const it = itemsOf(view).find((i) => i.id === id);
+      const p  = it.picks.find((x) => x.id === pid);
+      p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
+      p.url     = url;
+      p.note    = row.querySelector(".pe-note").value.trim();
+      it.updatedAt = nowIso();
+      editPicks.delete(key);
+      upsert(view, it);
+      toast("商品を更新しました");
+    };
+    b.onclick = save;
+    row.querySelectorAll("input").forEach((inp) => {
+      inp.onkeydown = (e) => {
+        if (e.key === "Enter")  { e.preventDefault(); save(); }
+        if (e.key === "Escape") { e.preventDefault(); editPicks.delete(key); renderBody(); }
+      };
+    });
   });
 }
 
@@ -350,52 +392,76 @@ function rankCard(it) {
   const picks = it.picks
     .slice()
     .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""))
-    .map((p) => `
+    .map((p) => {
+      const key = `${it.id}|${p.id}`;
+      if (editPicks.has(key)) return `
+    <li class="pick-row pick-editing" data-row="${esc(key)}">
+      <input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}">
+      <input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…">
+      <input class="input-sm pe-note" type="text" value="${esc(p.note)}" placeholder="メモ（任意）">
+      <span class="pick-acts">
+        <button class="icon-btn ok" data-picksave="${esc(key)}" title="保存">✓</button>
+        <button class="icon-btn" data-pickcancel="${esc(key)}" title="キャンセル">↩</button>
+      </span>
+    </li>`;
+      return `
     <li class="pick-row">
       <span class="pick-date">${esc(p.addedAt || "—")}</span>
-      <a class="pick-url-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(p.url)}</a>
-      <span class="pick-note">${esc(p.note || "")}</span>
+      <a class="pick-url-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url))}</a>
+      <span class="pick-note${p.note ? "" : " none"}">${esc(p.note || "—")}</span>
       <span class="pick-acts">
+        <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
         <button class="icon-btn" data-copy="${esc(p.url)}" title="URLをコピー">⧉</button>
-        <button class="icon-btn" data-pickdel="${esc(it.id)}|${esc(p.id)}" title="削除">✕</button>
+        <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
       </span>
-    </li>`).join("");
+    </li>`;
+    }).join("");
 
-  return `<article class="item">
-    <div class="item-head">
-      <a class="rank-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">
-        <span class="rank-name">${esc(it.name || hostOf(it.url))}</span>
-        <span class="url-text">${esc(it.url)}</span>
-      </a>
-      <span class="pill">${esc(it.category || "未分類")}</span>
-      <span class="check-inline${stale ? " stale" : ""}" title="最終確認日">
-        <span class="check-lbl">確認日</span>
-        <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
-        <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
-        <span class="check-ago">${esc(agoLabel(it.checkedAt))}</span>
-      </span>
-      <button class="icon-btn" data-copy="${esc(it.url)}" title="URLをコピー">⧉</button>
-      <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
-    </div>
+  return `<article class="item rank-card">
+    <header class="rank-hd">
+      <div class="rank-hd-main">
+        <a class="rank-title" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(it.url))}</a>
+        <a class="rank-url" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">${esc(prettyUrl(it.url, 90))}</a>
+      </div>
+      <div class="rank-hd-side">
+        <span class="pill">${esc(it.category || "未分類")}</span>
+        <span class="check-inline${stale ? " stale" : ""}">
+          <span class="check-lbl">確認日</span>
+          <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
+          <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
+          <span class="check-ago">${esc(agoLabel(it.checkedAt))}</span>
+        </span>
+        <button class="icon-btn" data-copy="${esc(it.url)}" title="URLをコピー">⧉</button>
+        <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
+      </div>
+    </header>
 
-    ${it.checkNote ? `<p class="check-note">${esc(it.checkNote)}</p>` : ""}
+    ${it.checkNote ? `<div class="note-band">
+      <span class="band-lbl">確認内容</span>
+      <p class="band-body">${esc(it.checkNote)}</p>
+    </div>` : ""}
 
-    ${it.picks.length ? `<ul class="pick-list">
-      <li class="pick-row pick-hd"><span>追加日</span><span>URL</span><span>メモ</span><span></span></li>
-      ${picks}
-    </ul>` : ""}
+    <section class="pick-block">
+      <div class="pick-hdr">
+        <span class="pick-hdr-ttl">チェックした商品</span>
+        <span class="pick-hdr-cnt">${it.picks.length} 件</span>
+        <button class="btn btn-add btn-xs pick-open${openPicks.has(it.id) ? " on" : ""}" data-pickopen="${esc(it.id)}">
+          ${openPicks.has(it.id) ? "× 閉じる" : "＋ 商品を追加"}
+        </button>
+      </div>
 
-    <div class="pick-foot">
-      <button class="pick-open${openPicks.has(it.id) ? " on" : ""}" data-pickopen="${esc(it.id)}" title="ランキング内の良い商品URLを追加">＋</button>
-      <span class="pick-cnt">${it.picks.length ? `商品 ${it.picks.length} 件` : "良かった商品のURLをここに足していけます"}</span>
-    </div>
+      <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
+        <input class="input-sm pick-added" type="date" value="${esc(today())}">
+        <input class="input-sm pick-url" type="url" placeholder="https://…">
+        <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
+        <button class="btn btn-add btn-sm pick-add">追加</button>
+      </div>
 
-    <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
-      <input class="input-sm pick-added" type="date" value="${esc(today())}">
-      <input class="input-sm pick-url" type="url" placeholder="https://…">
-      <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
-      <button class="btn btn-add btn-sm pick-add">追加</button>
-    </div>
+      ${it.picks.length ? `<ul class="pick-list">
+        <li class="pick-row pick-hd"><span>追加日</span><span>URL</span><span>メモ</span><span></span></li>
+        ${picks}
+      </ul>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
+    </section>
   </article>`;
 }
 
