@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.10.1";
+const VERSION   = "0.12.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -54,6 +54,7 @@ let entry = null;
 let isNew = false;
 
 let view = "products";
+let tableEdit = false;   // 表からの直接編集モード
 const openPicks = new Set();   // 商品URL追加フォームを開いたままにするID
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
 const openRows  = new Set();   // 商品リストを開いているランキング行
@@ -98,6 +99,52 @@ function prettyUrl(url, max = 80) {
   s = s.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
   if (s.length > max) s = s.slice(0, max - 26) + " … " + s.slice(-22);
   return s;
+}
+
+/* =========================================================
+   商品URLからメイン画像を推測（Amazonのみ）
+   Amazonの商品ページ本体はCORSで読めないが、URL内のASINから
+   画像配信の固定パターンを組み立てられる。候補を順に読み込んで
+   実際に絵が返ってきたものを採用する。
+   ========================================================= */
+function asinOf(url) {
+  const m = String(url || "").match(/\/(?:dp|gp\/product|gp\/aw\/d|product)\/([A-Z0-9]{10})/i);
+  return m ? m[1].toUpperCase() : "";
+}
+const isAmazonUrl = (url) => /(^|\.)amazon\.(co\.jp|com)/i.test((() => {
+  try { return new URL(url).hostname; } catch { return ""; }
+})());
+
+function imageCandidates(url) {
+  const asin = asinOf(url);
+  if (!asin) return [];
+  return [
+    `https://m.media-amazon.com/images/P/${asin}.09._SCLZZZZZZZ_.jpg`,
+    `https://m.media-amazon.com/images/P/${asin}.01._SCLZZZZZZZ_.jpg`,
+    `https://images-na.ssl-images-amazon.com/images/P/${asin}.09.LZZZZZZZ.jpg`,
+    `https://images-na.ssl-images-amazon.com/images/P/${asin}.01.LZZZZZZZ.jpg`,
+  ];
+}
+
+/* 実際に読み込めて、かつプレースホルダ（1x1などの極小画像）でないものだけ採用 */
+function probeImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    const done = (ok) => { img.onload = img.onerror = null; resolve(ok ? src : ""); };
+    img.onload  = () => done(img.naturalWidth >= 60 && img.naturalHeight >= 60);
+    img.onerror = () => done(false);
+    setTimeout(() => done(false), 6000);
+    img.src = src;
+  });
+}
+
+async function guessImage(url) {
+  for (const c of imageCandidates(url)) {
+    const hit = await probeImage(c);
+    if (hit) return hit;
+  }
+  return "";
 }
 
 /* =========================================================
@@ -175,6 +222,8 @@ function loadCols() {
 }
 function saveCols() { localStorage.setItem(LS_COLS, JSON.stringify(colW)); }
 const colWidth = (c) => colW[c.key] || c.w;
+/* 表編集中は画像URL欄が入るので画像列を広げる */
+const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c), 170) : colWidth(c));
 
 function persistLocal() {
   data.updatedAt = nowIso();
@@ -305,6 +354,36 @@ function renderBody() {
   });
   bindResizers(root);
   fitColumns();
+  root.querySelectorAll("[data-f]").forEach((inp) => {
+    const commit = () => {
+      const it = itemsOf(view).find((i) => i.id === inp.dataset.id);
+      if (!it) return;
+      const f = inp.dataset.f;
+      const v = inp.value.trim();
+      if (f === "url" && !v) { inp.value = it.url; toast("URLは空にできません", true); return; }
+      it[f] = f === "category" ? (v || "未分類") : v;
+      it.updatedAt = nowIso();
+      persistLocal(); markDirty(true);
+      if (f === "category") renderToolbar();
+    };
+    inp.onchange = commit;
+    if (inp.dataset.f === "image") {
+      inp.oninput = () => {
+        const cell = inp.closest("td");
+        const old = cell.querySelector(".thumb");
+        const html = thumbTag(inp.value.trim(), "eyecatch", inp.dataset.id);
+        old.outerHTML = html;
+      };
+    }
+  });
+  root.querySelectorAll("[data-del]").forEach((b) => {
+    b.onclick = () => {
+      const it = itemsOf(view).find((i) => i.id === b.dataset.del);
+      if (!confirm(`「${it.name}」を削除します。よろしいですか？`)) return;
+      removeById(view, it.id);
+      toast("削除しました");
+    };
+  });
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
       const id = b.dataset.expand;
@@ -315,10 +394,6 @@ function renderBody() {
   root.querySelectorAll("[data-edit]").forEach((b) => {
     b.onclick = () => openRank(itemsOf(view).find((i) => i.id === b.dataset.edit));
   });
-  root.querySelectorAll("[data-copy]").forEach((b) => {
-    b.onclick = () => { navigator.clipboard?.writeText(b.dataset.copy); toast("URLをコピーしました"); };
-  });
-
   // 確認日：直接入力
   root.querySelectorAll("[data-checkdate]").forEach((inp) => {
     inp.onchange = () => {
@@ -350,21 +425,28 @@ function renderBody() {
   });
   root.querySelectorAll(".pick-form").forEach((box) => {
     const id  = box.dataset.for;
-    const add = () => {
+    const add = async () => {
       const url = box.querySelector(".pick-url").value.trim();
       if (!url) { toast("URLを入力してください", true); return; }
       const it = itemsOf(view).find((i) => i.id === id);
+      let image = box.querySelector(".pick-image").value.trim();
+      if (!image && asinOf(url)) {                       // 画像未入力なら自動で探す
+        const btn = box.querySelector(".pick-add");
+        btn.disabled = true; btn.textContent = "取得中…";
+        image = await guessImage(url);
+        btn.disabled = false; btn.textContent = "追加";
+      }
       it.picks.push({
         id:      uid(),
         addedAt: box.querySelector(".pick-added").value || today(),
-        image:   box.querySelector(".pick-image").value.trim(),
+        image,
         url,
         note:    box.querySelector(".pick-memo").value.trim(),
       });
       it.updatedAt = nowIso();
       openPicks.add(id);
       upsert(view, it);
-      toast("商品URLを追加しました");
+      toast(image ? "商品URLを追加しました（画像を自動取得）" : "商品URLを追加しました");
     };
     box.querySelector(".pick-add").onclick = add;
     box.querySelectorAll("input").forEach((inp) => {
@@ -392,7 +474,7 @@ function renderBody() {
   root.querySelectorAll("[data-picksave]").forEach((b) => {
     const key = b.dataset.picksave;
     const row = root.querySelector(`.pick-editing[data-row="${key}"]`);
-    const save = () => {
+    const save = async () => {
       const [id, pid] = key.split("|");
       const url = row.querySelector(".pe-url").value.trim();
       if (!url) { toast("URLを空にはできません", true); return; }
@@ -400,6 +482,7 @@ function renderBody() {
       const p  = it.picks.find((x) => x.id === pid);
       p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
       p.image   = row.querySelector(".pe-image").value.trim();
+      if (!p.image && asinOf(url)) p.image = await guessImage(url);
       p.url     = url;
       p.note    = row.querySelector(".pe-note").value.trim();
       it.updatedAt = nowIso();
@@ -421,7 +504,7 @@ function renderBody() {
 function rankTable(list) {
   if (!list.length) return "";
   const cols = RANK_COLS.map((c) => {
-    const w = colWidth(c);
+    const w = effWidth(c);
     return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
   }).join("");
   const heads = RANK_COLS.map((c) => {
@@ -432,7 +515,7 @@ function rankTable(list) {
       `<span class="col-resizer" data-col="${c.key}"></span></th>`;
   }).join("");
 
-  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl" style="--row-h:${rowH()}px">
+  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
@@ -450,17 +533,17 @@ function fitColumns() {
     const col = table.querySelector(`col[data-col="${key}"]`);
     if (col) col.style.width = px ? px + "px" : "";
   };
-  RANK_COLS.forEach((c) => setW(c.key, colWidth(c)));   // いったん素の幅に戻す
+  RANK_COLS.forEach((c) => setW(c.key, effWidth(c)));   // いったん素の幅に戻す
 
   const AUTO_MIN = 90;
-  const fixed = RANK_COLS.filter((c) => colWidth(c));
+  const fixed = RANK_COLS.filter((c) => effWidth(c));
   const autos = RANK_COLS.length - fixed.length;
-  const sum   = fixed.reduce((t, c) => t + colWidth(c), 0);
+  const sum   = fixed.reduce((t, c) => t + effWidth(c), 0);
   const avail = wrap.clientWidth - 2;
   if (sum + autos * AUTO_MIN <= avail) return;          // そのまま収まる
 
   const factor = Math.max(0.3, (avail - autos * AUTO_MIN) / sum);
-  fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(colWidth(c) * factor))));
+  fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(effWidth(c) * factor))));
 }
 
 /* 列幅パネル（上部の「⇔ 幅調整」） */
@@ -549,7 +632,34 @@ function rankRow(it) {
   const stale = d == null || d > STALE_DAYS;
   const open = openRows.has(it.id);
 
-  return `<tr class="r-main${open ? " open" : ""}">
+  const checkCell = `
+    <td class="c-check">
+      <span class="check-cell${stale ? " stale" : ""}">
+        <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
+        <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
+      </span>
+    </td>`;
+
+  const cntCell = `
+    <td class="c-cnt">
+      <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件 ${open ? "▲" : "▼"}</button>
+    </td>`;
+
+  const body = tableEdit ? `
+    <td class="c-img">
+      ${thumbTag(it.image, "eyecatch", it.id)}
+      <input class="cell-input img-in" type="url" data-f="image" data-id="${esc(it.id)}" value="${esc(it.image)}" placeholder="画像URL">
+    </td>
+    <td class="c-name"><input class="cell-input" type="text" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}"></td>
+    <td class="c-cat"><input class="cell-input" type="text" list="rankCatList" data-f="category" data-id="${esc(it.id)}" value="${esc(it.category)}"></td>
+    <td class="c-url"><input class="cell-input mono" type="url" data-f="url" data-id="${esc(it.id)}" value="${esc(it.url)}"></td>
+    <td class="c-note"><textarea class="cell-input cell-area" data-f="checkNote" data-id="${esc(it.id)}" rows="2">${esc(it.checkNote)}</textarea></td>
+    ${checkCell}
+    ${cntCell}
+    <td class="c-act">
+      <button class="btn btn-ghost btn-xs btn-danger" data-del="${esc(it.id)}">削除</button>
+    </td>`
+  : `
     <td class="c-img">${thumbTag(it.image, "eyecatch")}</td>
     <td class="c-name">
       <a class="r-name" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(it.url))}</a>
@@ -557,27 +667,22 @@ function rankRow(it) {
     <td class="c-cat">${esc(it.category || "未分類")}</td>
     <td class="c-url"><a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">${esc(prettyUrl(it.url, 42))}</a></td>
     <td class="c-note" title="${esc(it.checkNote)}">${it.checkNote ? esc(it.checkNote) : '<span class="dash">—</span>'}</td>
-    <td class="c-check">
-      <span class="check-cell${stale ? " stale" : ""}">
-        <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
-        <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
-      </span>
-    </td>
-    <td class="c-cnt">
-      <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件 ${open ? "▲" : "▼"}</button>
-    </td>
+    ${checkCell}
+    ${cntCell}
     <td class="c-act">
       <button class="btn btn-ghost btn-xs" data-edit="${esc(it.id)}">編集</button>
-    </td>
-  </tr>
+    </td>`;
+
+  return `<tr class="r-main${open ? " open" : ""}">${body}</tr>
   ${open ? `<tr class="r-sub"><td colspan="8">${pickPanel(it)}</td></tr>` : ""}`;
 }
 
-function thumbTag(src, cls) {
+function thumbTag(src, cls, id) {
+  const mark = id ? ` data-thumb="${esc(id)}"` : "";
   return src
-    ? `<img class="thumb ${cls}" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" title="${esc(src)}"
+    ? `<img class="thumb ${cls}"${mark} src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" title="${esc(src)}"
            onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
-    : `<span class="thumb ${cls} none"></span>`;
+    : `<span class="thumb ${cls} none"${mark}></span>`;
 }
 
 function pickPanel(it) {
@@ -611,7 +716,6 @@ function pickPanel(it) {
         <td class="td-note${p.note ? "" : " none"}">${esc(p.note || "—")}</td>
         <td class="td-acts">
           <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
-          <button class="icon-btn" data-copy="${esc(p.url)}" title="URLをコピー">⧉</button>
           <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
         </td>
       </tr>`;
@@ -933,6 +1037,12 @@ function renderCfgUrl() {
    ========================================================= */
 function bind() {
   $("btnNew").onclick      = () => openRank(null);
+  $("btnEditMode").onclick = () => {
+    tableEdit = !tableEdit;
+    $("btnEditMode").classList.toggle("on", tableEdit);
+    $("btnEditMode").textContent = tableEdit ? "✓ 編集を終える" : "✎ 表編集";
+    renderBody();
+  };
   $("btnSettings").onclick = openCfg;
   $("btnCols").onclick     = () => toggleColPanel();
   $("btnColsReset").onclick = () => {
@@ -951,6 +1061,17 @@ function bind() {
   $("btnDelRank").onclick    = deleteRank;
   $("btnToday").onclick      = () => { $("rChecked").value = today(); };
   $("rImage").oninput        = renderImgPrev;
+  $("btnFetchImg").onclick   = async () => {
+    const url = $("rUrl").value.trim();
+    if (!url) { toast("先にURLを入力してください", true); return; }
+    const btn = $("btnFetchImg");
+    btn.disabled = true; btn.textContent = "取得中…";
+    const found = await guessImage(url);
+    btn.disabled = false; btn.textContent = "URLから取得";
+    if (found) { $("rImage").value = found; renderImgPrev(); toast("画像を取得しました"); }
+    else if (!asinOf(url)) toast("自動取得はAmazonの商品URL（/dp/…）のみ対応しています", true);
+    else toast("画像が見つかりませんでした。手動でURLを貼ってください", true);
+  };
   $("rUrl").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveRank(); } };
 
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };

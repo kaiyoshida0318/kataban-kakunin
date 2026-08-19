@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.10.1">
+<link rel="stylesheet" href="style.css?v=0.12.1">
 </head>
 <body>
 
@@ -27,7 +27,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.10.1</span>
+      <span class="ver-badge" id="verLabel">v0.12.1</span>
       <span class="dirty-badge" id="saveState" hidden>● 未保存</span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -46,6 +46,7 @@
     <div class="seg" id="catSeg"></div>
     <span class="count" id="countLabel"></span>
     <button class="btn btn-ghost btn-sm" id="btnCols" title="列幅と行の高さを調整">⇔ 幅・高さ調整</button>
+    <button class="btn btn-ghost btn-sm" id="btnEditMode" title="表の中で直接編集する">✎ 表編集</button>
     <button class="btn btn-add btn-sm" id="btnNew">＋ 追加</button>
   </div>
 
@@ -85,7 +86,8 @@
           <label for="rImage">アイキャッチ画像</label>
           <div class="img-box" id="rImagePrev"></div>
           <input id="rImage" type="url" placeholder="画像URL（任意）">
-          <p class="hint">商品ページの画像を右クリック →「画像アドレスをコピー」で貼れます。</p>
+          <button class="btn btn-ghost btn-sm img-fetch" id="btnFetchImg" type="button">URLから取得</button>
+          <p class="hint">AmazonのURL（/dp/…）なら自動取得できます。それ以外は商品ページの画像を右クリック →「画像アドレスをコピー」で貼ってください。</p>
         </div>
 
         <!-- 右：その他の項目 -->
@@ -178,6 +180,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.10.1"></script>
+<script src="app.js?v=0.12.1"></script>
 </body>
 </html>

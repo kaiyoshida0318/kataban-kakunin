@@ -278,7 +278,25 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .col-item input{width:66px;padding:2px 6px;font-size:11.5px;border-radius:6px;font-family:ui-monospace,Menlo,Consolas,monospace}
 .col-item-unit{font-size:10.5px;color:#b6bcc7}
 .col-panel-hint{margin:0}
-#btnCols.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+#btnCols.on,#btnEditMode.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+/* 表からの直接編集 */
+.rank-tbl.editing tbody td{padding:5px 6px}
+.rank-tbl.editing tbody tr.r-main:hover td{background:transparent}
+.cell-input{
+  width:100%;font-size:12.5px;padding:5px 8px;border-radius:7px;
+  border:1px solid var(--border);background:var(--surface);
+}
+.cell-input.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px}
+.cell-area{resize:vertical;line-height:1.5;font-size:12px;min-height:calc(var(--row-h,96px) - 22px)}
+.rank-tbl.editing .c-img{padding:4px}
+.rank-tbl.editing .c-img{display:flex;align-items:center;gap:7px;height:var(--row-h,96px)}
+.rank-tbl.editing .thumb{
+  width:min(calc(var(--row-h,96px) - 26px), 72px);
+  height:min(calc(var(--row-h,96px) - 26px), 72px);
+  flex:0 0 auto;margin:0;
+}
+.img-in{font-size:10.5px;padding:4px 6px;flex:1;min-width:0}
 
 /* 列幅ドラッグ */
 .col-resizer{
@@ -299,6 +317,7 @@ body.resizing *{cursor:col-resize !important}
 .rank-grid{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}
 .rank-col-img > label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
 .rank-col-img input{margin-top:8px}
+.img-fetch{width:100%;margin-top:6px}
 .img-box{
   width:100%;aspect-ratio:1/1;border-radius:10px;overflow:hidden;
   border:1px solid var(--border);background:var(--row-alt);
@@ -360,7 +379,7 @@ body.resizing *{cursor:col-resize !important}
 }
 .pick-tbl .td-note{width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pick-tbl .td-note.none{color:#c3c8d1;text-align:center}
-.pick-tbl .td-acts{width:104px;white-space:nowrap;text-align:center;padding:3px 4px}
+.pick-tbl .td-acts{width:76px;white-space:nowrap;text-align:center;padding:3px 4px}
 
 .pick-thumb{
   width:46px;height:46px;object-fit:contain;display:block;margin:0 auto;
