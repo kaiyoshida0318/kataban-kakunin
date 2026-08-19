@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.14.2";
+const VERSION   = "0.14.3";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -448,21 +448,24 @@ function renderBody() {
   });
 
   // 商品URLの追加フォームを開閉
+  /* 入力欄の開閉に合わせてボタンの見た目と文言を切り替える */
+  const setPickOpen = (id, open) => {
+    const btn = root.querySelector(`[data-pickopen="${id}"]`);
+    const box = root.querySelector(`.pick-form[data-for="${id}"]`);
+    if (!btn || !box) return;
+    open ? openPicks.add(id) : openPicks.delete(id);
+    box.hidden = !open;
+    btn.classList.toggle("open", open);
+    btn.classList.toggle("btn-add", !open);
+    btn.textContent = open ? "↓ 下で入力できます" : "＋ 商品を追加";
+    if (open) box.querySelector(".pick-url").focus();
+  };
+
   root.querySelectorAll("[data-pickopen]").forEach((b) => {
-    b.onclick = () => {
-      const id = b.dataset.pickopen;
-      openPicks.add(id);
-      const box = root.querySelector(`.pick-form[data-for="${id}"]`);
-      box.hidden = false;
-      box.querySelector(".pick-url").focus();
-    };
+    b.onclick = () => setPickOpen(b.dataset.pickopen, true);
   });
   root.querySelectorAll("[data-pickclose]").forEach((b) => {
-    b.onclick = () => {
-      const id = b.dataset.pickclose;
-      openPicks.delete(id);
-      root.querySelector(`.pick-form[data-for="${id}"]`).hidden = true;
-    };
+    b.onclick = () => setPickOpen(b.dataset.pickclose, false);
   });
   root.querySelectorAll(".pick-form").forEach((box) => {
     const id  = box.dataset.for;
@@ -795,7 +798,9 @@ function pickPanel(it) {
     <div class="pick-hdr">
       <span class="pick-hdr-ttl">チェックした商品</span>
       <span class="pick-hdr-cnt">${it.picks.length} 件</span>
-      <button class="btn btn-add btn-xs pick-open" data-pickopen="${esc(it.id)}">＋ 商品を追加</button>
+      <button class="btn btn-xs pick-open${openPicks.has(it.id) ? " open" : " btn-add"}" data-pickopen="${esc(it.id)}">
+        ${openPicks.has(it.id) ? "↓ 下で入力できます" : "＋ 商品を追加"}
+      </button>
     </div>
 
     <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>

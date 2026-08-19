@@ -403,8 +403,14 @@ body.resizing *{cursor:col-resize !important}
 
 .pick-form{
   display:flex;gap:6px;align-items:center;flex-wrap:wrap;
-  padding:11px 16px;background:var(--accent-soft);border-bottom:1px solid var(--border);
+  padding:11px 16px;background:var(--warn-soft);
+  border-bottom:1px solid var(--border);border-left:4px solid var(--warn);
 }
+/* 入力欄が開いている間はボタンもオレンジに */
+.pick-open.open{
+  background:var(--warn);border-color:var(--warn);color:#fff;font-weight:700;
+}
+.pick-open.open:hover{background:#b06a14;border-color:#b06a14}
 .pick-form .pick-added{flex:0 0 140px;font-family:ui-monospace,Menlo,Consolas,monospace}
 .pick-form .pick-image{flex:0 1 190px;min-width:140px}
 .pick-form .pick-url{flex:1 1 260px;min-width:200px}
