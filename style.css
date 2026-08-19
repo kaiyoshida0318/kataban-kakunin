@@ -329,3 +329,9 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   .item-date{display:none}
   .item-name{white-space:normal}
 }
+
+.cfg-url{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+  word-break:break-all;color:var(--blue);
+}
+#cfgStatus{line-height:1.7}

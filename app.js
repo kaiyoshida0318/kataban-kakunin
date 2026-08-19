@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.5.0";
+const VERSION   = "0.5.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -553,7 +553,10 @@ async function pullFromGitHub(silent) {
   if (!cfgReady()) { if (!silent) toast("オーナー/リポジトリを入力してください", true); return false; }
   try {
     const res = await fetch(ghGetUrl(), { headers: ghHeaders(), cache: "no-store" });
-    if (res.status === 404) { if (!silent) toast("data/products.json が見つかりません（初回保存で作成されます）", true); return false; }
+    if (res.status === 404) {
+      if (!silent) toast(`404: ${cfg.owner}/${cfg.repo} @ ${cfg.branch} に ${DATA_PATH} が見つかりません（リポジトリ名・ブランチ、またはトークンの対象リポジトリを確認）`, true);
+      return false;
+    }
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
     const json = await res.json();
@@ -616,16 +619,97 @@ function openCfg() {
   $("cBranch").value = cfg.branch;
   $("cPat").value    = cfg.pat;
   $("cfgStatus").textContent = "";
+  renderCfgUrl();
   $("cfgModal").hidden = false;
 }
-function readCfgForm() {
-  cfg = {
-    owner:  $("cOwner").value.trim(),
-    repo:   $("cRepo").value.trim(),
-    branch: $("cBranch").value.trim() || "main",
-    pat:    $("cPat").value.trim(),
+/* 全角英数・記号を半角に。空白と不可視文字も落とす */
+function normId(s) {
+  const punct = { "－": "-", "ー": "-", "―": "-", "‐": "-", "−": "-", "＿": "_", "．": ".", "／": "/", "：": ":" };
+  return String(s ?? "")
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
+    .replace(/[－ー―‐−＿．／：]/g, (c) => punct[c])
+    .replace(/[\s​-‍﻿]/g, "");
+}
+
+/* "https://github.com/owner/repo" や "owner/repo" の貼り付けも受け付ける */
+function parseRepoInput(ownerRaw, repoRaw) {
+  let o = normId(ownerRaw), r = normId(repoRaw);
+  const fromUrl = (s) => {
+    const m = s.match(/github\.com\/([^/]+)\/([^/?#]+)/i);
+    return m ? [m[1], m[2]] : null;
   };
-  saveCfg(); renderHeadBits();
+  const u = fromUrl(o) || fromUrl(r);
+  if (u) { [o, r] = u; }
+  else if (o.includes("/")) {
+    const p = o.split("/").filter(Boolean);
+    o = p[0];
+    if (p[1]) r = p[1];
+  }
+  o = o.replace(/^\/+|\/+$/g, "");
+  r = r.replace(/^\/+|\/+$/g, "").replace(/\.git$/i, "");
+  return [o, r];
+}
+
+function readCfgForm() {
+  const [owner, repo] = parseRepoInput($("cOwner").value, $("cRepo").value);
+  cfg = { owner, repo, branch: normId($("cBranch").value) || "main", pat: $("cPat").value.trim() };
+
+  // 正規化した結果を画面にも反映して、何が送られるか見えるようにする
+  $("cOwner").value  = cfg.owner;
+  $("cRepo").value   = cfg.repo;
+  $("cBranch").value = cfg.branch;
+
+  saveCfg(); renderHeadBits(); renderCfgUrl();
+}
+
+/* どこで失敗しているのかを段階的に切り分ける */
+async function testConnection() {
+  readCfgForm();
+  const el = $("cfgStatus");
+  const set = (t) => { el.textContent = t; };
+  if (!cfgReady()) { set("オーナー/リポジトリを入力してください"); return; }
+
+  const bare = { Accept: "application/vnd.github+json" };
+  const ok = [];
+  set("テスト中…");
+  try {
+    // 1) リポジトリの存在（トークンなし）
+    let r = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`, { headers: bare, cache: "no-store" });
+    if (r.status === 404) { set(`✕ リポジトリが見つかりません：${cfg.owner}/${cfg.repo}`); return; }
+    if (!r.ok) { set(`✕ リポジトリ確認に失敗：${r.status}`); return; }
+    const info = await r.json();
+    ok.push(`✓ リポジトリ（既定ブランチ ${info.default_branch}）`);
+
+    // 2) ファイルの存在（トークンなし）
+    r = await fetch(ghGetUrl(), { headers: bare, cache: "no-store" });
+    if (r.status === 404) { set(`${ok.join(" / ")} / ✕ ${cfg.branch} に ${DATA_PATH} がありません`); return; }
+    if (!r.ok) { set(`${ok.join(" / ")} / ✕ ファイル確認に失敗：${r.status}`); return; }
+    ok.push("✓ ファイル");
+
+    // 3) トークンでの読み取り
+    if (!cfg.pat) { set(`${ok.join(" / ")} / △ トークン未入力（読み込みのみ可）`); return; }
+    r = await fetch(ghGetUrl(), { headers: ghHeaders(), cache: "no-store" });
+    if (r.status === 401) { set(`${ok.join(" / ")} / ✕ トークンが無効です（貼り直してください）`); return; }
+    if (r.status === 404) { set(`${ok.join(" / ")} / ✕ トークンがこのリポジトリを見られません（Repository access を確認）`); return; }
+    if (!r.ok) { set(`${ok.join(" / ")} / ✕ トークンでの取得に失敗：${r.status}`); return; }
+    ok.push("✓ トークン");
+
+    // 4) 書き込み権限
+    r = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`, { headers: ghHeaders(), cache: "no-store" });
+    const perm = r.ok ? (await r.json()).permissions : null;
+    ok.push(perm?.push ? "✓ 書き込み権限" : "✕ 書き込み権限なし（Contents を Read and write に）");
+    set(ok.join(" / "));
+  } catch (e) {
+    set("✕ 通信エラー：" + e.message);
+  }
+}
+
+function renderCfgUrl() {
+  const el = $("cfgUrl");
+  if (!el) return;
+  if (!cfgReady()) { el.textContent = ""; el.removeAttribute("href"); return; }
+  el.href = ghGetUrl();
+  el.textContent = ghGetUrl();
 }
 
 /* =========================================================
@@ -655,6 +739,16 @@ function bind() {
 
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };
   $("btnSaveCfg").onclick = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
+  $("btnTestGh").onclick  = testConnection;
+  ["cOwner", "cRepo", "cBranch"].forEach((id) => {
+    $(id).onblur = () => {
+      const [o, r] = parseRepoInput($("cOwner").value, $("cRepo").value);
+      $("cOwner").value = o; $("cRepo").value = r;
+      $("cBranch").value = normId($("cBranch").value);
+      const tmp = { ...cfg, owner: o, repo: r, branch: $("cBranch").value || "main" };
+      const keep = cfg; cfg = tmp; renderCfgUrl(); cfg = keep;
+    };
+  });
   $("btnPullGh").onclick  = async () => {
     readCfgForm();
     $("cfgStatus").textContent = "読み込み中…";
