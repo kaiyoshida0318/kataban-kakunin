@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.6.1";
+const VERSION   = "0.7.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -131,6 +131,7 @@ function normRank(it) {
       .map((p) => ({
         id:      p.id || uid(),
         addedAt: ymd(p.addedAt) || today(),        // 追加日
+        image:   p.image || "",                    // メイン画像URL
         url:     p.url || "",
         note:    p.note || p.name || "",           // メモ（旧 name から移行）
       }))
@@ -305,6 +306,7 @@ function renderBody() {
       it.picks.push({
         id:      uid(),
         addedAt: box.querySelector(".pick-added").value || today(),
+        image:   box.querySelector(".pick-image").value.trim(),
         url,
         note:    box.querySelector(".pick-memo").value.trim(),
       });
@@ -346,6 +348,7 @@ function renderBody() {
       const it = itemsOf(view).find((i) => i.id === id);
       const p  = it.picks.find((x) => x.id === pid);
       p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
+      p.image   = row.querySelector(".pe-image").value.trim();
       p.url     = url;
       p.note    = row.querySelector(".pe-note").value.trim();
       it.updatedAt = nowIso();
@@ -389,32 +392,40 @@ function rankCard(it) {
   const d = daysSince(it.checkedAt);
   const stale = d == null || d > STALE_DAYS;
 
+  const thumb = (p) => p.image
+    ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
+           title="${esc(p.image)}"
+           onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
+    : `<span class="pick-thumb none"></span>`;
+
   const picks = it.picks
     .slice()
     .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""))
     .map((p) => {
       const key = `${it.id}|${p.id}`;
       if (editPicks.has(key)) return `
-    <li class="pick-row pick-editing" data-row="${esc(key)}">
-      <input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}">
-      <input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…">
-      <input class="input-sm pe-note" type="text" value="${esc(p.note)}" placeholder="メモ（任意）">
-      <span class="pick-acts">
-        <button class="icon-btn ok" data-picksave="${esc(key)}" title="保存">✓</button>
-        <button class="icon-btn" data-pickcancel="${esc(key)}" title="キャンセル">↩</button>
-      </span>
-    </li>`;
+      <tr class="pick-editing" data-row="${esc(key)}">
+        <td><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>
+        <td><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
+        <td><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
+        <td><input class="input-sm pe-note" type="text" value="${esc(p.note)}" placeholder="メモ"></td>
+        <td class="td-acts">
+          <button class="icon-btn ok" data-picksave="${esc(key)}" title="保存">✓</button>
+          <button class="icon-btn" data-pickcancel="${esc(key)}" title="キャンセル">↩</button>
+        </td>
+      </tr>`;
       return `
-    <li class="pick-row">
-      <span class="pick-date">${esc(p.addedAt || "—")}</span>
-      <a class="pick-url-link" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url))}</a>
-      <span class="pick-note${p.note ? "" : " none"}">${esc(p.note || "—")}</span>
-      <span class="pick-acts">
-        <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
-        <button class="icon-btn" data-copy="${esc(p.url)}" title="URLをコピー">⧉</button>
-        <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
-      </span>
-    </li>`;
+      <tr>
+        <td class="td-date">${esc(p.addedAt || "—")}</td>
+        <td class="td-img">${thumb(p)}</td>
+        <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
+        <td class="td-note${p.note ? "" : " none"}">${esc(p.note || "—")}</td>
+        <td class="td-acts">
+          <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
+          <button class="icon-btn" data-copy="${esc(p.url)}" title="URLをコピー">⧉</button>
+          <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
+        </td>
+      </tr>`;
     }).join("");
 
   return `<article class="item rank-card">
@@ -452,15 +463,19 @@ function rankCard(it) {
 
       <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
         <input class="input-sm pick-added" type="date" value="${esc(today())}">
-        <input class="input-sm pick-url" type="url" placeholder="https://…">
+        <input class="input-sm pick-image" type="url" placeholder="画像URL（任意）">
+        <input class="input-sm pick-url" type="url" placeholder="商品URL  https://…">
         <input class="input-sm pick-memo" type="text" placeholder="メモ（任意）">
         <button class="btn btn-add btn-sm pick-add">追加</button>
       </div>
 
-      ${it.picks.length ? `<ul class="pick-list">
-        <li class="pick-row pick-hd"><span>追加日</span><span>URL</span><span>メモ</span><span></span></li>
-        ${picks}
-      </ul>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
+      ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
+        <thead><tr>
+          <th class="td-date">追加日</th><th class="td-img">画像</th>
+          <th class="td-url">商品URL</th><th class="td-note">メモ</th><th class="td-acts">操作</th>
+        </tr></thead>
+        <tbody>${picks}</tbody>
+      </table></div>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
     </section>
   </article>`;
 }

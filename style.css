@@ -235,7 +235,7 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 }
 .band-body{margin:0;font-size:12.5px;line-height:1.65;white-space:pre-wrap}
 
-/* ===== ランキング内の良い商品 ===== */
+/* ===== ランキング内の良い商品（表） ===== */
 .pick-block{background:var(--row-alt)}
 .pick-hdr{
   display:flex;align-items:center;gap:9px;
@@ -250,32 +250,40 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .pick-hdr .pick-open.on{background:var(--muted);border-color:var(--muted)}
 .pick-none{margin:0;padding:14px 16px;font-size:12px;color:var(--muted);background:var(--surface)}
 
-.pick-list{list-style:none;margin:0;padding:0;background:var(--surface)}
-.pick-row{
-  display:grid;grid-template-columns:104px minmax(0,1fr) 280px 96px;
-  align-items:center;gap:12px;padding:8px 16px;
-  border-bottom:1px solid var(--border-soft);
+.pick-tbl-wrap{background:var(--surface);overflow-x:auto}
+.pick-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.pick-tbl th,.pick-tbl td{
+  border:1px solid var(--border);
+  padding:7px 10px;vertical-align:middle;
 }
-.pick-list li:last-child{border-bottom:0}
-.pick-row:not(.pick-hd):hover{background:#f4f8ff}
-.pick-hd{
-  font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.06em;
-  padding-top:6px;padding-bottom:6px;background:var(--row-alt);
+.pick-tbl th{
+  background:#eef1f6;font-size:11px;font-weight:700;color:#4b5563;
+  text-align:center;white-space:nowrap;padding-top:8px;padding-bottom:8px;
 }
-.pick-date{
-  font-size:11.5px;color:var(--muted);
-  font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;
-}
-.pick-url-link{
-  font-size:12px;color:var(--blue);
+.pick-tbl tr:hover td{background:#f4f8ff}
+.pick-tbl td{font-size:12.5px}
+
+.pick-tbl .td-date{width:104px;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.pick-tbl .td-img{width:64px;text-align:center;padding:4px}
+.pick-tbl .td-url{overflow:hidden}
+.pick-tbl .td-url a{
+  display:block;font-size:12px;color:var(--blue);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.pick-url-link:hover{text-decoration:underline}
-.pick-note{font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pick-note.none{color:#c3c8d1}
-.pick-acts{display:flex;justify-content:flex-end;gap:1px}
+.pick-tbl .td-note{width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-tbl .td-note.none{color:#c3c8d1;text-align:center}
+.pick-tbl .td-acts{width:104px;white-space:nowrap;text-align:center;padding:3px 4px}
 
-.pick-row.pick-editing{padding:9px 16px;background:var(--accent-soft)}
+.pick-thumb{
+  width:46px;height:46px;object-fit:contain;display:block;margin:0 auto;
+  border-radius:6px;background:#fff;
+}
+.pick-thumb.none,.pick-thumb.broken{
+  border:1px dashed var(--border);background:var(--row-alt);
+}
+.pick-thumb.broken{position:relative}
+
+.pick-tbl tr.pick-editing td{background:var(--accent-soft);padding:5px 6px}
 .pick-editing input{width:100%;font-size:12px;padding:5px 8px}
 .pick-editing .pe-date{font-family:ui-monospace,Menlo,Consolas,monospace}
 .icon-btn.ok{color:var(--green)}
@@ -286,8 +294,9 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   padding:11px 16px;background:var(--accent-soft);border-bottom:1px solid var(--border);
 }
 .pick-form .pick-added{flex:0 0 140px;font-family:ui-monospace,Menlo,Consolas,monospace}
-.pick-form .pick-url{flex:1 1 300px;min-width:200px}
-.pick-form .pick-memo{flex:0 1 240px;min-width:150px}
+.pick-form .pick-image{flex:0 1 190px;min-width:140px}
+.pick-form .pick-url{flex:1 1 260px;min-width:200px}
+.pick-form .pick-memo{flex:0 1 200px;min-width:140px}
 
 .date-row{display:flex;gap:6px;align-items:center}
 .date-row input{flex:1}

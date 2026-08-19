@@ -45,13 +45,15 @@
               "id": "pk_r01",
               "addedAt": "2026-08-12",
               "url": "https://item.rakuten.co.jp/example/dc-fan/",
-              "note": "3位・静音DC。レビュー1200件"
+              "note": "3位・静音DC。レビュー1200件",
+              "image": "https://via.placeholder.com/120x120.png?text=FAN"
             },
             {
               "id": "pk_r02",
               "addedAt": "2026-08-19",
               "url": "https://item.rakuten.co.jp/example/slim-fan/",
-              "note": "新顔。価格が一段安い"
+              "note": "新顔。価格が一段安い",
+              "image": ""
             }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
@@ -84,13 +86,15 @@
               "id": "pk_a01",
               "addedAt": "2026-08-19",
               "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB/dp/B0EXAMPLE9",
-              "note": "Garmin対応の汎用ケーブル"
+              "note": "Garmin対応の汎用ケーブル",
+              "image": "https://via.placeholder.com/120x120.png?text=CABLE"
             },
             {
               "id": "pk_a02",
               "addedAt": "2026-08-05",
               "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
-              "note": ""
+              "note": "",
+              "image": ""
             }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
