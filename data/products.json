@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-08-19T00:00:00.000Z",
+  "updatedAt": "2026-08-19T02:45:21.460Z",
   "sections": {
     "products": {
       "items": [
@@ -32,69 +32,27 @@
       ]
     },
     "rakuten": {
-      "items": [
-        {
-          "id": "rk_sample01",
-          "name": "家電 > 扇風機・サーキュレーター",
-          "category": "家電",
-          "url": "https://ranking.rakuten.co.jp/daily/562637/",
-          "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
-          "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_r01",
-              "addedAt": "2026-08-12",
-              "url": "https://item.rakuten.co.jp/example/dc-fan/",
-              "note": "3位・静音DC。レビュー1200件"
-            },
-            {
-              "id": "pk_r02",
-              "addedAt": "2026-08-19",
-              "url": "https://item.rakuten.co.jp/example/slim-fan/",
-              "note": "新顔。価格が一段安い"
-            }
-          ],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
-        },
-        {
-          "id": "rk_sample02",
-          "name": "総合ランキング",
-          "category": "総合",
-          "url": "https://ranking.rakuten.co.jp/realtime/",
-          "checkNote": "",
-          "checkedAt": "",
-          "picks": [],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z"
-        }
-      ]
+      "items": []
     },
     "amazon": {
       "items": [
         {
-          "id": "am_sample01",
+          "id": "itm_f8u59p96341",
           "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
-          "category": "家電",
+          "category": "未分類",
           "url": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
-          "checkNote": "上位に食い込んでいる型番と、対応機種の広さを確認する。",
+          "checkNote": "",
           "checkedAt": "2026-08-19",
           "picks": [
             {
-              "id": "pk_a01",
-              "addedAt": "2026-08-05",
-              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
-              "note": "1位の汎用充電ケーブル"
-            },
-            {
-              "id": "pk_a02",
+              "id": "itm_o7c1yr9ubys",
               "addedAt": "2026-08-19",
-              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE2",
-              "note": "レビュー数が伸びている新顔"
+              "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB-GARMIN%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81%E5%85%85%E9%9B%BB%E5%99%A8-%E3%83%81%E3%83%A3%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0%E3%82%B1%E3%83%BC%E3%83%96-Forerunner-Vivoactive/dp/B0FJ23374F/ref=zg_bs_g_14616559051_d_sccl_4/355-8190517-1304632?th=1",
+              "note": ""
             }
           ],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "createdAt": "2026-08-19T02:03:09.505Z",
+          "updatedAt": "2026-08-19T02:22:15.853Z"
         }
       ]
     }
