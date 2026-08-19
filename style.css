@@ -190,13 +190,23 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .rank-link:hover .rank-name{color:var(--blue)}
 .rank-name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.check-badge{
-  display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;
-  font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;
-  background:var(--green-soft);border:1px solid #cbe6da;color:#22795a;
-  font-family:ui-monospace,Menlo,Consolas,monospace;
+/* 確認日（カード上で直接編集） */
+.check-inline{
+  display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+  padding:3px 4px 3px 10px;border-radius:999px;
+  background:var(--green-soft);border:1px solid #cbe6da;
 }
-.check-badge.stale{background:var(--warn-soft);border-color:#f0dcbd;color:var(--warn)}
+.check-inline.stale{background:var(--warn-soft);border-color:#f0dcbd}
+.check-lbl{font-size:10.5px;font-weight:700;color:#22795a}
+.check-inline.stale .check-lbl{color:var(--warn)}
+.item-head input.check-date{
+  width:132px;padding:2px 6px;font-size:11.5px;border-radius:7px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--surface);
+}
+.check-ago{
+  font-size:10.5px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
+  padding-right:7px;white-space:nowrap;
+}
 .btn-xs{padding:3px 9px;font-size:11px;border-radius:7px;flex:0 0 auto}
 
 .check-note{
@@ -205,19 +215,32 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 }
 
 /* ランキング内の良い商品URL */
-.pick-list{list-style:none;margin:0;padding:0}
-.pick-list:not(:empty){padding:4px 0}
-.pick-row{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 16px}
-.pick-row:hover{background:var(--row-alt)}
-.pick-mark{color:var(--accent);font-size:10px;flex:0 0 auto}
-.pick-link{display:flex;align-items:baseline;gap:8px;flex:1;min-width:0;color:var(--text)}
-.pick-link:hover{text-decoration:none}
-.pick-link:hover .url-text{color:var(--blue);text-decoration:underline}
-.pick-name{font-size:12.5px;font-weight:500;flex:0 0 auto}
+.pick-list{list-style:none;margin:0;padding:4px 0}
+.pick-row{
+  display:grid;grid-template-columns:96px minmax(0,1fr) 260px 62px;
+  align-items:center;gap:10px;padding:5px 14px;
+}
+.pick-row:not(.pick-hd):hover{background:var(--row-alt)}
+.pick-hd{
+  font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.04em;
+  padding-top:2px;padding-bottom:4px;border-bottom:1px solid var(--border-soft);
+}
+.pick-date{
+  font-size:11.5px;color:var(--muted);
+  font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;
+}
+.pick-url-link{
+  font-size:11.5px;color:var(--muted);
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pick-url-link:hover{color:var(--blue)}
+.pick-note{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-acts{display:flex;justify-content:flex-end}
 
 .pick-foot{display:flex;align-items:center;gap:9px;padding:7px 14px 8px}
 .pick-open{
-  width:22px;height:22px;flex:0 0 auto;border-radius:7px;cursor:pointer;
+  width:22px;height:22px;flex:0 0 auto;border-radius:999px;cursor:pointer;
   border:1px dashed var(--border);background:var(--surface);color:var(--muted);
   font-size:14px;line-height:1;display:grid;place-items:center;transition:.12s;
 }
@@ -229,8 +252,9 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   display:flex;gap:6px;align-items:center;flex-wrap:wrap;
   padding:10px 14px;background:var(--row-alt);border-top:1px solid var(--border-soft);
 }
-.pick-form .pick-name{flex:0 1 240px;min-width:150px}
-.pick-form .pick-url{flex:1 1 260px;min-width:200px}
+.pick-form .pick-added{flex:0 0 132px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.pick-form .pick-url{flex:1 1 300px;min-width:200px}
+.pick-form .pick-memo{flex:0 1 240px;min-width:150px}
 .date-row{display:flex;gap:6px;align-items:center}
 .date-row input{flex:1}
 

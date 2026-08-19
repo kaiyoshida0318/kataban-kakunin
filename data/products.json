@@ -10,9 +10,21 @@
           "name": "折りたたみ電動キックボード（サンプル）",
           "category": "モビリティ",
           "links": [
-            { "type": "rakuten", "label": "商品ページ", "url": "https://item.rakuten.co.jp/example/sd1200x/" },
-            { "type": "rakuten_rank", "label": "デイリーランキング", "url": "https://ranking.rakuten.co.jp/daily/101070/" },
-            { "type": "alibaba", "label": "仕入元", "url": "https://detail.1688.com/offer/000000000000.html" }
+            {
+              "type": "rakuten",
+              "label": "商品ページ",
+              "url": "https://item.rakuten.co.jp/example/sd1200x/"
+            },
+            {
+              "type": "rakuten_rank",
+              "label": "デイリーランキング",
+              "url": "https://ranking.rakuten.co.jp/daily/101070/"
+            },
+            {
+              "type": "alibaba",
+              "label": "仕入元",
+              "url": "https://detail.1688.com/offer/000000000000.html"
+            }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
           "updatedAt": "2026-08-18T00:00:00.000Z"
@@ -29,7 +41,18 @@
           "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
           "checkedAt": "2026-08-19",
           "picks": [
-            { "id": "pk_s01", "name": "静音DCサーキュレーター 3位", "url": "https://item.rakuten.co.jp/example/dc-fan/" }
+            {
+              "id": "pk_r01",
+              "addedAt": "2026-08-12",
+              "url": "https://item.rakuten.co.jp/example/dc-fan/",
+              "note": "3位・静音DC。レビュー1200件"
+            },
+            {
+              "id": "pk_r02",
+              "addedAt": "2026-08-19",
+              "url": "https://item.rakuten.co.jp/example/slim-fan/",
+              "note": "新顔。価格が一段安い"
+            }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
           "updatedAt": "2026-08-19T00:00:00.000Z"
@@ -57,8 +80,18 @@
           "checkNote": "上位に食い込んでいる型番と、対応機種の広さを確認する。",
           "checkedAt": "2026-08-19",
           "picks": [
-            { "id": "pk_a01", "name": "1位の汎用充電ケーブル", "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1" },
-            { "id": "pk_a02", "name": "レビュー数が伸びている新顔", "url": "https://www.amazon.co.jp/dp/B0EXAMPLE2" }
+            {
+              "id": "pk_a01",
+              "addedAt": "2026-08-05",
+              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
+              "note": "1位の汎用充電ケーブル"
+            },
+            {
+              "id": "pk_a02",
+              "addedAt": "2026-08-19",
+              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE2",
+              "note": "レビュー数が伸びている新顔"
+            }
           ],
           "createdAt": "2026-08-18T00:00:00.000Z",
           "updatedAt": "2026-08-19T00:00:00.000Z"
