@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.15.0";
+const VERSION   = "0.17.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -71,7 +71,6 @@ let isNew = false;
 
 let view = SECTIONS[0].key;
 let tableEdit = false;   // 表からの直接編集モード
-const openPicks = new Set();   // 商品URL追加フォームを開いたままにするID
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
 const openRows  = new Set();   // 商品リストを開いているランキング行
 const filters = {
@@ -406,13 +405,12 @@ function renderBody() {
     b.onclick = () => {
       const id = b.dataset.addpick;
       openRows.add(id);
-      openPicks.add(id);
       renderBody();
       setTimeout(() => {
-        const box = $("list").querySelector(`.pick-form[data-for="${id}"]`);
-        if (box) {
-          box.querySelector(".pick-url").focus();
-          box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        const row = $("list").querySelector(`tr.pick-new[data-for="${id}"]`);
+        if (row) {
+          row.querySelector(".pick-url").focus();
+          row.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       }, 30);
     };
@@ -447,70 +445,59 @@ function renderBody() {
     };
   });
 
-  // 商品URLの追加フォームを開閉
-  /* 入力欄の開閉に合わせてボタンの見た目と文言を切り替える */
-  const setPickOpen = (id, open) => {
-    const btn = root.querySelector(`[data-pickopen="${id}"]`);
-    const box = root.querySelector(`.pick-form[data-for="${id}"]`);
-    if (!btn || !box) return;
-    open ? openPicks.add(id) : openPicks.delete(id);
-    box.hidden = !open;
-    btn.classList.toggle("open", open);
-    btn.classList.toggle("btn-add", !open);
-    btn.textContent = open ? "↓ 下で入力できます" : "＋ 商品を追加";
-    if (open) box.querySelector(".pick-url").focus();
-  };
+  // 商品欄を閉じる
+  root.querySelectorAll("[data-rowclose]").forEach((b) => {
+    b.onclick = () => { openRows.delete(b.dataset.rowclose); renderBody(); };
+  });
 
-  root.querySelectorAll("[data-pickopen]").forEach((b) => {
-    b.onclick = () => setPickOpen(b.dataset.pickopen, true);
-  });
-  root.querySelectorAll("[data-pickclose]").forEach((b) => {
-    b.onclick = () => setPickOpen(b.dataset.pickclose, false);
-  });
-  root.querySelectorAll(".pick-form").forEach((box) => {
-    const id  = box.dataset.for;
+  /* 常設の入力行（表の1行目）から追加 */
+  root.querySelectorAll("tr.pick-new").forEach((row) => {
+    const id  = row.dataset.for;
     const add = async () => {
-      const url = box.querySelector(".pick-url").value.trim();
-      if (!url) { toast("URLを入力してください", true); return; }
+      const url = row.querySelector(".pick-url").value.trim();
+      if (!url) { toast("商品URLを入力してください", true); row.querySelector(".pick-url").focus(); return; }
       const it = itemsOf(view).find((i) => i.id === id);
-      let image = box.querySelector(".pick-image").value.trim();
-      if (!image && asinOf(url)) {                       // 画像未入力なら自動で探す
-        const btn = box.querySelector(".pick-add");
+      let image = row.querySelector(".pick-image").value.trim();
+      if (!image && asinOf(url)) {                       // 画像未入力ならAmazonから自動取得
+        const btn = row.querySelector(".pick-add");
         btn.disabled = true; btn.textContent = "取得中…";
         image = await guessImage(url);
         btn.disabled = false; btn.textContent = "追加";
       }
       it.picks.push({
         id:      uid(),
-        addedAt: box.querySelector(".pick-added").value || today(),
+        addedAt: row.querySelector(".pick-added").value || today(),
         image,
+        title:   row.querySelector(".pick-title").value.trim(),
         url,
-        title:   box.querySelector(".pick-title").value.trim(),
         check:   "before",
         buy:     "before",
       });
       it.updatedAt = nowIso();
-      openPicks.add(id);
       upsert(view, it);
-      toast(image ? "商品URLを追加しました（画像を自動取得）" : "商品URLを追加しました");
+      toast(image ? "商品を追加しました（画像を自動取得）" : "商品を追加しました");
+      setTimeout(() => {
+        const next = $("list").querySelector(`tr.pick-new[data-for="${id}"] .pick-url`);
+        if (next) next.focus();
+      }, 30);
     };
-    box.querySelector(".pick-add").onclick = add;
-    box.querySelectorAll("input").forEach((inp) => {
+    row.querySelector(".pick-add").onclick = add;
+    row.querySelectorAll("input").forEach((inp) => {
       inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
     });
   });
+
   root.querySelectorAll("[data-pickdel]").forEach((b) => {
     b.onclick = () => {
       const [id, pid] = b.dataset.pickdel.split("|");
       const it = itemsOf(view).find((i) => i.id === id);
-      it.picks = it.picks.filter((p) => p.id !== pid);
+      it.picks = it.picks.filter((x) => x.id !== pid);
       it.updatedAt = nowIso();
       editPicks.delete(b.dataset.pickdel);
       upsert(view, it);
     };
   });
 
-  // 商品行のインライン編集
   root.querySelectorAll("[data-pickstatus]").forEach((sel) => {
     sel.onchange = () => {
       const [id, pid, field] = sel.dataset.pickstatus.split("|");
@@ -771,13 +758,14 @@ function pickPanel(it) {
       const key = `${it.id}|${p.id}`;
       if (editPicks.has(key)) return `
       <tr class="pick-editing" data-row="${esc(key)}">
-        <td><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>
-        <td><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
-        <td><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
-        <td><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
+        <td class="td-date"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>
+        <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
+        <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
+        <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
+        <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
+        ${statusCells(it.id, p)}
         <td class="td-acts">
-          <button class="icon-btn ok" data-picksave="${esc(key)}" title="保存">✓</button>
-          <button class="icon-btn" data-pickcancel="${esc(key)}" title="キャンセル">↩</button>
+          <button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button>
         </td>
       </tr>`;
       return `
@@ -786,9 +774,9 @@ function pickPanel(it) {
         <td class="td-img">${thumb(p)}</td>
         <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
         <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
+        <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
         ${statusCells(it.id, p)}
         <td class="td-acts">
-          <button class="icon-btn" data-pickedit="${esc(key)}" title="編集">✎</button>
           <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
         </td>
       </tr>`;
@@ -798,28 +786,27 @@ function pickPanel(it) {
     <div class="pick-hdr">
       <span class="pick-hdr-ttl">チェックした商品</span>
       <span class="pick-hdr-cnt">${it.picks.length} 件</span>
-      <button class="btn btn-xs pick-open${openPicks.has(it.id) ? " open" : " btn-add"}" data-pickopen="${esc(it.id)}">
-        ${openPicks.has(it.id) ? "↓ 下で入力できます" : "＋ 商品を追加"}
-      </button>
+      <button class="btn btn-ghost btn-xs pick-close" data-rowclose="${esc(it.id)}">× 商品欄を閉じる</button>
     </div>
 
-    <div class="pick-form" data-for="${esc(it.id)}"${openPicks.has(it.id) ? "" : " hidden"}>
-      <input class="input-sm pick-added" type="date" value="${esc(today())}">
-      <input class="input-sm pick-image" type="url" placeholder="画像URL（任意）">
-      <input class="input-sm pick-title" type="text" placeholder="商品名">
-      <input class="input-sm pick-url" type="url" placeholder="商品URL  https://…">
-      <button class="btn btn-add btn-sm pick-add">追加</button>
-      <button class="btn btn-ghost btn-sm pick-cancel" data-pickclose="${esc(it.id)}">やめる</button>
-    </div>
-
-    ${it.picks.length ? `<div class="pick-tbl-wrap"><table class="pick-tbl">
+    <div class="pick-tbl-wrap"><table class="pick-tbl">
       <thead><tr>
         <th class="td-date">追加日</th><th class="td-img">画像</th>
-        <th class="td-title">商品名</th><th class="td-url">商品URL</th>
+        <th class="td-title">商品名</th><th class="td-url">商品URL</th><th class="td-edit">編集</th>
         <th class="td-st">確認</th><th class="td-st">買付</th><th class="td-acts">操作</th>
       </tr></thead>
-      <tbody>${picks}</tbody>
-    </table></div>` : `<p class="pick-none">まだありません。良かった商品のURLをここに足していけます。</p>`}
+      <tbody>
+        <tr class="pick-new" data-for="${esc(it.id)}">
+          <td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>
+          <td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>
+          <td class="td-title"><input class="input-sm pick-title" type="text" placeholder="商品名"></td>
+          <td class="td-url"><input class="input-sm pick-url" type="url" placeholder="商品URL  https://…"></td>
+          <td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>
+          <td class="td-st"></td><td class="td-st"></td><td class="td-acts"></td>
+        </tr>
+        ${picks}
+      </tbody>
+    </table></div>
   </section>`;
 }
 
