@@ -1,19 +1,58 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": "2026-08-18T00:00:00.000Z",
-  "items": [
-    {
-      "id": "itm_sample01",
-      "model": "SD-1200X",
-      "name": "折りたたみ電動キックボード（サンプル）",
-      "category": "モビリティ",
-      "links": [
-        { "type": "rakuten", "label": "商品ページ", "url": "https://item.rakuten.co.jp/example/sd1200x/" },
-        { "type": "rakuten_rank", "label": "デイリーランキング", "url": "https://ranking.rakuten.co.jp/daily/101070/" },
-        { "type": "alibaba", "label": "仕入元", "url": "https://detail.1688.com/offer/000000000000.html" }
-      ],
-      "createdAt": "2026-08-18T00:00:00.000Z",
-      "updatedAt": "2026-08-18T00:00:00.000Z"
+  "sections": {
+    "products": {
+      "items": [
+        {
+          "id": "itm_sample01",
+          "model": "SD-1200X",
+          "name": "折りたたみ電動キックボード（サンプル）",
+          "category": "モビリティ",
+          "links": [
+            { "type": "rakuten", "label": "商品ページ", "url": "https://item.rakuten.co.jp/example/sd1200x/" },
+            { "type": "rakuten_rank", "label": "デイリーランキング", "url": "https://ranking.rakuten.co.jp/daily/101070/" },
+            { "type": "alibaba", "label": "仕入元", "url": "https://detail.1688.com/offer/000000000000.html" }
+          ],
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-18T00:00:00.000Z"
+        }
+      ]
+    },
+    "rakuten": {
+      "items": [
+        {
+          "id": "rk_sample01",
+          "name": "家電 > 扇風機・サーキュレーター",
+          "category": "家電",
+          "period": "daily",
+          "url": "https://ranking.rakuten.co.jp/daily/562637/",
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-18T00:00:00.000Z"
+        },
+        {
+          "id": "rk_sample02",
+          "name": "総合ランキング",
+          "category": "総合",
+          "period": "realtime",
+          "url": "https://ranking.rakuten.co.jp/realtime/",
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-18T00:00:00.000Z"
+        }
+      ]
+    },
+    "amazon": {
+      "items": [
+        {
+          "id": "am_sample01",
+          "name": "ホーム&キッチン 売れ筋ランキング",
+          "category": "ホーム",
+          "period": "daily",
+          "url": "https://www.amazon.co.jp/gp/bestsellers/kitchen/",
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-18T00:00:00.000Z"
+        }
+      ]
     }
-  ]
+  }
 }

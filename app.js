@@ -1,18 +1,36 @@
 /* =========================================================
    型番商品確認くん / app.js
-   型番ごとにURLを置いておくだけのシンプルな置き場
+   型番商品・楽天ランキング・AmazonランキングのURL置き場
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.2.2";
+const VERSION   = "0.3.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
-const LS_DATA   = "kata_data_v1";
+const LS_DATA   = "kata_data_v2";
+
+/* ---------- セクション定義 ---------- */
+const SECTIONS = [
+  { key: "products", icon: "📦", label: "型番商品",          kind: "product",
+    search: "型番・商品名・URLで検索…", add: "＋ 型番を追加",
+    emptyTtl: "まだ型番が登録されていません",
+    emptySub: "「＋ 型番を追加」から、監視したい商品のURLを登録してください。" },
+  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",     kind: "rank",
+    search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
+    emptyTtl: "まだランキングURLが登録されていません",
+    emptySub: "よく見る楽天のランキングページを登録しておくと、ここから一発で開けます。" },
+  { key: "amazon",   icon: "📊", label: "Amazonランキング",   kind: "rank",
+    search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
+    emptyTtl: "まだランキングURLが登録されていません",
+    emptySub: "よく見るAmazonの売れ筋ランキングページを登録しておくと、ここから一発で開けます。" },
+];
+const SEC = (k) => SECTIONS.find((s) => s.key === k);
 
 const LINK_TYPES = {
   rakuten:      "楽天",
   rakuten_rank: "楽天ランキング",
   amazon:       "Amazon",
+  amazon_rank:  "Amazonランキング",
   yahoo:        "Yahoo!",
   mercari:      "メルカリ",
   alibaba:      "1688",
@@ -20,16 +38,19 @@ const LINK_TYPES = {
   official:     "公式",
   other:        "その他",
 };
+const PERIODS = { daily: "デイリー", weekly: "週間", monthly: "月間", realtime: "リアルタイム", other: "その他" };
 
 /* ---------- 状態 ---------- */
 let cfg   = { owner: "", repo: "", branch: "main", pat: "" };
-let data  = { version: 1, updatedAt: "", items: [] };
+let data  = emptyData();
 let sha   = null;
 let dirty = false;
 let entry = null;
 let isNew = false;
 
-const filter = { q: "", cat: "*" };
+let view = "products";
+const filters = { products: { q: "", cat: "*" }, rakuten: { q: "", cat: "*" }, amazon: { q: "", cat: "*" } };
+const F = () => filters[view];
 
 /* ---------- 小物 ---------- */
 const $ = (id) => document.getElementById(id);
@@ -37,6 +58,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const uid = () => "itm_" + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 const nowIso = () => new Date().toISOString();
+const ymd = (iso) => (iso || "").slice(0, 10);
 
 function toast(msg, isErr) {
   const t = $("toast");
@@ -49,11 +71,52 @@ function toast(msg, isErr) {
 function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
 }
-function ymd(iso) { return (iso || "").slice(0, 10); }
 
 /* =========================================================
-   保存まわり
+   データ
    ========================================================= */
+function emptyData() {
+  return { version: 2, updatedAt: "", sections: { products: { items: [] }, rakuten: { items: [] }, amazon: { items: [] } } };
+}
+const itemsOf = (key) => data.sections[key].items;
+
+function normProduct(it) {
+  return {
+    id:       it.id || uid(),
+    model:    it.model || "",
+    name:     it.name || "",
+    category: it.category || "未分類",
+    links: (Array.isArray(it.links) ? it.links : [])
+      .map((l) => ({ type: LINK_TYPES[l.type] ? l.type : "other", label: l.label || "", url: l.url || "" }))
+      .filter((l) => l.url),
+    createdAt: it.createdAt || nowIso(),
+    updatedAt: it.updatedAt || it.createdAt || nowIso(),
+  };
+}
+function normRank(it) {
+  return {
+    id:       it.id || uid(),
+    name:     it.name || "",
+    category: it.category || "未分類",
+    period:   PERIODS[it.period] ? it.period : "daily",
+    url:      it.url || "",
+    createdAt: it.createdAt || nowIso(),
+    updatedAt: it.updatedAt || it.createdAt || nowIso(),
+  };
+}
+
+function normalize(d) {
+  const out = emptyData();
+  out.updatedAt = d?.updatedAt || "";
+  const s = d?.sections || {};
+  // v1（items が直下）からの移行
+  const legacy = Array.isArray(d?.items) ? d.items : null;
+  out.sections.products.items = (legacy || s.products?.items || []).map(normProduct);
+  out.sections.rakuten.items  = (s.rakuten?.items || []).map(normRank).filter((x) => x.url);
+  out.sections.amazon.items   = (s.amazon?.items  || []).map(normRank).filter((x) => x.url);
+  return out;
+}
+
 function loadCfg() {
   try {
     const raw = localStorage.getItem(LS_CFG);
@@ -68,126 +131,148 @@ function persistLocal() {
   localStorage.setItem(LS_DATA, JSON.stringify(data));
 }
 function loadLocal() {
-  try {
-    const raw = localStorage.getItem(LS_DATA);
-    if (raw) return normalize(JSON.parse(raw));
-  } catch { /* noop */ }
+  for (const key of [LS_DATA, "kata_data_v1"]) {          // 旧キーからも拾う
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return normalize(JSON.parse(raw));
+    } catch { /* noop */ }
+  }
   return null;
-}
-
-function normalize(d) {
-  const items = Array.isArray(d?.items) ? d.items : [];
-  return {
-    version: 1,
-    updatedAt: d?.updatedAt || "",
-    items: items.map((it) => ({
-      id:       it.id || uid(),
-      model:    it.model || "",
-      name:     it.name || "",
-      category: it.category || "未分類",
-      links: (Array.isArray(it.links) ? it.links : [])
-        .map((l) => ({
-          type:  LINK_TYPES[l.type] ? l.type : "other",
-          label: l.label || "",
-          url:   l.url || "",
-        }))
-        .filter((l) => l.url),
-      createdAt: it.createdAt || nowIso(),
-      updatedAt: it.updatedAt || it.createdAt || nowIso(),
-    })),
-  };
 }
 
 function markDirty(v) {
   dirty = v;
-  const el = $("saveState");
-  if (dirty) { el.textContent = "● 未保存"; el.className = "save-state dirty"; }
-  else       { el.textContent = "保存済";   el.className = "save-state ok"; }
+  $("saveState").hidden = !dirty;
+}
+
+/* =========================================================
+   ヘッダー
+   ========================================================= */
+function renderNav() {
+  $("gnav").innerHTML = SECTIONS.map((s) => `
+    <button class="gnav-item${view === s.key ? " on" : ""}" data-k="${s.key}">
+      <span class="gnav-ico">${s.icon}</span>${esc(s.label)}
+      <span class="gnav-cnt">${itemsOf(s.key).length}</span>
+    </button>`).join("");
+  $("gnav").querySelectorAll(".gnav-item").forEach((b) => {
+    b.onclick = () => { view = b.dataset.k; renderAll(); };
+  });
+}
+
+function renderHeadBits() {
+  $("repoBadge").textContent = cfg.owner && cfg.repo ? `${cfg.owner}/${cfg.repo}` : "未設定";
+  $("repoBadge").classList.toggle("unset", !(cfg.owner && cfg.repo));
+  $("verLabel").textContent = "v" + VERSION;
+}
+
+function categories(key) {
+  return Array.from(new Set(itemsOf(key).map((i) => i.category || "未分類")))
+    .sort((a, b) => a.localeCompare(b, "ja"));
+}
+
+function renderToolbar() {
+  const s = SEC(view);
+  $("q").placeholder = s.search;
+  $("q").value = F().q;
+  $("btnNew").textContent = s.add;
+
+  const cats = categories(view);
+  const seg = (k, label, cnt, on) =>
+    `<button class="seg-btn${on ? " on" : ""}" data-k="${esc(k)}">${esc(label)}<span class="seg-cnt">${cnt}</span></button>`;
+  $("catSeg").innerHTML = cats.length < 2 ? "" :
+    seg("*", "すべて", itemsOf(view).length, F().cat === "*") +
+    cats.map((c) => seg(c, c, itemsOf(view).filter((i) => (i.category || "未分類") === c).length, F().cat === c)).join("");
+  $("catSeg").querySelectorAll(".seg-btn").forEach((b) => {
+    b.onclick = () => { F().cat = b.dataset.k; renderToolbar(); renderBody(); };
+  });
+
+  const dl = view === "products" ? "catList" : "rankCatList";
+  $(dl).innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
 }
 
 /* =========================================================
    一覧
    ========================================================= */
-function categories() {
-  return Array.from(new Set(data.items.map((i) => i.category || "未分類")))
-    .sort((a, b) => a.localeCompare(b, "ja"));
-}
-
-function renderTabs() {
-  const cats = categories();
-  const el = $("catTabs");
-  const tab = (k, label, cnt, on) =>
-    `<button class="tab${on ? " on" : ""}" data-k="${esc(k)}">${esc(label)}<span class="cnt">${cnt}</span></button>`;
-
-  el.innerHTML =
-    tab("*", "すべて", data.items.length, filter.cat === "*") +
-    cats.map((c) => tab(c, c, data.items.filter((i) => (i.category || "未分類") === c).length, filter.cat === c)).join("");
-
-  el.querySelectorAll(".tab").forEach((b) => {
-    b.onclick = () => { filter.cat = b.dataset.k; renderTabs(); renderList(); };
-  });
-  el.hidden = cats.length < 2;
-
-  $("catList").innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
-}
-
 function visibleItems() {
-  const q = filter.q.trim().toLowerCase();
-  return data.items
+  const q = F().q.trim().toLowerCase();
+  const isProduct = SEC(view).kind === "product";
+  return itemsOf(view)
     .filter((it) => {
-      if (filter.cat !== "*" && (it.category || "未分類") !== filter.cat) return false;
+      if (F().cat !== "*" && (it.category || "未分類") !== F().cat) return false;
       if (!q) return true;
-      const hay = [it.model, it.name, it.category, (it.links || []).map((l) => l.url + " " + l.label).join(" ")]
-        .join(" ").toLowerCase();
-      return hay.includes(q);
+      const hay = isProduct
+        ? [it.model, it.name, it.category, it.links.map((l) => l.url + " " + l.label).join(" ")].join(" ")
+        : [it.name, it.category, it.url].join(" ");
+      return hay.toLowerCase().includes(q);
     })
     .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
 }
 
-function renderList() {
+function renderBody() {
+  const s = SEC(view);
   const list = visibleItems();
+  const total = itemsOf(view).length;
+
+  $("countLabel").textContent = total ? `${list.length} / ${total} 件` : "";
   $("emptyState").hidden = list.length > 0;
+  $("emptyTtl").textContent = total ? "条件に合うものがありません" : s.emptyTtl;
+  $("emptySub").textContent = total ? "検索語やカテゴリの絞り込みを外してみてください。" : s.emptySub;
 
-  $("list").innerHTML = list.map((it) => {
-    const links = (it.links || []).map((l, i) => `
-      <li class="url-row">
-        <span class="chip ${esc(l.type)}">${esc(LINK_TYPES[l.type] || "その他")}</span>
-        <a class="url-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">
-          ${l.label ? `<span class="url-label">${esc(l.label)}</span>` : ""}<span class="url-text">${esc(l.url)}</span>
-        </a>
-        <button class="icon-btn" data-copy="${esc(it.id)}|${i}" title="URLをコピー">⧉</button>
-      </li>`).join("");
-
-    return `<article class="item" data-id="${esc(it.id)}">
-      <div class="item-head">
-        <span class="model">${esc(it.model || "—")}</span>
-        <span class="item-name">${esc(it.name || "")}</span>
-        <span class="pill">${esc(it.category || "未分類")}</span>
-        <span class="item-date">${esc(ymd(it.updatedAt))}</span>
-        <button class="icon-btn edit" data-edit="${esc(it.id)}" title="編集">✎</button>
-      </div>
-      <ul class="url-list">${links || '<li class="url-row muted">URL未登録</li>'}</ul>
-    </article>`;
-  }).join("");
+  $("list").innerHTML = s.kind === "product" ? list.map(productCard).join("") : list.map(rankRow).join("");
 
   $("list").querySelectorAll("[data-edit]").forEach((b) => {
-    b.onclick = () => openItem(data.items.find((i) => i.id === b.dataset.edit));
-  });
-  $("list").querySelectorAll("[data-copy]").forEach((b) => {
     b.onclick = () => {
-      const [id, i] = b.dataset.copy.split("|");
-      const it = data.items.find((x) => x.id === id);
-      navigator.clipboard?.writeText(it.links[Number(i)].url);
-      toast("URLをコピーしました");
+      const it = itemsOf(view).find((i) => i.id === b.dataset.edit);
+      s.kind === "product" ? openItem(it) : openRank(it);
     };
   });
-
-  $("footNote").textContent =
-    `${list.length} 件表示 / 全 ${data.items.length} 型番 ・ URL ${data.items.reduce((n, i) => n + i.links.length, 0)} 本`;
+  $("list").querySelectorAll("[data-copy]").forEach((b) => {
+    b.onclick = () => { navigator.clipboard?.writeText(b.dataset.copy); toast("URLをコピーしました"); };
+  });
 }
 
+function productCard(it) {
+  const links = it.links.map((l) => `
+    <li class="url-row">
+      <span class="chip ${esc(l.type)}">${esc(LINK_TYPES[l.type] || "その他")}</span>
+      <a class="url-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">
+        ${l.label ? `<span class="url-label">${esc(l.label)}</span>` : ""}<span class="url-text">${esc(l.url)}</span>
+      </a>
+      <button class="icon-btn" data-copy="${esc(l.url)}" title="URLをコピー">⧉</button>
+    </li>`).join("");
+
+  return `<article class="item">
+    <div class="item-head">
+      <span class="model">${esc(it.model || "—")}</span>
+      <span class="item-name">${esc(it.name || "")}</span>
+      <span class="pill">${esc(it.category || "未分類")}</span>
+      <span class="item-date">${esc(ymd(it.updatedAt))}</span>
+      <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
+    </div>
+    <ul class="url-list">${links || '<li class="url-row muted">URL未登録</li>'}</ul>
+  </article>`;
+}
+
+function rankRow(it) {
+  return `<article class="item item-flat">
+    <div class="rank-row">
+      <span class="chip period-${esc(it.period)}">${esc(PERIODS[it.period] || "—")}</span>
+      <a class="rank-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" title="${esc(it.url)}">
+        <span class="rank-name">${esc(it.name || hostOf(it.url))}</span>
+        <span class="url-text">${esc(it.url)}</span>
+      </a>
+      <span class="pill">${esc(it.category || "未分類")}</span>
+      <span class="item-date">${esc(ymd(it.updatedAt))}</span>
+      <button class="icon-btn" data-copy="${esc(it.url)}" title="URLをコピー">⧉</button>
+      <button class="icon-btn" data-edit="${esc(it.id)}" title="編集">✎</button>
+    </div>
+  </article>`;
+}
+
+function renderAll() { renderNav(); renderToolbar(); renderBody(); }
+
 /* =========================================================
-   編集モーダル
+   型番商品モーダル
    ========================================================= */
 function openItem(item) {
   isNew = !item;
@@ -246,20 +331,73 @@ function saveItem() {
   entry.category  = $("fCat").value.trim() || "未分類";
   entry.updatedAt = nowIso();
 
-  const idx = data.items.findIndex((i) => i.id === entry.id);
-  if (idx >= 0) data.items[idx] = entry; else data.items.push(entry);
-
-  persistLocal(); markDirty(true);
-  closeItem(); renderTabs(); renderList();
+  upsert("products", entry);
+  closeItem();
   toast(isNew ? "追加しました" : "保存しました");
 }
 
 function deleteItem() {
   if (!confirm(`「${entry.model}」を削除します。よろしいですか？`)) return;
-  data.items = data.items.filter((i) => i.id !== entry.id);
-  persistLocal(); markDirty(true);
-  closeItem(); renderTabs(); renderList();
+  removeById("products", entry.id);
+  closeItem();
   toast("削除しました");
+}
+
+/* =========================================================
+   ランキングURLモーダル
+   ========================================================= */
+function openRank(item) {
+  isNew = !item;
+  entry = item
+    ? JSON.parse(JSON.stringify(item))
+    : { id: uid(), name: "", category: "", period: "daily", url: "", createdAt: nowIso(), updatedAt: nowIso() };
+
+  $("rankModalTtl").textContent = `${SEC(view).label}のURLを${isNew ? "追加" : "編集"}`;
+  $("rName").value   = entry.name;
+  $("rCat").value    = isNew ? "" : entry.category;
+  $("rPeriod").value = entry.period;
+  $("rUrl").value    = entry.url;
+  $("btnDelRank").style.visibility = isNew ? "hidden" : "visible";
+
+  $("rankModal").hidden = false;
+  setTimeout(() => $("rName").focus(), 30);
+}
+function closeRank() { $("rankModal").hidden = true; entry = null; }
+
+function saveRank() {
+  const name = $("rName").value.trim();
+  const url  = $("rUrl").value.trim();
+  if (!name) { toast("ジャンル名は必須です", true); $("rName").focus(); return; }
+  if (!url)  { toast("URLは必須です", true); $("rUrl").focus(); return; }
+
+  entry.name      = name;
+  entry.url       = url;
+  entry.category  = $("rCat").value.trim() || "未分類";
+  entry.period    = $("rPeriod").value;
+  entry.updatedAt = nowIso();
+
+  upsert(view, entry);
+  closeRank();
+  toast(isNew ? "追加しました" : "保存しました");
+}
+
+function deleteRank() {
+  if (!confirm(`「${entry.name}」を削除します。よろしいですか？`)) return;
+  removeById(view, entry.id);
+  closeRank();
+  toast("削除しました");
+}
+
+/* ---------- 共通の更新 ---------- */
+function upsert(key, item) {
+  const arr = itemsOf(key);
+  const i = arr.findIndex((x) => x.id === item.id);
+  if (i >= 0) arr[i] = item; else arr.push(item);
+  persistLocal(); markDirty(true); renderAll();
+}
+function removeById(key, id) {
+  data.sections[key].items = itemsOf(key).filter((x) => x.id !== id);
+  persistLocal(); markDirty(true); renderAll();
 }
 
 /* =========================================================
@@ -274,7 +412,7 @@ function ghHeaders() {
   if (cfg.pat) h.Authorization = `token ${cfg.pat}`;
   return h;
 }
-const ghBase = () => `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${DATA_PATH}`;
+const ghBase   = () => `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${DATA_PATH}`;
 const ghGetUrl = () => `${ghBase()}?ref=${encodeURIComponent(cfg.branch)}`;
 const cfgReady = () => Boolean(cfg.owner && cfg.repo && cfg.branch);
 
@@ -288,8 +426,7 @@ async function pullFromGitHub(silent) {
     const json = await res.json();
     sha = json.sha;
     data = normalize(JSON.parse(b64decode(json.content)));
-    persistLocal(); markDirty(false);
-    renderTabs(); renderList();
+    persistLocal(); markDirty(false); renderAll();
     if (!silent) toast("GitHubから読み込みました");
     return true;
   } catch (e) {
@@ -311,8 +448,9 @@ async function saveToGitHub() {
     else throw new Error(`${head.status} ${head.statusText}`);
 
     data.updatedAt = nowIso();
+    const n = SECTIONS.reduce((t, s) => t + itemsOf(s.key).length, 0);
     const body = {
-      message: `Update ${DATA_PATH} (${data.items.length} items)`,
+      message: `Update ${DATA_PATH} (${n} items)`,
       content: b64encode(JSON.stringify(data, null, 2)),
       branch:  cfg.branch,
     };
@@ -332,12 +470,12 @@ async function saveToGitHub() {
   } catch (e) {
     toast("保存失敗: " + e.message, true);
   } finally {
-    btn.disabled = false; btn.textContent = "💾 GitHubに保存";
+    btn.disabled = false; btn.textContent = "💾 保存";
   }
 }
 
 /* =========================================================
-   設定モーダル
+   設定
    ========================================================= */
 function openCfg() {
   $("cOwner").value  = cfg.owner;
@@ -354,21 +492,19 @@ function readCfgForm() {
     branch: $("cBranch").value.trim() || "main",
     pat:    $("cPat").value.trim(),
   };
-  saveCfg();
+  saveCfg(); renderHeadBits();
 }
 
 /* =========================================================
    起動
    ========================================================= */
 function bind() {
-  $("verLabel").textContent = "v" + VERSION;
-
-  $("btnNew").onclick      = () => openItem(null);
+  $("btnNew").onclick      = () => (SEC(view).kind === "product" ? openItem(null) : openRank(null));
   $("btnSettings").onclick = openCfg;
   $("btnSaveGh").onclick   = saveToGitHub;
 
-  $("q").oninput      = (e) => { filter.q = e.target.value; renderList(); };
-  $("qClear").onclick = () => { $("q").value = ""; filter.q = ""; renderList(); };
+  $("q").oninput      = (e) => { F().q = e.target.value; renderBody(); };
+  $("qClear").onclick = () => { $("q").value = ""; F().q = ""; renderBody(); };
 
   $("itemClose").onclick     = closeItem;
   $("btnCancelItem").onclick = closeItem;
@@ -376,6 +512,12 @@ function bind() {
   $("btnDelItem").onclick    = deleteItem;
   $("btnAddLink").onclick    = addLink;
   $("lUrl").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } };
+
+  $("rankClose").onclick     = closeRank;
+  $("btnCancelRank").onclick = closeRank;
+  $("btnSaveRank").onclick   = saveRank;
+  $("btnDelRank").onclick    = deleteRank;
+  $("rUrl").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveRank(); } };
 
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };
   $("btnSaveCfg").onclick = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
@@ -386,11 +528,11 @@ function bind() {
     $("cfgStatus").textContent = ok ? "読み込み完了" : "読み込めませんでした";
   };
 
-  ["itemModal", "cfgModal"].forEach((id) => {
+  ["itemModal", "rankModal", "cfgModal"].forEach((id) => {
     $(id).onclick = (e) => { if (e.target.id === id) $(id).hidden = true; };
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { $("itemModal").hidden = true; $("cfgModal").hidden = true; }
+    if (e.key === "Escape") ["itemModal", "rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
     if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveToGitHub(); }
   });
   window.addEventListener("beforeunload", (e) => {
@@ -401,6 +543,7 @@ function bind() {
 async function boot() {
   loadCfg();
   bind();
+  renderHeadBits();
 
   const local = loadLocal();
   if (local) { data = local; markDirty(true); }
@@ -412,7 +555,7 @@ async function boot() {
     markDirty(false);
   }
 
-  renderTabs(); renderList();
+  renderAll();
   if (cfgReady() && !dirty) pullFromGitHub(true);
 }
 

@@ -74,11 +74,11 @@ https://kaiyoshida0318.github.io/kataban-kakunin/
 
 1. **＋ 型番を追加** → 型番に `TEST-001`、URLを1本入れて **保存**
 2. 右上が `● 未保存` になる
-3. **💾 GitHubに保存**（`Cmd/Ctrl + S` でも可）→「GitHubに保存しました」
+3. **💾 保存**（`Cmd/Ctrl + S` でも可）→「GitHubに保存しました」
 4. GitHubの `data/products.json` に `TEST-001` が入っていれば成功
 5. 確認できたら削除 → もう一度 GitHubに保存
 
-サンプルの `SD-1200X` も同じ手順で消せる。
+サンプル（型番1件・楽天2件・Amazon1件）も同じ手順で消せる。
 
 ---
 

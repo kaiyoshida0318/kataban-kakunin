@@ -10,47 +10,55 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.2.2">
+<link rel="stylesheet" href="style.css?v=0.3.0">
 </head>
 <body>
 
 <header class="app-header">
-  <div class="app-header-in">
-    <h1 class="logo-wrap">
-      <img class="logo-img" src="logo.png?v=2" alt="型番商品確認くん" width="746" height="96">
-      <span class="ver" id="verLabel">v0.2.2</span>
-    </h1>
-    <div class="header-actions">
-      <span class="save-state" id="saveState">—</span>
-      <button class="btn btn-ghost" id="btnSettings">⚙️ 設定</button>
-      <button class="btn btn-primary" id="btnSaveGh">💾 GitHubに保存</button>
+
+  <!-- 1段目: ブランド + リポジトリ + 操作 -->
+  <div class="head-row head-brand">
+    <div class="brand">
+      <span class="brand-icon"><img src="favicon.png" alt="" width="64" height="64"></span>
+      <span class="brand-text">
+        <img class="brand-logo" src="logo.png?v=2" alt="型番商品確認くん" width="746" height="96">
+        <span class="brand-sub">MODEL NUMBER CHECKER</span>
+      </span>
+    </div>
+    <div class="head-actions">
+      <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
+      <span class="ver-badge" id="verLabel">v0.3.0</span>
+      <span class="dirty-badge" id="saveState" hidden>● 未保存</span>
+      <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
+      <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
     </div>
   </div>
-</header>
 
-<div class="container">
+  <!-- 2段目: グローバルメニュー -->
+  <nav class="gnav" id="gnav"></nav>
 
-  <div class="toolbar">
+  <!-- 3段目: ツールバー -->
+  <div class="head-row head-tools">
     <div class="search-wrap">
-      <input type="search" id="q" class="search" placeholder="型番・商品名・URLで検索…" autocomplete="off">
+      <input type="search" id="q" class="search" placeholder="検索…" autocomplete="off">
       <button class="search-clear" id="qClear" title="クリア">✕</button>
     </div>
-    <button class="btn btn-add" id="btnNew">＋ 型番を追加</button>
+    <div class="seg" id="catSeg"></div>
+    <span class="count" id="countLabel"></span>
+    <button class="btn btn-add btn-sm" id="btnNew">＋ 追加</button>
   </div>
 
-  <nav class="cat-tabs" id="catTabs"></nav>
+</header>
 
+<main class="container">
   <div class="list" id="list"></div>
-
   <div class="empty" id="emptyState" hidden>
-    <p class="empty-ttl">まだ型番が登録されていません</p>
-    <p class="empty-sub">「＋ 型番を追加」から、監視したい商品のURLを登録してください。</p>
+    <p class="empty-ttl" id="emptyTtl"></p>
+    <p class="empty-sub" id="emptySub"></p>
   </div>
+</main>
 
-  <p class="foot-note" id="footNote"></p>
-</div>
-
-<!-- ===== 編集モーダル ===== -->
+<!-- ===== 型番商品モーダル ===== -->
 <div class="modal-overlay" id="itemModal" hidden>
   <div class="modal">
     <div class="modal-head">
@@ -82,6 +90,7 @@
             <option value="rakuten">楽天</option>
             <option value="rakuten_rank">楽天ランキング</option>
             <option value="amazon">Amazon</option>
+            <option value="amazon_rank">Amazonランキング</option>
             <option value="yahoo">Yahoo!</option>
             <option value="mercari">メルカリ</option>
             <option value="alibaba">1688 / Alibaba</option>
@@ -103,6 +112,51 @@
       <div class="grow"></div>
       <button class="btn btn-ghost" id="btnCancelItem">キャンセル</button>
       <button class="btn btn-primary" id="btnSaveItem">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ランキングURLモーダル ===== -->
+<div class="modal-overlay" id="rankModal" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-ttl" id="rankModalTtl">ランキングURLを追加</h2>
+      <button class="icon-btn" id="rankClose" title="閉じる">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="field">
+        <label for="rName">ジャンル名 <span class="req">*</span></label>
+        <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="rCat">カテゴリ</label>
+          <input id="rCat" type="text" list="rankCatList" placeholder="未分類">
+          <datalist id="rankCatList"></datalist>
+        </div>
+        <div class="field">
+          <label for="rPeriod">期間</label>
+          <select id="rPeriod">
+            <option value="daily">デイリー</option>
+            <option value="weekly">週間</option>
+            <option value="monthly">月間</option>
+            <option value="realtime">リアルタイム</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="rUrl">URL <span class="req">*</span></label>
+        <input id="rUrl" type="url" placeholder="https://…">
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-danger" id="btnDelRank">削除</button>
+      <div class="grow"></div>
+      <button class="btn btn-ghost" id="btnCancelRank">キャンセル</button>
+      <button class="btn btn-primary" id="btnSaveRank">保存</button>
     </div>
   </div>
 </div>
@@ -148,6 +202,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.2.2"></script>
+<script src="app.js?v=0.3.0"></script>
 </body>
 </html>
