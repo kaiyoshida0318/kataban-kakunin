@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T09:00:30.015Z",
+  "updatedAt": "2026-08-20T09:02:01.438Z",
   "labels": {
     "rival": [
       {
@@ -95,6 +95,15 @@
         "color": "purple"
       }
     ]
+  },
+  "cols": {
+    "rowH": 96,
+    "pickRowH": 66,
+    "items": {
+      "img": {
+        "w": 103
+      }
+    }
   },
   "sections": {
     "amazon": {
