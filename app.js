@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.30.0";
+const VERSION   = "0.31.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -25,8 +25,8 @@ function colsOf(key) {
     { key: "ord", label: "並び", w: 68, cls: "c-ord" },
     ...(sided ? [{ key: "side", label: "区分", w: 118, cls: "c-side" }] : []),
     { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
+    { key: "cat",   label: "大カテゴリ", w: 116, cls: "c-cat",   sort: "category"  },
     { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
-    ...(sided ? [] : [{ key: "cat", label: "カテゴリ", w: 100, cls: "c-cat", sort: "category" }]),
     ...urls,
     { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
     { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
@@ -593,8 +593,7 @@ function renderToolbar() {
   $("q").value = F().q;
   $("btnNew").textContent = s.add;
 
-  if (SEC(view).side) F().cat = "*";
-  const cats = SEC(view).side ? [] : categories(view);
+  const cats = categories(view);
   const seg = (k, label, cnt, on) =>
     `<button class="seg-btn${on ? " on" : ""}" data-k="${esc(k)}">${esc(label)}<span class="seg-cnt">${cnt}</span></button>`;
   $("catSeg").innerHTML = cats.length < 2 ? "" :
@@ -948,7 +947,9 @@ function rankTable(list) {
       `<span class="col-resizer" data-col="${c.key}"></span></th>`;
   }).join("");
 
-  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px">
+  /* 行の高さに収まる行数だけ、ジャンル名を折り返して見せる */
+  const nameLines = Math.max(1, Math.floor((rowH() - 16) / 19));
+  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
@@ -1254,7 +1255,6 @@ function openRank(item) {
   /* 区分タブ（amazon基準 / 楽天基準）はカテゴリの代わりに区分ドロップダウン */
   const side = SEC(view).side;
   $("fSide").hidden = !side;
-  $("fCat").hidden  = Boolean(side);
   if (side) {
     $("rSide").innerHTML = sideOptions(side);
     $("rSide").value = side;
@@ -1343,7 +1343,7 @@ function saveRank() {
   entry.url        = vals.url || "";
   entry.urlAmazon  = vals.urlAmazon || "";
   entry.urlRakuten = vals.urlRakuten || "";
-  entry.category  = SEC(view).side ? (entry.category || "未分類") : ($("rCat").value.trim() || "未分類");
+  entry.category  = $("rCat").value.trim() || "未分類";
   entry.image     = $("rImage").value.trim();
   entry.checkNote = $("rNote").value.trim();
   entry.checkedAt = $("rChecked").value || "";

@@ -219,7 +219,10 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
   width:min(calc(var(--row-h,96px) - 22px), 92px);
   height:min(calc(var(--row-h,96px) - 22px), 92px);
 }
-.rank-tbl .c-cat{text-align:center;font-size:12px;color:var(--muted)}
+.rank-tbl .c-cat{
+  text-align:center;font-size:12px;color:var(--muted);
+  white-space:normal;overflow-wrap:anywhere;line-height:1.45;
+}
 .rank-tbl .c-note{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-tbl .c-check{text-align:center;white-space:nowrap}
 .rank-tbl .c-cnt{text-align:center}
@@ -229,7 +232,11 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 
 
 
-.r-name{font-size:13px;font-weight:700;color:var(--text);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-name{
+  font-size:13px;font-weight:700;color:var(--text);display:-webkit-box;
+  -webkit-box-orient:vertical;-webkit-line-clamp:var(--name-lines,3);
+  overflow:hidden;white-space:normal;overflow-wrap:anywhere;line-height:1.45;
+}
 .r-name:hover{color:var(--accent);text-decoration:none}
 .rank-tbl .c-url a{
   display:block;font-size:11.5px;color:var(--blue);font-family:ui-monospace,Menlo,Consolas,monospace;
