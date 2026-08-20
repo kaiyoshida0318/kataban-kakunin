@@ -430,6 +430,28 @@ body.resizing *{cursor:col-resize !important}
 .side-sel-lg{font-size:13px;padding:8px 26px 8px 12px;border-radius:9px;background-position:right 10px center;background-size:11px}
 .pick-tbl .td-acts{white-space:nowrap;text-align:center;padding:3px 4px}
 
+/* --- 追加した商品（追加日ごと） --- */
+.added-tbl{width:100%;table-layout:fixed}
+.added-tbl tbody td{height:var(--pick-row-h,66px)}
+.added-tbl .day-row td{height:auto}
+.day-cell{
+  background:var(--row-alt);border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:7px 12px;text-align:left;
+}
+.day-date{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;color:var(--text)}
+.day-rel{margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);
+  border-radius:999px;padding:2px 8px}
+.day-cnt{margin-left:8px;font-size:11px;color:var(--muted)}
+.added-tbl .td-src{font-size:11.5px;overflow:hidden}
+.src-side{
+  display:inline-block;font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-right:6px;
+  vertical-align:middle;
+}
+.src-side.sd-off{background-color:#e8f0fb;border:1px solid #c3d7f2;color:#1a55a6}
+.src-side.sd-def{background-color:var(--green-soft);border:1px solid #cbe6da;color:#22795a}
+.src-name{color:var(--muted);display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.src-name:hover{color:var(--accent)}
+
 .pick-thumb{
   width:46px;height:46px;object-fit:contain;display:block;margin:0 auto;
   border-radius:6px;background:#fff;
@@ -437,6 +459,10 @@ body.resizing *{cursor:col-resize !important}
 .pick-thumb.none,.pick-thumb.broken{
   border:1px dashed var(--border);background:var(--row-alt);
 }
+button.pick-thumb.none{cursor:pointer;padding:0}
+button.pick-thumb.none::after{content:"↻";color:#c3c8d1;font-size:14px;line-height:44px;display:block}
+button.pick-thumb.none:hover{border-color:var(--accent);background:var(--accent-soft)}
+button.pick-thumb.none:hover::after{color:var(--accent)}
 .pick-thumb.broken{position:relative}
 .pick-thumb.busy{
   border:1px dashed #c9d8ef;background:#f2f7fe;color:var(--accent);

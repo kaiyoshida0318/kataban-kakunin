@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.32.0">
+<link rel="stylesheet" href="style.css?v=0.34.0">
 </head>
 <body>
 
@@ -24,7 +24,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.32.0</span>
+      <span class="ver-badge" id="verLabel">v0.34.0</span>
       <span class="dirty-badge" id="saveState" hidden title=""></span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -194,6 +194,11 @@
       </div>
       <p class="hint"><a href="https://webservice.rakuten.co.jp/app/list" target="_blank" rel="noopener noreferrer">楽天ウェブサービスのアプリ一覧</a>で無料登録して取得できます。</p>
       <div class="field">
+        <label for="cAmzTag">Amazonアソシエイト タグ</label>
+        <input id="cAmzTag" type="text" placeholder="例) yourname-22" autocomplete="off">
+        <p class="hint">持っていれば入れてください。ASINから商品画像を引く公式ウィジェットが確実に通るようになります。空でも動きますが、商品によっては画像が返りません。</p>
+      </div>
+      <div class="field">
         <label for="cProxy">中継サービス（楽天・Amazon以外の画像取得）</label>
         <input id="cProxy" type="text" autocomplete="off">
         <p class="hint">空欄なら既定の中継先（複数を順に試す）を使います。<code>{url}</code> の位置に商品URLが入ります。中継を使いたくないときは <code>-</code> だけ入れてください。</p>
@@ -226,6 +231,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.32.0"></script>
+<script src="app.js?v=0.34.0"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.32.0";
+const VERSION   = "0.34.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -17,8 +17,22 @@ const URL_COLS = {
   urlRakuten: { key: "rakurl", label: "楽天 URL",   w: 230, cls: "c-url", field: "urlRakuten" },
   url:        { key: "url",    label: "URL",        w: 240, cls: "c-url", field: "url"        },
 };
+/* ---------- 「追加した商品」ビューの列 ---------- */
+const ADDED_COLS = [
+  { key: "a_img",   label: "画像",    w: 64,  cls: "td-img"   },
+  { key: "a_title", label: "商品名",  w: 300, cls: "td-title" },
+  { key: "a_url",   label: "商品URL", w: 0,   cls: "td-url"   },
+  { key: "a_src",   label: "出所",    w: 230, cls: "td-src"   },
+  { key: "a_check", label: "確認",    w: 98,  cls: "td-st"    },
+  { key: "a_buy",   label: "買付",    w: 98,  cls: "td-st"    },
+  { key: "a_edit",  label: "編集",    w: 78,  cls: "td-edit"  },
+  { key: "a_act",   label: "操作",    w: 76,  cls: "td-acts"  },
+];
+const isAdded = (key) => SEC(key)?.kind === "added";
+
 /* ---------- 一覧表の列（そのタブのURL列を挟み込む） ---------- */
 function colsOf(key) {
+  if (isAdded(key)) return ADDED_COLS;
   const urls = urlFieldsOf(key).map((f) => URL_COLS[f]);
   const sided = Boolean(SEC(key)?.side);
   return [
@@ -72,11 +86,11 @@ const SECTIONS = [
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
-  { key: "products", icon: "📦", label: "型番商品",        nameLabel: "商品名",
-    defSort: "updatedAt", urlFields: ["url"],
-    search: "商品名・型番・URLで検索…", add: "＋ 商品を追加",
-    emptyTtl: "まだ登録がありません",
-    emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
+  { key: "products", icon: "📦", label: "追加した商品", nameLabel: "商品名",
+    kind: "added", defSort: "addedAt", urlFields: ["url"],
+    search: "商品名・URL・出所で検索…", add: "＋ 商品を追加",
+    emptyTtl: "まだ1件もありません",
+    emptySub: "オフェンス／ディフェンスの各行にある「＋ 商品」から追加すると、ここに追加日ごとに並びます。" },
 ];
 const SEC = (k) => SECTIONS.find((s) => s.key === k);
 
@@ -109,7 +123,7 @@ const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を�
 
 /* ---------- 状態 ---------- */
 let cfg   = { owner: "", repo: "", branch: "main", pat: "",
-              rakutenAppId: "", rakutenAccessKey: "", imgProxy: "", autoSave: true };
+              rakutenAppId: "", rakutenAccessKey: "", imgProxy: "", amazonTag: "", autoSave: true };
 let data  = emptyData();
 let sha   = null;
 let dirty = false;
@@ -176,17 +190,30 @@ const isAmazonUrl = (url) => /(^|\.)amazon\.(co\.jp|com)/i.test((() => {
   try { return new URL(url).hostname; } catch { return ""; }
 })());
 
+/* AmazonのURLは長い。ASINだけの短い形に直しておくと中継サービスが通りやすい */
+function canonicalUrl(url) {
+  const asin = asinOf(url);
+  if (!asin) return url;
+  let host = "www.amazon.co.jp";
+  try { host = new URL(url).hostname; } catch { /* noop */ }
+  return `https://${host}/dp/${asin}`;
+}
+
 function imageCandidates(url) {
   const asin = asinOf(url);
   if (!asin) return [];
-  /* AsinImageウィジェット。ASINから実際の商品画像へリダイレクトされる（書籍以外でも効く） */
-  const widget = (host, mp, size) =>
+  /* AsinImageウィジェット。ASINから実際の商品画像へリダイレクトされる。
+     アソシエイトのタグが入っているほど確実なので、設定があれば先に試す。 */
+  const widget = (host, size, tag) =>
     `https://${host}/widgets/q?_encoding=UTF8&ASIN=${asin}&Format=_SL${size}_` +
-    `&ID=AsinImage&MarketPlace=${mp}&ServiceVersion=20070822&WS=1&tag=`;
+    `&ID=AsinImage&MarketPlace=JP&ServiceVersion=20070822&WS=1&tag=${encodeURIComponent(tag)}`;
+  const tags = [...new Set([cfg.amazonTag || "", ""])];   // タグ設定済みなら、それ→無しの順
+  const widgets = tags.flatMap((t) => [
+    widget("ws-fe.amazon-adsystem.com", 500, t),
+    widget("ws-na.amazon-adsystem.com", 500, t),
+  ]);
   return [
-    widget("ws-fe.amazon-adsystem.com", "JP", 500),
-    widget("ws-na.amazon-adsystem.com", "JP", 500),
-    widget("ws-fe.amazon-adsystem.com", "JP", 250),
+    ...widgets,
     /* 旧来のパターン。書籍・メディアはこちらで取れる */
     `https://m.media-amazon.com/images/P/${asin}.09._SCLZZZZZZZ_.jpg`,
     `https://m.media-amazon.com/images/P/${asin}.01._SCLZZZZZZZ_.jpg`,
@@ -219,6 +246,8 @@ const DEFAULT_PROXIES = [
   "https://api.codetabs.com/v1/proxy/?quest={url}",
   "https://corsproxy.io/?url={url}",
   "https://r.jina.ai/{url}",
+  "https://api.cors.lol/?url={url}",
+  "https://thingproxy.freeboard.io/fetch/{url}",
 ];
 const proxyList = () => {
   if (cfg.imgProxy === "-") return [];
@@ -318,6 +347,32 @@ function amazonImageFromHtml(html) {
   return m ? unesc(m[1] || m[0]) : "";
 }
 
+/* メタ情報サービス（JSONで画像URLを返す）。ページを自前で取れないときの本命 */
+const UNFURL_APIS = [
+  "https://api.microlink.io/?url={url}&meta=true",
+];
+async function unfurlImages(url, log = () => {}) {
+  for (const tpl of UNFURL_APIS) {
+    const via = (() => { try { return new URL(tpl.replace("{url}", "")).hostname; } catch { return tpl; } })();
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 12000);
+      const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) { log("メタ情報", `${via} → HTTP ${res.status}`); continue; }
+      const j = await res.json();
+      const cand = [j?.data?.image?.url, j?.data?.screenshot?.url, j?.data?.logo?.url]
+        .filter((x) => typeof x === "string" && /^https?:\/\//i.test(x));
+      if (!cand.length) { log("メタ情報", `${via} → 画像なし`); continue; }
+      log("メタ情報", `${via} → 画像URLあり`);
+      return cand;
+    } catch (e) {
+      log("メタ情報", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
+    }
+  }
+  return [];
+}
+
 /* 中継サービス経由でページのHTMLを取り、商品画像 / og:image を拾う */
 async function ogImages(url, log = () => {}) {
   const list = proxyList();
@@ -359,24 +414,39 @@ async function ogImages(url, log = () => {}) {
   return [];
 }
 
-/* 商品URLからメイン画像を1つ決める。Amazon → 楽天API → og:image の順 */
+/* 商品URLからメイン画像を1つ決める。
+   Amazonウィジェット → 楽天API → メタ情報サービス → 中継してページを読む、の順に試す。 */
 async function guessImage(url, log = () => {}) {
   if (!url) return "";
+  const target = canonicalUrl(url);
+  if (target !== url) log("URL", `ASINだけの形に直して照会: ${target}`);
 
   const amazon = imageCandidates(url);                 // 1) Amazon（URLのASINだけで完結）
   if (amazon.length) {
+    const label = (c) => {
+      const m = c.match(/[?&]tag=([^&]*)/);
+      if (m) return `ウィジェット ${new URL(c).hostname.split(".")[0]} tag=${m[1] || "なし"}`;
+      return "旧パターン " + (c.match(/\.(\d\d)\./) || [, "?"])[1];
+    };
     for (const c of amazon) {
       const hit = await probeImage(c);
-      if (hit) { log("Amazon", "画像を確認"); return hit; }
+      log("Amazon", `${label(c)} → ${hit ? "画像あり" : "だめ"}`);
+      if (hit) { log("結果", "Amazonの候補を採用"); return hit; }
     }
-    log("Amazon", "ASINからの候補では画像が読めない");
+    log("Amazon", cfg.amazonTag
+      ? "ASINからの候補では画像が読めない"
+      : "ASINからの候補では画像が読めない（設定にアソシエイトタグを入れると通りやすくなります）");
   }
 
   for (const c of await rakutenImages(url, log)) {     // 2) 楽天ウェブサービス
     if (await probeImage(c)) { log("結果", "楽天APIの画像を採用"); return c; }
   }
 
-  for (const c of await ogImages(url, log)) {          // 3) 中継サービスで og:image
+  for (const c of await unfurlImages(target, log)) {   // 3) メタ情報サービス
+    if (await probeImage(c)) { log("結果", "メタ情報サービスの画像を採用"); return c; }
+  }
+
+  for (const c of await ogImages(target, log)) {       // 4) 中継してページを読む
     if (await probeImage(c)) { log("結果", "ページから拾った画像を採用"); return c; }
   }
   log("結果", "画像が見つかりませんでした");
@@ -569,7 +639,7 @@ function renderNav() {
   $("gnav").innerHTML = SECTIONS.map((s) => `
     <button class="gnav-item${view === s.key ? " on" : ""}" data-k="${s.key}">
       <span class="gnav-ico">${s.icon}</span>${esc(s.label)}
-      <span class="gnav-cnt">${itemsOf(s.key).length}</span>
+      <span class="gnav-cnt">${isAdded(s.key) ? pickTotal() : itemsOf(s.key).length}</span>
     </button>`).join("");
   $("gnav").querySelectorAll(".gnav-item").forEach((b) => {
     b.onclick = () => { view = b.dataset.k; renderAll(); };
@@ -592,10 +662,25 @@ function renderToolbar() {
   $("q").placeholder = s.search;
   $("q").value = F().q;
   $("btnNew").textContent = s.add;
+  $("btnNew").hidden      = Boolean(s.kind === "added");     // 商品は各行の「＋ 商品」から追加する
+  $("btnEditMode").hidden = Boolean(s.kind === "added");
 
-  const cats = categories(view);
   const seg = (k, label, cnt, on) =>
     `<button class="seg-btn${on ? " on" : ""}" data-k="${esc(k)}">${esc(label)}<span class="seg-cnt">${cnt}</span></button>`;
+
+  if (s.kind === "added") {                                  // 出所（どのタブから追加したか）で絞る
+    const rows = allPicks();
+    const srcs = SECTIONS.filter((x) => !isAdded(x.key));
+    $("catSeg").innerHTML =
+      seg("*", "すべて", rows.length, F().cat === "*") +
+      srcs.map((x) => seg(x.key, x.label, rows.filter((r) => r.sec === x.key).length, F().cat === x.key)).join("");
+    $("catSeg").querySelectorAll(".seg-btn").forEach((b) => {
+      b.onclick = () => { F().cat = b.dataset.k; renderToolbar(); renderBody(); };
+    });
+    return;
+  }
+
+  const cats = categories(view);
   $("catSeg").innerHTML = cats.length < 2 ? "" :
     seg("*", "すべて", itemsOf(view).length, F().cat === "*") +
     cats.map((c) => seg(c, c, itemsOf(view).filter((i) => (i.category || "未分類") === c).length, F().cat === c)).join("");
@@ -632,9 +717,8 @@ async function fetchPickImage(sectionKey, itemId, pickId, url) {
 function paintPickThumb(sectionKey, key) {
   const cell = $("list").querySelector(`[data-pickimg="${CSS.escape(key)}"]`);
   if (!cell) return;
-  const [itemId, pickId] = key.split("|");
-  const p = itemsOf(sectionKey).find((i) => i.id === itemId)?.picks.find((x) => x.id === pickId);
-  if (p) cell.innerHTML = pickThumb(itemId, p);
+  const at = locatePick(key);
+  if (at) cell.innerHTML = pickThumb(at.it.id, at.p);
 }
 
 /* =========================================================
@@ -651,6 +735,21 @@ function visibleItems() {
       return hay.toLowerCase().includes(q);
     });
   return F().sort === "manual" ? list : list.sort(comparator());
+}
+
+/* 「追加した商品」ビュー：絞り込み後、追加日の新しい順 */
+function visiblePicks() {
+  const q = F().q.trim().toLowerCase();
+  return allPicks()
+    .filter((r) => {
+      if (F().cat !== "*" && r.sec !== F().cat) return false;
+      if (!q) return true;
+      const hay = [r.p.title, r.p.url, r.item.name, r.item.category, SEC(r.sec).label].join(" ");
+      return hay.toLowerCase().includes(q);
+    })
+    .sort((a, b) =>
+      (b.p.addedAt || "").localeCompare(a.p.addedAt || "") ||
+      (b.p.id || "").localeCompare(a.p.id || ""));
 }
 
 /* 並べ替え。列見出しクリックで key/dir が切り替わる */
@@ -713,15 +812,18 @@ function th(key, label, cls) {
 
 function renderBody() {
   const s = SEC(view);
-  const list = visibleItems();
-  const total = itemsOf(view).length;
+  const added = s.kind === "added";
+  const list  = added ? visiblePicks() : visibleItems();
+  const total = added ? pickTotal() : itemsOf(view).length;
 
   $("countLabel").textContent = total ? `${list.length} / ${total} 件` : "";
   $("emptyState").hidden = list.length > 0;
   $("emptyTtl").textContent = total ? "条件に合うものがありません" : s.emptyTtl;
-  $("emptySub").textContent = total ? "検索語やカテゴリの絞り込みを外してみてください。" : s.emptySub;
+  $("emptySub").textContent = total
+    ? (added ? "検索語や出所の絞り込みを外してみてください。" : "検索語やカテゴリの絞り込みを外してみてください。")
+    : s.emptySub;
 
-  $("list").innerHTML = rankTable(list);
+  $("list").innerHTML = added ? addedTable(list) : rankTable(list);
 
   const root = $("list");
   root.querySelectorAll("th.sortable").forEach((h) => {
@@ -753,6 +855,13 @@ function renderBody() {
         old.outerHTML = html;
       };
     }
+  });
+  // 画像なしのサムネ：押すともう一度取りにいく
+  root.querySelectorAll("[data-pickretry]").forEach((b) => {
+    b.onclick = () => {
+      const at = locatePick(b.dataset.pickretry);
+      if (at) fetchPickImage(at.sec, at.it.id, at.p.id, at.p.url);
+    };
   });
   // 並び：↑↓ で1つずつ動かす
   root.querySelectorAll("[data-move]").forEach((b) => {
@@ -866,21 +975,21 @@ function renderBody() {
 
   root.querySelectorAll("[data-pickdel]").forEach((b) => {
     b.onclick = () => {
-      const [id, pid] = b.dataset.pickdel.split("|");
-      const it = itemsOf(view).find((i) => i.id === id);
-      it.picks = it.picks.filter((x) => x.id !== pid);
-      it.updatedAt = nowIso();
+      const at = locatePick(b.dataset.pickdel);
+      if (!at) return;
+      at.it.picks = at.it.picks.filter((x) => x.id !== at.p.id);
+      at.it.updatedAt = nowIso();
       editPicks.delete(b.dataset.pickdel);
-      upsert(view, it);
+      upsert(at.sec, at.it);
     };
   });
 
   root.querySelectorAll("[data-pickstatus]").forEach((sel) => {
+    const [id, pid, field] = sel.dataset.pickstatus.split("|");
     sel.onchange = () => {
-      const [id, pid, field] = sel.dataset.pickstatus.split("|");
-      const it = itemsOf(view).find((i) => i.id === id);
-      const p  = it?.picks.find((x) => x.id === pid);
-      if (!p) return;
+      const at = locatePick(`${id}|${pid}`);
+      if (!at) return;
+      const { it, p } = at;
       p[field] = sel.value;
       it.updatedAt = nowIso();
       persistLocal(); markDirty(true);
@@ -898,18 +1007,19 @@ function renderBody() {
     const key = b.dataset.picksave;
     const row = root.querySelector(`.pick-editing[data-row="${key}"]`);
     const save = async () => {
-      const [id, pid] = key.split("|");
       const url = row.querySelector(".pe-url").value.trim();
       if (!url) { toast("URLを空にはできません", true); return; }
-      const it = itemsOf(view).find((i) => i.id === id);
-      const p  = it.picks.find((x) => x.id === pid);
+      const at = locatePick(key);
+      if (!at) return;
+      const { it, p } = at;
+      const id = it.id, pid = p.id;
       p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
       p.image   = row.querySelector(".pe-image").value.trim();
       p.url     = url;
       p.title   = row.querySelector(".pe-title").value.trim();
       it.updatedAt = nowIso();
       editPicks.delete(key);
-      const sec = view;
+      const sec = at.sec;
       const needImg = !p.image;
       upsert(sec, it);
       toast(needImg ? "商品を更新しました（画像は裏で取得します）" : "商品を更新しました");
@@ -954,6 +1064,75 @@ function rankTable(list) {
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
   </table></div>`;
+}
+
+/* ===== 追加した商品（全タブ横断・追加日ごと） ===== */
+function addedTable(rows) {
+  if (!rows.length) return "";
+
+  const cols = ADDED_COLS.map((c) => {
+    const w = colW[c.key] || c.w;
+    return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
+  }).join("");
+  const heads = ADDED_COLS.map((c) =>
+    `<th class="${c.cls}">${esc(c.label)}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("");
+
+  /* 追加日ごとにまとめる */
+  const groups = [];
+  for (const r of rows) {
+    const day = r.p.addedAt || "日付なし";
+    if (!groups.length || groups.at(-1).day !== day) groups.push({ day, list: [] });
+    groups.at(-1).list.push(r);
+  }
+
+  const body = groups.map((g) => {
+    const d = daysSince(g.day);
+    const rel = d === 0 ? "今日" : d === 1 ? "昨日" : d > 1 ? `${d}日前` : "";
+    return `<tr class="day-row"><td class="day-cell" colspan="${ADDED_COLS.length}">
+        <span class="day-date">${esc(g.day)}</span>
+        ${rel ? `<span class="day-rel">${esc(rel)}</span>` : ""}
+        <span class="day-cnt">${g.list.length} 件</span>
+      </td></tr>` + g.list.map(addedRow).join("");
+  }).join("");
+
+  return `<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
+    <colgroup>${cols}</colgroup>
+    <thead><tr>${heads}</tr></thead>
+    <tbody>${body}</tbody>
+  </table></div>`;
+}
+
+function addedRow(r) {
+  const { sec, item: it, p } = r;
+  const key = `${it.id}|${p.id}`;
+  const side = SEC(sec).side;
+  const srcCell = `<td class="td-src">
+      ${side ? `<span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label)}</span>` : ""}
+      <a class="src-name" href="${esc(mainUrl(it, sec))}" target="_blank" rel="noopener noreferrer"
+         title="${esc(it.name)}">${esc(it.name)}</a>
+    </td>`;
+
+  if (editPicks.has(key)) return `
+    <tr class="pick-editing" data-row="${esc(key)}">
+      <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
+      <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
+      <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
+      <td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>
+      ${statusCells(it.id, p)}
+      <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
+      <td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>
+    </tr>`;
+
+  return `
+    <tr>
+      <td class="td-img" data-pickimg="${esc(key)}">${pickThumb(it.id, p)}</td>
+      <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
+      <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
+      ${srcCell}
+      ${statusCells(it.id, p)}
+      <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
+      <td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>
+    </tr>`;
 }
 
 /* 画面が狭いときは、はみ出さないよう全列を比率のまま縮める（横スクロールを出さない） */
@@ -1168,7 +1347,8 @@ function pickThumb(itemId, p) {
     ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
            title="${esc(p.image)}"
            onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
-    : `<span class="pick-thumb none"></span>`;
+    : `<button class="pick-thumb none" data-pickretry="${esc(itemId)}|${esc(p.id)}"
+              title="クリックすると画像をもう一度取りにいきます"></button>`;
 }
 
 function pickPanel(it) {
@@ -1367,6 +1547,29 @@ function deleteRank() {
   toast("削除しました");
 }
 
+/* 全タブの「チェックした商品」を1本のリストにする */
+function allPicks() {
+  const rows = [];
+  for (const sec of SECTIONS) {
+    for (const it of itemsOf(sec.key)) {
+      for (const p of it.picks) rows.push({ sec: sec.key, item: it, p });
+    }
+  }
+  return rows;
+}
+const pickTotal = () => allPicks().length;
+
+/* "itemId|pickId" から、どのタブの何かを引き当てる（タブをまたいで使う） */
+function locatePick(key) {
+  const [itemId, pickId] = String(key).split("|");
+  for (const sec of SECTIONS) {
+    const it = itemsOf(sec.key).find((i) => i.id === itemId);
+    const p  = it?.picks.find((x) => x.id === pickId);
+    if (p) return { sec: sec.key, it, p };
+  }
+  return null;
+}
+
 /* 行を別のタブ（区分）へ移す。データ形式は共通なのでそのまま渡すだけ */
 function moveItem(item, from, to) {
   data.sections[from].items = itemsOf(from).filter((x) => x.id !== item.id);
@@ -1385,6 +1588,7 @@ function upsert(key, item) {
   if (i >= 0) arr[i] = item; else arr.push(item);
   persistLocal(); markDirty(true); renderAll();
 }
+
 function removeById(key, id) {
   data.sections[key].items = itemsOf(key).filter((x) => x.id !== id);
   persistLocal(); markDirty(true); renderAll();
@@ -1514,6 +1718,7 @@ function openCfg() {
   $("cRkAppId").value = cfg.rakutenAppId || "";
   $("cRkKey").value   = cfg.rakutenAccessKey || "";
   $("cProxy").value   = cfg.imgProxy || "";
+  $("cAmzTag").value  = cfg.amazonTag || "";
   $("cProxy").placeholder = DEFAULT_PROXIES[0];
   $("cAutoSave").checked = cfg.autoSave !== false;
   $("cfgStatus").textContent = "";
@@ -1584,6 +1789,7 @@ function readCfgForm() {
     rakutenAppId:     $("cRkAppId").value.trim(),
     rakutenAccessKey: $("cRkKey").value.trim(),
     imgProxy:         $("cProxy").value.trim(),
+    amazonTag:        $("cAmzTag").value.trim(),
     autoSave:         $("cAutoSave").checked,
   };
 
