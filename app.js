@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.44.1";
+const VERSION   = "0.45.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -27,6 +27,7 @@ const ADDED_COLS = [
   { key: "p_rurl",  label: "楽天URL",         w: 0,   cls: "td-url"   },
   { key: "a_sales", label: "30日販売数",      w: 106, cls: "td-sales" },
   { key: "a_rival", label: "楽天ライバル状況", w: 130, cls: "td-rival" },
+  { key: "a_qual",  label: "商品品質",         w: 104, cls: "td-rival" },
   { key: "a_check", label: "確認",            w: 92,  cls: "td-st"    },
   { key: "a_buy",   label: "買付",            w: 92,  cls: "td-st"    },
   { key: "a_edit",  label: "編集",            w: 70,  cls: "td-edit"  },
@@ -141,6 +142,11 @@ const ST_FIELDS = [
     { v: "few",   label: "少数",         color: "blue"  },
     { v: "some",  label: "そこそこいる", color: "amber" },
     { v: "heavy", label: "激戦",         color: "red"   },
+  ] },
+  { key: "quality", title: "商品品質", opts: [
+    { v: "",     label: "未調査",  color: "gray"  },
+    { v: "low",  label: "4.0以下", color: "amber" },
+    { v: "high", label: "4.0以上", color: "green" },
   ] },
   { key: "check", title: "確認", opts: [
     { v: "before", label: "確認前",   color: "gray"   },
@@ -640,6 +646,7 @@ function normRank(it) {
         buy:     String(p.buy ?? "before"),
         sales30: p.sales30 == null ? "" : String(p.sales30),      // 30日販売数（自由入力）
         rival:   String(p.rival ?? ""),
+        quality: String(p.quality ?? ""),
       })),
     createdAt: it.createdAt || nowIso(),
     updatedAt: it.updatedAt || it.createdAt || nowIso(),
@@ -1161,7 +1168,7 @@ function renderBody() {
         urlAmazon: "", urlRakuten: "", imageAmazon: "", imageRakuten: "",
         [sd.url]: url,
         [sd.img]: image,
-        sales30: "", rival: stFirst("rival"),
+        sales30: "", rival: stFirst("rival"), quality: stFirst("quality"),
         check:   stFirst("check"),
         buy:     stFirst("buy"),
       });
@@ -1352,11 +1359,16 @@ function addedRow(r) {
       <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
              data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
     </td>`;
-  const rivalCell = `<td class="td-rival">
-      <select class="st-sel ${stCls(stList("rival"), p.rival)}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|rival">
-        ${stOptions(stList("rival"), p.rival)}
+  const stCell = (field, cls) => {
+    const list = stList(field);
+    return `<td class="${cls}">
+      <select class="st-sel ${stCls(list, p[field])}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}">
+        ${stOptions(list, p[field])}
       </select>
     </td>`;
+  };
+  const rivalCell = stCell("rival", "td-rival");
+  const qualCell  = stCell("quality", "td-rival");
 
   const [AMZ, RAK] = PICK_SIDES;
 
@@ -1370,6 +1382,7 @@ function addedRow(r) {
       <td class="td-url"><input class="input-sm pe-url2" type="url" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>
       <td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>
       ${rivalCell}
+      ${qualCell}
       ${statusCells(it.id, p)}
       <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
       <td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>
@@ -1385,6 +1398,7 @@ function addedRow(r) {
       ${urlCell(RAK)}
       ${salesCell}
       ${rivalCell}
+      ${qualCell}
       ${statusCells(it.id, p)}
       <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
       <td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>
@@ -2161,6 +2175,7 @@ function mergeVersions(versions) {
                 imageRakuten: cur.imageRakuten || old.imageRakuten,
                 sales30: cur.sales30 || old.sales30,
                 rival:   cur.rival   || old.rival,
+                quality: cur.quality || old.quality,
                 title:   cur.title   || old.title,
                 addedAt: old.addedAt || cur.addedAt }   // 追加日は最初に見た日を残す
             : cur);
