@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T09:09:31.064Z",
+  "updatedAt": "2026-08-20T09:11:43.062Z",
   "labels": {
     "rival": [
       {
@@ -123,6 +123,9 @@
       },
       "a_title": {
         "label": "検索KW"
+      },
+      "a_check": {
+        "label": "最強配送"
       }
     }
   },
