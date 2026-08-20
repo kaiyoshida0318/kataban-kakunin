@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:45:58.707Z",
+  "updatedAt": "2026-08-20T08:47:01.152Z",
   "labels": {
     "rival": [
       {
@@ -285,7 +285,7 @@
               "id": "itm_udzcz52ke67",
               "addedAt": "2026-08-20",
               "urlAmazon": "https://www.amazon.co.jp/JEDirect-AirTag-%E3%82%AD%E3%83%BC%E3%83%81%E3%82%A7%E3%83%BC%E3%83%B3%E4%BB%98%E3%81%8D-%E5%85%A8%E9%9D%A2%E3%81%AB%E5%82%B7%E3%81%A4%E3%81%91%E9%98%B2%E6%AD%A2-Tag%E3%82%AD%E3%83%BC%E3%83%AA%E3%83%B3%E3%82%B0%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC%E3%82%AB%E3%83%90%E3%83%BC/dp/B0CFXKMLJZ/ref=sr_1_12_sspa?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-12-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9tdGY&th=1",
-              "urlRakuten": "",
+              "urlRakuten": "https://ranking.rakuten.co.jp/keyword/airtag_case/",
               "imageAmazon": "https://m.media-amazon.com/images/I/71LpeHSk79L._AC_SL1500_.jpg",
               "imageRakuten": "",
               "title": "AirTag  防水ケースカバー",
@@ -297,7 +297,7 @@
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
-          "updatedAt": "2026-08-20T08:20:25.659Z"
+          "updatedAt": "2026-08-20T08:46:56.435Z"
         }
       ]
     },
