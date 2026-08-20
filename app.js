@@ -4,38 +4,38 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.21.0";
+const VERSION   = "0.22.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
 const LS_COLS   = "kata_cols_v1";
 
-/* ---------- ランキング表の列 ---------- */
-const RANK_COLS = [
-  { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
-  { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
-  { key: "cat",   label: "カテゴリ",   w: 100, cls: "c-cat",   sort: "category"  },
-  { key: "url",   label: "URL",        w: 240, cls: "c-url"   },
-  { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
-  { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
-  { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
-  { key: "addp",  label: "商品追加",   w: 96,  cls: "c-addp"  },
-  { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
-];
-/* ---------- 不規則分・定期分の列（画像/カテゴリなし・ランキングURL2本） ---------- */
-const DUAL_COLS = [
-  { key: "name",   label: "名称",              w: 260, cls: "c-name",  sort: "name"      },
-  { key: "amzurl", label: "Amazonランキング URL", w: 250, cls: "c-url" },
-  { key: "rakurl", label: "楽天ランキング URL",   w: 250, cls: "c-url" },
-  { key: "note",   label: "確認内容",          w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
-  { key: "check",  label: "確認日",            w: 212, cls: "c-check", sort: "checkedAt" },
-  { key: "cnt",    label: "商品",              w: 86,  cls: "c-cnt",   sort: "picks"     },
-  { key: "addp",   label: "商品追加",          w: 96,  cls: "c-addp"  },
-  { key: "act",    label: "操作",              w: 76,  cls: "c-act"   },
-];
-/* そのタブで使う列 */
-const colsOf = (key) => (SEC(key)?.layout === "dual" ? DUAL_COLS : RANK_COLS);
-const isDual = (key) => SEC(key)?.layout === "dual";
+/* ---------- URL列（タブごとに本数と並びが変わる） ---------- */
+const URL_COLS = {
+  urlAmazon:  { key: "amzurl", label: "Amazon URL", w: 230, cls: "c-url", field: "urlAmazon"  },
+  urlRakuten: { key: "rakurl", label: "楽天 URL",   w: 230, cls: "c-url", field: "urlRakuten" },
+  url:        { key: "url",    label: "URL",        w: 240, cls: "c-url", field: "url"        },
+};
+/* ---------- 一覧表の列（そのタブのURL列を挟み込む） ---------- */
+function colsOf(key) {
+  const urls = urlFieldsOf(key).map((f) => URL_COLS[f]);
+  return [
+    { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
+    { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
+    { key: "cat",   label: "カテゴリ",   w: 100, cls: "c-cat",   sort: "category"  },
+    ...urls,
+    { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
+    { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
+    { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
+    { key: "addp",  label: "商品追加",   w: 96,  cls: "c-addp"  },
+    { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
+  ];
+}
+/* そのタブで使うURL項目と並び順 */
+const urlFieldsOf = (key) => SEC(key)?.urlFields || ["url"];
+/* 行の代表URL（名称のリンク先） */
+const mainUrl = (it, key) => urlFieldsOf(key).map((f) => it[f]).find(Boolean) || "";
+
 /* ---------- チェックした商品の表の列 ---------- */
 const PICK_COLS = [
   { key: "p_date",  label: "追加日",  w: 104, cls: "td-date"  },
@@ -58,28 +58,18 @@ const pRowH = () => colW[PROW_H_KEY] || PROW_H_DEF;
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "irregular", icon: "🔀", label: "不規則分", nameLabel: "名称",
-    defSort: "checkedAt", layout: "dual",
-    search: "名称・URLで検索…", add: "＋ 追加",
+  { key: "amazon",   icon: "📊", label: "amazon基準", nameLabel: "ジャンル名",
+    defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"],
+    search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
-    emptySub: "決まった周期ではなく、気付いたときに見るページを登録しておく場所です。" },
-  { key: "regular",  icon: "🔁", label: "定期分", nameLabel: "名称",
-    defSort: "checkedAt", layout: "dual",
-    search: "名称・URLで検索…", add: "＋ 追加",
+    emptySub: "Amazon基準で見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
+  { key: "rakuten",  icon: "🏆", label: "楽天基準",   nameLabel: "ジャンル名",
+    defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"],
+    search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
-    emptySub: "毎日・毎週など、決まった周期で確認するページを登録しておく場所です。" },
-  { key: "amazon",   icon: "📊", label: "Amazonランキング", nameLabel: "ジャンル名",
-    defSort: "checkedAt",
-    search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
-    emptyTtl: "まだ登録がありません",
-    emptySub: "よく見るAmazonの売れ筋ランキングページを登録しておくと、ここから一発で開けます。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
-    defSort: "checkedAt",
-    search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
-    emptyTtl: "まだ登録がありません",
-    emptySub: "よく見る楽天のランキングページを登録しておくと、ここから一発で開けます。" },
+    emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
   { key: "products", icon: "📦", label: "型番商品",        nameLabel: "商品名",
-    defSort: "updatedAt",
+    defSort: "updatedAt", urlFields: ["url"],
     search: "商品名・型番・URLで検索…", add: "＋ 商品を追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
@@ -221,8 +211,8 @@ function normRank(it) {
     category:  it.category || "未分類",
     image:     it.image || "",              // アイキャッチ画像URL
     url:       it.url || "",
-    urlAmazon: it.urlAmazon || "",        // 不規則分・定期分：Amazonランキング URL
-    urlRakuten: it.urlRakuten || "",      // 不規則分・定期分：楽天ランキング URL
+    urlAmazon: it.urlAmazon || "",        // Amazon側のURL
+    urlRakuten: it.urlRakuten || "",      // 楽天側のURL
     checkNote: it.checkNote || "",          // 確認内容
     checkedAt: ymd(it.checkedAt) || "",     // 最終確認日 (YYYY-MM-DD)
     picks: (Array.isArray(it.picks) ? it.picks : [])
@@ -257,6 +247,15 @@ function fromLegacyProduct(it) {
 }
 const isLegacyProduct = (it) => it && (it.model !== undefined || Array.isArray(it.links));
 
+/* 旧形式の単一 url を、そのタブの1本目のURL項目へ移す */
+function migrateUrl(x, fields) {
+  if (x.url && !fields.includes("url") && !fields.some((f) => x[f])) {
+    x[fields[0]] = x.url;
+    x.url = "";
+  }
+  return x;
+}
+
 function normalize(d) {
   const out = emptyData();
   out.updatedAt = d?.updatedAt || "";
@@ -267,11 +266,11 @@ function normalize(d) {
     const raw = sec.key === "products"
       ? (legacy || s.products?.items || [])
       : (s[sec.key]?.items || []);
+    const fields = sec.urlFields || ["url"];
     out.sections[sec.key].items = raw
       .map((it) => (isLegacyProduct(it) ? fromLegacyProduct(it) : normRank(it)))
-      .filter((x) => sec.layout === "dual"
-        ? (x.name || x.urlAmazon || x.urlRakuten)
-        : (x.url || (sec.key === "products" && x.name)));
+      .map((x) => migrateUrl(x, fields))
+      .filter((x) => fields.some((f) => x[f]) || (sec.key === "products" && x.name));
   }
   return out;
 }
@@ -428,7 +427,10 @@ function renderBody() {
       if (!it) return;
       const f = inp.dataset.f;
       const v = inp.value.trim();
-      if (f === "url" && !v) { inp.value = it.url; toast("URLは空にできません", true); return; }
+      const urlFs = urlFieldsOf(view);
+      if (urlFs.includes(f) && !v && !urlFs.some((x) => x !== f && it[x])) {
+        inp.value = it[f]; toast("URLをすべて空にはできません", true); return;
+      }
       it[f] = f === "category" ? (v || "未分類") : v;
       it.updatedAt = nowIso();
       persistLocal(); markDirty(true);
@@ -733,74 +735,67 @@ function rankRow(it) {
   const d = daysSince(it.checkedAt);
   const stale = d == null || d > STALE_DAYS;
   const open = openRows.has(it.id);
-  const dual = isDual(view);
+  const cols = colsOf(view);
+  const head = mainUrl(it, view);
 
-  const checkCell = `
-    <td class="c-check">
-      <span class="check-cell${stale ? " stale" : ""}">
-        <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
-        <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
-      </span>
-    </td>`;
+  const urlCell = (c) => {
+    const v = it[c.field] || "";
+    return tableEdit
+      ? `<td class="c-url"><input class="cell-input mono" type="url" data-f="${c.field}" data-id="${esc(it.id)}" value="${esc(v)}" placeholder="${esc(c.label)}"></td>`
+      : `<td class="c-url">${v
+          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 42))}</a>`
+          : '<span class="dash">—</span>'}</td>`;
+  };
 
-  const cntCell = `
-    <td class="c-cnt">
-      <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
-    </td>`;
+  const cell = (c) => {
+    switch (c.key) {
+      case "img":
+        return tableEdit
+          ? `<td class="c-img">
+               ${thumbTag(it.image, "eyecatch", it.id)}
+               <input class="cell-input img-in" type="url" data-f="image" data-id="${esc(it.id)}" value="${esc(it.image)}" placeholder="画像URL">
+             </td>`
+          : `<td class="c-img">${thumbTag(it.image, "eyecatch")}</td>`;
+      case "name":
+        return tableEdit
+          ? `<td class="c-name"><input class="cell-input" type="text" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}"></td>`
+          : `<td class="c-name">${head
+              ? `<a class="r-name" href="${esc(head)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(head))}</a>`
+              : `<span class="r-name">${esc(it.name)}</span>`}</td>`;
+      case "cat":
+        return tableEdit
+          ? `<td class="c-cat"><input class="cell-input" type="text" list="rankCatList" data-f="category" data-id="${esc(it.id)}" value="${esc(it.category)}"></td>`
+          : `<td class="c-cat">${esc(it.category || "未分類")}</td>`;
+      case "note":
+        return tableEdit
+          ? `<td class="c-note"><textarea class="cell-input cell-area" data-f="checkNote" data-id="${esc(it.id)}" rows="2">${esc(it.checkNote)}</textarea></td>`
+          : `<td class="c-note" title="${esc(it.checkNote)}">${it.checkNote ? esc(it.checkNote) : '<span class="dash">—</span>'}</td>`;
+      case "check":
+        return `<td class="c-check">
+            <span class="check-cell${stale ? " stale" : ""}">
+              <input type="date" class="check-date" data-checkdate="${esc(it.id)}" value="${esc(it.checkedAt)}">
+              <button class="btn btn-ghost btn-xs" data-today="${esc(it.id)}">本日反映</button>
+            </span>
+          </td>`;
+      case "cnt":
+        return `<td class="c-cnt">
+            <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
+          </td>`;
+      case "addp":
+        return `<td class="c-addp">
+            <button class="btn btn-add btn-xs" data-addpick="${esc(it.id)}" title="この行に商品URLを追加">＋ 商品</button>
+          </td>`;
+      case "act":
+        return tableEdit
+          ? `<td class="c-act"><button class="btn btn-ghost btn-xs btn-danger" data-del="${esc(it.id)}">削除</button></td>`
+          : `<td class="c-act"><button class="btn btn-ghost btn-xs" data-edit="${esc(it.id)}">編集</button></td>`;
+      default:
+        return urlCell(c);
+    }
+  };
 
-  const noteCell = tableEdit
-    ? `<td class="c-note"><textarea class="cell-input cell-area" data-f="checkNote" data-id="${esc(it.id)}" rows="2">${esc(it.checkNote)}</textarea></td>`
-    : `<td class="c-note" title="${esc(it.checkNote)}">${it.checkNote ? esc(it.checkNote) : '<span class="dash">—</span>'}</td>`;
-
-  const addpCell = `
-    <td class="c-addp">
-      <button class="btn btn-add btn-xs" data-addpick="${esc(it.id)}" title="この行に商品URLを追加">＋ 商品</button>
-    </td>`;
-
-  const actCell = tableEdit
-    ? `<td class="c-act"><button class="btn btn-ghost btn-xs btn-danger" data-del="${esc(it.id)}">削除</button></td>`
-    : `<td class="c-act"><button class="btn btn-ghost btn-xs" data-edit="${esc(it.id)}">編集</button></td>`;
-
-  /* URLセル（読み・書き共通） */
-  const urlCell = (field, val, ph) => tableEdit
-    ? `<td class="c-url"><input class="cell-input mono" type="url" data-f="${field}" data-id="${esc(it.id)}" value="${esc(val)}" placeholder="${esc(ph || "")}"></td>`
-    : `<td class="c-url">${val
-        ? `<a href="${esc(val)}" target="_blank" rel="noopener noreferrer" title="${esc(val)}">${esc(prettyUrl(val, 42))}</a>`
-        : '<span class="dash">—</span>'}</td>`;
-
-  let body;
-  if (dual) {
-    const mainUrl = it.urlAmazon || it.urlRakuten || "";
-    const nameCell = tableEdit
-      ? `<td class="c-name"><input class="cell-input" type="text" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}"></td>`
-      : `<td class="c-name">${mainUrl
-          ? `<a class="r-name" href="${esc(mainUrl)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(mainUrl))}</a>`
-          : `<span class="r-name">${esc(it.name)}</span>`}</td>`;
-    body = nameCell
-      + urlCell("urlAmazon", it.urlAmazon, "https://www.amazon.co.jp/gp/bestsellers/…")
-      + urlCell("urlRakuten", it.urlRakuten, "https://ranking.rakuten.co.jp/…")
-      + noteCell + checkCell + cntCell + addpCell + actCell;
-  } else {
-    const imgCell = tableEdit
-      ? `<td class="c-img">
-           ${thumbTag(it.image, "eyecatch", it.id)}
-           <input class="cell-input img-in" type="url" data-f="image" data-id="${esc(it.id)}" value="${esc(it.image)}" placeholder="画像URL">
-         </td>`
-      : `<td class="c-img">${thumbTag(it.image, "eyecatch")}</td>`;
-    const nameCell = tableEdit
-      ? `<td class="c-name"><input class="cell-input" type="text" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}"></td>`
-      : `<td class="c-name">
-           <a class="r-name" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(it.url))}</a>
-         </td>`;
-    const catCell = tableEdit
-      ? `<td class="c-cat"><input class="cell-input" type="text" list="rankCatList" data-f="category" data-id="${esc(it.id)}" value="${esc(it.category)}"></td>`
-      : `<td class="c-cat">${esc(it.category || "未分類")}</td>`;
-    body = imgCell + nameCell + catCell + urlCell("url", it.url)
-      + noteCell + checkCell + cntCell + addpCell + actCell;
-  }
-
-  return `<tr class="r-main${open ? " open" : ""}">${body}</tr>
-  ${open ? `<tr class="r-sub"><td colspan="${colsOf(view).length}">${pickPanel(it)}</td></tr>` : ""}`;
+  return `<tr class="r-main${open ? " open" : ""}">${cols.map(cell).join("")}</tr>
+  ${open ? `<tr class="r-sub"><td colspan="${cols.length}">${pickPanel(it)}</td></tr>` : ""}`;
 }
 
 function thumbTag(src, cls, id) {
@@ -898,14 +893,16 @@ function openRank(item) {
         checkNote: "", checkedAt: today(), picks: [],
         createdAt: nowIso(), updatedAt: nowIso() };
 
-  const dual = isDual(view);
-  /* 不規則分・定期分：アイキャッチ画像とカテゴリを出さず、ランキングURLを2本にする */
-  $("rImgCol").hidden = dual;
-  $("rankGrid").classList.toggle("no-img", dual);
-  $("fUrl").hidden    = dual;
-  $("fCat").hidden    = dual;
-  $("fUrlAmz").hidden = !dual;
-  $("fUrlRak").hidden = !dual;
+  /* URL欄はタブごとに本数と並びが変わる（amazon基準 = Amazon→楽天 / 楽天基準 = 楽天→Amazon） */
+  const fields = urlFieldsOf(view);
+  const FIELD_BOX = { url: "fUrl", urlAmazon: "fUrlAmz", urlRakuten: "fUrlRak" };
+  const urlWrap = $("rUrlFields");
+  Object.values(FIELD_BOX).forEach((id) => { $(id).hidden = true; });
+  fields.forEach((f) => {                                // 並び順もタブに合わせる
+    const box = $(FIELD_BOX[f]);
+    box.hidden = false;
+    urlWrap.appendChild(box);
+  });
 
   $("rankModalTtl").textContent = `${SEC(view).label}を${isNew ? "追加" : "編集"}`;
   $("rNameLabel").textContent = SEC(view).nameLabel;
@@ -966,24 +963,23 @@ function renderRankPicks() {
 }
 
 function saveRank() {
-  const dual = isDual(view);
+  const fields = urlFieldsOf(view);
+  const INPUT = { url: "rUrl", urlAmazon: "rUrlAmz", urlRakuten: "rUrlRak" };
   const name = $("rName").value.trim();
-  const url  = $("rUrl").value.trim();
-  const amz  = $("rUrlAmz").value.trim();
-  const rak  = $("rUrlRak").value.trim();
+  const vals = Object.fromEntries(fields.map((f) => [f, $(INPUT[f]).value.trim()]));
   if (!name) { toast(`${SEC(view).nameLabel}は必須です`, true); $("rName").focus(); return; }
-  if (dual) {
-    if (!amz && !rak) { toast("ランキングURLをどちらか入れてください", true); $("rUrlAmz").focus(); return; }
-  } else if (!url) {
-    toast("URLは必須です", true); $("rUrl").focus(); return;
+  if (!fields.some((f) => vals[f])) {
+    toast(fields.length > 1 ? "URLをどちらか入れてください" : "URLは必須です", true);
+    $(INPUT[fields[0]]).focus();
+    return;
   }
 
   entry.name       = name;
-  entry.url        = dual ? "" : url;
-  entry.urlAmazon  = dual ? amz : "";
-  entry.urlRakuten = dual ? rak : "";
-  entry.category  = dual ? "未分類" : ($("rCat").value.trim() || "未分類");
-  entry.image     = dual ? "" : $("rImage").value.trim();
+  entry.url        = vals.url || "";
+  entry.urlAmazon  = vals.urlAmazon || "";
+  entry.urlRakuten = vals.urlRakuten || "";
+  entry.category  = $("rCat").value.trim() || "未分類";
+  entry.image     = $("rImage").value.trim();
   entry.checkNote = $("rNote").value.trim();
   entry.checkedAt = $("rChecked").value || "";
   entry.updatedAt = nowIso();
@@ -1221,7 +1217,8 @@ function bind() {
   $("btnToday").onclick      = () => { $("rChecked").value = today(); };
   $("rImage").oninput        = renderImgPrev;
   $("btnFetchImg").onclick   = async () => {
-    const url = $("rUrl").value.trim();
+    const url = [$("rUrlAmz"), $("rUrl"), $("rUrlRak")]
+      .map((el) => el.value.trim()).find(Boolean) || "";
     if (!url) { toast("先にURLを入力してください", true); return; }
     const btn = $("btnFetchImg");
     btn.disabled = true; btn.textContent = "取得中…";

@@ -466,6 +466,7 @@ body.resizing *{cursor:col-resize !important}
 .field-row{display:flex;gap:10px;margin-bottom:12px}
 .field-row .field{margin-bottom:0}
 .field.w-sm{max-width:110px}
+#rUrlFields .field{margin-bottom:12px}
 
 .link-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
 .link-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
