@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.42.0";
+const VERSION   = "0.43.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -121,29 +121,69 @@ const sideSecOf = (v) => SIDE(v).sec;
 const sideOptions = (v) =>
   SIDES.map((o) => `<option value="${o.v}"${o.v === v ? " selected" : ""}>${o.label}</option>`).join("");
 
-/* 商品行のステータス（2つのドロップダウン） */
-const PICK_CHECK = [
-  { v: "before", label: "確認前",   cls: "st-todo" },
-  { v: "after",  label: "確認後",   cls: "st-done" },
-  { v: "skip",   label: "スキップ", cls: "st-skip" },
+/* ---------- 商品行のドロップダウン ----------
+   値（v）は保存済みのデータが参照するので変えない。表示名と色だけ設定で変えられる。 */
+const SWATCHES = [
+  { c: "gray",   label: "グレー" },
+  { c: "blue",   label: "青"     },
+  { c: "green",  label: "緑"     },
+  { c: "amber",  label: "黄"     },
+  { c: "red",    label: "赤"     },
+  { c: "purple", label: "紫"     },
+  { c: "teal",   label: "青緑"   },
+  { c: "pink",   label: "ピンク" },
 ];
-/* 楽天のライバル状況 */
-const PICK_RIVAL = [
-  { v: "",      label: "未調査",       cls: "rv-none"  },
-  { v: "few",   label: "少数",         cls: "rv-few"   },
-  { v: "some",  label: "そこそこいる", cls: "rv-some"  },
-  { v: "heavy", label: "激戦",         cls: "rv-heavy" },
+const SWATCH_OK = (c) => SWATCHES.some((x) => x.c === c);
+
+const ST_FIELDS = [
+  { key: "check", title: "確認",           opts: [
+    { v: "before", label: "確認前",   color: "gray"   },
+    { v: "after",  label: "確認後",   color: "green"  },
+    { v: "skip",   label: "スキップ", color: "purple" },
+  ] },
+  { key: "buy", title: "買付", opts: [
+    { v: "before", label: "買付前", color: "gray"   },
+    { v: "done",   label: "買付済", color: "green"  },
+    { v: "skip",   label: "スキップ", color: "purple" },
+  ] },
+  { key: "rival", title: "楽天ライバル状況", opts: [
+    { v: "",      label: "未調査",       color: "gray"  },
+    { v: "few",   label: "少数",         color: "blue"  },
+    { v: "some",  label: "そこそこいる", color: "amber" },
+    { v: "heavy", label: "激戦",         color: "red"   },
+  ] },
 ];
-const PICK_BUY = [
-  { v: "before", label: "買付前",   cls: "st-todo" },
-  { v: "done",   label: "買付済",   cls: "st-done" },
-  { v: "skip",   label: "スキップ", cls: "st-skip" },
-];
+const ST_DEF = (key) => ST_FIELDS.find((f) => f.key === key);
+
+/* 設定（data.labels）を反映した選択肢を返す */
+function stList(key) {
+  const def = ST_DEF(key);
+  const saved = data?.labels?.[key] || [];
+  return def.opts.map((o) => {
+    const s = saved.find((x) => x && x.v === o.v) || {};
+    const color = SWATCH_OK(s.color) ? s.color : o.color;
+    return { v: o.v, label: (s.label || o.label), cls: "sw-" + color, color };
+  });
+}
 const stCls = (list, v) => (list.find((o) => o.v === v) || list[0]).cls;
-/* ドロップダウンの項目名 → 選択肢の対応 */
-const ST_LISTS = { check: PICK_CHECK, buy: PICK_BUY, rival: PICK_RIVAL };
 const stOptions = (list, v) =>
   list.map((o) => `<option value="${o.v}"${o.v === v ? " selected" : ""}>${o.label}</option>`).join("");
+/* 保存用に整える */
+function normLabels(raw) {
+  const out = {};
+  for (const f of ST_FIELDS) {
+    const saved = (raw && raw[f.key]) || [];
+    out[f.key] = f.opts.map((o) => {
+      const s = saved.find((x) => x && x.v === o.v) || {};
+      return {
+        v: o.v,
+        label: String(s.label || o.label).slice(0, 24),
+        color: SWATCH_OK(s.color) ? s.color : o.color,
+      };
+    });
+  }
+  return out;
+}
 
 const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を付ける
 
@@ -554,6 +594,7 @@ function emptyData() {
   return {
     version: 3,
     updatedAt: "",
+    labels: normLabels(null),
     sections: Object.fromEntries(SECTIONS.map((s) => [s.key, { items: [] }])),
   };
 }
@@ -581,10 +622,10 @@ function normRank(it) {
         image:   p.image || "",                    // 旧形式（移行に使う）
         url:     p.url || "",                      // 同上
         title:   p.title || p.note || p.name || "", // 商品名（旧 note / name から移行）
-        check:   PICK_CHECK.some((o) => o.v === p.check) ? p.check : "before",
-        buy:     PICK_BUY.some((o) => o.v === p.buy)     ? p.buy   : "before",
+        check:   ST_DEF("check").opts.some((o) => o.v === p.check) ? p.check : "before",
+        buy:     ST_DEF("buy").opts.some((o) => o.v === p.buy)     ? p.buy   : "before",
         sales30: p.sales30 == null ? "" : String(p.sales30),      // 30日販売数（自由入力）
-        rival:   PICK_RIVAL.some((o) => o.v === p.rival) ? p.rival : "",
+        rival:   ST_DEF("rival").opts.some((o) => o.v === p.rival) ? p.rival : "",
       })),
     createdAt: it.createdAt || nowIso(),
     updatedAt: it.updatedAt || it.createdAt || nowIso(),
@@ -633,6 +674,7 @@ function migrateUrl(x, fields) {
 function normalize(d) {
   const out = emptyData();
   out.updatedAt = d?.updatedAt || "";
+  out.labels = normLabels(d?.labels);
   const s = d?.sections || {};
   // v1（items が直下）からの移行
   const legacy = Array.isArray(d?.items) ? d.items : null;
@@ -1140,8 +1182,7 @@ function renderBody() {
       p[field] = sel.value;
       it.updatedAt = nowIso();
       persistLocal(); markDirty(true);
-      const list = ST_LISTS[field] || PICK_CHECK;
-      sel.className = (field === "rival" ? "st-sel rv-sel " : "st-sel ") + stCls(list, sel.value);
+      sel.className = "st-sel " + stCls(stList(field), sel.value);
     };
   });
   root.querySelectorAll("[data-pickedit]").forEach((b) => {
@@ -1284,8 +1325,8 @@ function addedRow(r) {
              data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
     </td>`;
   const rivalCell = `<td class="td-rival">
-      <select class="st-sel rv-sel ${stCls(PICK_RIVAL, p.rival)}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|rival">
-        ${stOptions(PICK_RIVAL, p.rival)}
+      <select class="st-sel ${stCls(stList("rival"), p.rival)}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|rival">
+        ${stOptions(stList("rival"), p.rival)}
       </select>
     </td>`;
 
@@ -1547,8 +1588,8 @@ function thumbTag(src, cls, id) {
 function statusCells(itemId, p) {
   const sel = (field, list, v) =>
     `<select class="st-sel ${stCls(list, v)}" data-pickstatus="${esc(itemId)}|${esc(p.id)}|${field}">${stOptions(list, v)}</select>`;
-  return `<td class="td-st">${sel("check", PICK_CHECK, p.check)}</td>` +
-         `<td class="td-st">${sel("buy", PICK_BUY, p.buy)}</td>`;
+  return `<td class="td-st">${sel("check", stList("check"), p.check)}</td>` +
+         `<td class="td-st">${sel("buy", stList("buy"), p.buy)}</td>`;
 }
 
 /* サムネ1枚。side は "amazon" / "rakuten" */
@@ -1957,6 +1998,49 @@ function flushSave() {
 }
 
 /* =========================================================
+   ドロップダウンのラベル編集
+   ========================================================= */
+function renderLabelEditor() {
+  $("labEditor").innerHTML = ST_FIELDS.map((f) => {
+    const list = stList(f.key);
+    return `<div class="lab-grp">
+      <p class="cfg-sec-ttl">${esc(f.title)}</p>
+      ${list.map((o) => `
+        <div class="lab-row" data-lab="${esc(f.key)}|${esc(o.v)}">
+          <span class="lab-sw">${SWATCHES.map((sw) =>
+            `<button type="button" class="sw-${sw.c}${sw.c === o.color ? " on" : ""}"
+                     data-color="${sw.c}" title="${esc(sw.label)}"></button>`).join("")}</span>
+          <input class="lab-in" type="text" maxlength="24" value="${esc(o.label)}" placeholder="表示名">
+          <span class="lab-prev sw-${o.color}">${esc(o.label)}</span>
+        </div>`).join("")}
+    </div>`;
+  }).join("");
+
+  const apply = (row, patch) => {
+    const [key, v] = row.dataset.lab.split("|");
+    data.labels = normLabels(data.labels);
+    const o = data.labels[key].find((x) => x.v === v);
+    if (patch.label === "") patch.label = ST_DEF(key).opts.find((x) => x.v === v).label;  // 空なら既定へ
+    Object.assign(o, patch);
+    persistLocal(); markDirty(true); renderBody();
+
+    const prev = row.querySelector(".lab-prev");
+    prev.textContent = o.label;
+    prev.className = "lab-prev sw-" + o.color;
+    row.querySelectorAll(".lab-sw button").forEach((b) =>
+      b.classList.toggle("on", b.dataset.color === o.color));
+  };
+
+  $("labEditor").querySelectorAll(".lab-row").forEach((row) => {
+    row.querySelector(".lab-in").oninput = (e) =>
+      apply(row, { label: e.target.value.slice(0, 24) });
+    row.querySelectorAll(".lab-sw button").forEach((b) => {
+      b.onclick = () => apply(row, { color: b.dataset.color });
+    });
+  });
+}
+
+/* =========================================================
    履歴から復元（コミット履歴を全部読んで統合する）
    ========================================================= */
 const ghCommitsUrl = (n) =>
@@ -2023,6 +2107,7 @@ function mergeVersions(versions) {
       .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
     out.sections[sec].items.push({ ...item, picks });
   }
+  out.labels = normLabels(newest.labels);
   out.updatedAt = nowIso();
   return out;
 }
@@ -2089,6 +2174,7 @@ async function restoreFromHistory() {
    設定
    ========================================================= */
 function showCfgPane(id) {
+  if (id === "pLabel") renderLabelEditor();
   $("cfgTabs").querySelectorAll(".cfg-tab").forEach((t) =>
     t.classList.toggle("on", t.dataset.pane === id));
   document.querySelectorAll(".cfg-pane").forEach((p) => { p.hidden = p.id !== id; });
@@ -2303,6 +2389,12 @@ function bind() {
   $("btnTestGh").onclick  = testConnection;
   $("btnImgTest").onclick = runImgTest;
   $("btnRestore").onclick = restoreFromHistory;
+  $("btnLabReset").onclick = () => {
+    if (!confirm("ドロップダウンの文言と色を既定に戻します。よろしいですか？")) return;
+    data.labels = normLabels(null);
+    persistLocal(); markDirty(true); renderBody(); renderLabelEditor();
+    toast("既定に戻しました");
+  };
 
   /* サムネを押したら拡大表示 */
   document.addEventListener("click", (e) => {

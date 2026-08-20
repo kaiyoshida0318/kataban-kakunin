@@ -431,9 +431,15 @@ body.resizing *{cursor:col-resize !important}
   border:1px solid var(--border);cursor:pointer;text-align:center;
   -webkit-appearance:none;appearance:none;
 }
-.st-sel.st-todo{background:var(--row-alt);border-color:var(--border);color:var(--muted)}
-.st-sel.st-done{background:var(--green-soft);border-color:#cbe6da;color:#22795a}
-.st-sel.st-skip{background:#f2f0f4;border-color:#e2dde8;color:#8b7fa0}
+/* ドロップダウンの色（設定で選べる8色） */
+.sw-gray  {background:var(--row-alt);border-color:var(--border);color:var(--muted)}
+.sw-blue  {background:#e8f0fb;border-color:#c3d7f2;color:#1a55a6}
+.sw-green {background:var(--green-soft);border-color:#cbe6da;color:#22795a}
+.sw-amber {background:var(--warn-soft);border-color:#f0dcbd;color:#9a6212}
+.sw-red   {background:#fdecea;border-color:#f3cac3;color:#c0392b}
+.sw-purple{background:#f2f0f4;border-color:#e2dde8;color:#8b7fa0}
+.sw-teal  {background:#e4f4f3;border-color:#c2e4e1;color:#1c7168}
+.sw-pink  {background:#fdecf3;border-color:#f5cbdd;color:#b03a6c}
 
 /* 区分（オフェンス=赤 / ディフェンス=緑） */
 .rank-tbl .c-ord{text-align:center;padding:4px 2px}
@@ -482,11 +488,6 @@ body.resizing *{cursor:col-resize !important}
 }
 .sales-in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .sales-in::placeholder{color:#c3c8d1;font-weight:400}
-/* 楽天ライバル状況 */
-.rv-sel.rv-none{background:var(--row-alt);border-color:var(--border);color:var(--muted)}
-.rv-sel.rv-few{background:#e8f0fb;border-color:#c3d7f2;color:#1a55a6}
-.rv-sel.rv-some{background:var(--warn-soft);border-color:#f0dcbd;color:#9a6212}
-.rv-sel.rv-heavy{background:#fdecea;border-color:#f3cac3;color:#c0392b}
 .src-side{
   display:inline-block;font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-right:6px;
   vertical-align:middle;
@@ -599,6 +600,21 @@ button.pick-thumb.none:hover::after{color:var(--accent)}
 .cfg-adv[open] > summary::before{content:"▾ "}
 .cfg-adv[open] > summary{border-bottom:1px solid var(--border)}
 .cfg-adv .field{padding:10px 12px;margin-bottom:0}
+/* ラベル編集 */
+.lab-grp{margin-bottom:18px}
+.lab-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lab-sw{display:flex;gap:4px}
+.lab-sw button{
+  width:20px;height:20px;border-radius:6px;cursor:pointer;padding:0;
+  border:1px solid rgba(0,0,0,.14);
+}
+.lab-sw button.on{outline:2px solid var(--accent);outline-offset:1px}
+.lab-in{flex:1;min-width:0;font-size:12.5px;padding:6px 9px}
+.lab-prev{
+  flex:0 0 118px;font-size:11.5px;font-weight:700;text-align:center;
+  border:1px solid var(--border);border-radius:7px;padding:5px 6px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .cfg-sep{border:0;border-top:1px solid var(--border);margin:16px 0 12px}
 .img-test{display:flex;gap:12px;align-items:flex-start;margin-top:8px;padding:10px 12px;background:var(--row-alt);border:1px solid var(--border);border-radius:9px}
 .img-test-log{flex:1;margin:0;padding:0;list-style:none;font-size:11.5px;line-height:1.7;min-width:0}
