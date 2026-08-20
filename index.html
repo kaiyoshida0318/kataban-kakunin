@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.24.0">
+<link rel="stylesheet" href="style.css?v=0.25.0">
 </head>
 <body>
 
@@ -24,7 +24,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.24.0</span>
+      <span class="ver-badge" id="verLabel">v0.25.0</span>
       <span class="dirty-badge" id="saveState" hidden>● 未保存</span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -84,7 +84,7 @@
           <div class="img-box" id="rImagePrev"></div>
           <input id="rImage" type="url" placeholder="画像URL（任意）">
           <button class="btn btn-ghost btn-sm img-fetch" id="btnFetchImg" type="button">URLから取得</button>
-          <p class="hint">AmazonのURL（/dp/…）なら自動取得できます。それ以外は商品ページの画像を右クリック →「画像アドレスをコピー」で貼ってください。</p>
+          <p class="hint">Amazon・楽天のURLなら自動取得できます。うまく出ないときは商品ページの画像を右クリック →「画像アドレスをコピー」で貼ってください。</p>
         </div>
 
         <!-- 右：その他の項目 -->
@@ -175,6 +175,26 @@
         <input id="cPat" type="password" placeholder="github_pat_…" autocomplete="off">
         <p class="hint">Contents の Read and write 権限が必要です。この端末のブラウザ内にのみ保存されます。</p>
       </div>
+      <hr class="cfg-sep">
+      <p class="cfg-sec-ttl">商品画像の自動取得</p>
+      <p class="hint">商品URLを入れるだけで画像を拾います。Amazonは設定なしでOK。楽天は下のアプリIDを入れると公式APIから取得します。それ以外のサイトは中継サービス経由で <code>og:image</code> を拾います。</p>
+      <div class="field-row">
+        <div class="field">
+          <label for="cRkAppId">楽天アプリID</label>
+          <input id="cRkAppId" type="text" placeholder="1234567890123456789" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="cRkKey">楽天アクセスキー</label>
+          <input id="cRkKey" type="password" placeholder="（新しいAPIでは必須）" autocomplete="off">
+        </div>
+      </div>
+      <p class="hint"><a href="https://webservice.rakuten.co.jp/app/list" target="_blank" rel="noopener noreferrer">楽天ウェブサービスのアプリ一覧</a>で無料登録して取得できます。</p>
+      <div class="field">
+        <label for="cProxy">中継サービス（楽天・Amazon以外の画像取得）</label>
+        <input id="cProxy" type="text" autocomplete="off">
+        <p class="hint">空欄なら既定の中継先を使います。<code>{url}</code> の位置に商品URLが入ります。中継を使いたくないときは <code>-</code> だけ入れてください。</p>
+      </div>
+      <hr class="cfg-sep">
       <div class="cfg-actions">
         <button class="btn btn-ghost" id="btnPullGh">⤓ GitHubから読み込む</button>
         <button class="btn btn-ghost" id="btnTestGh">接続テスト</button>
@@ -191,6 +211,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.24.0"></script>
+<script src="app.js?v=0.25.0"></script>
 </body>
 </html>

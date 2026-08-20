@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.24.0";
+const VERSION   = "0.25.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -106,7 +106,8 @@ const stOptions = (list, v) =>
 const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を付ける
 
 /* ---------- 状態 ---------- */
-let cfg   = { owner: "", repo: "", branch: "main", pat: "" };
+let cfg   = { owner: "", repo: "", branch: "main", pat: "",
+              rakutenAppId: "", rakutenAccessKey: "", imgProxy: "" };
 let data  = emptyData();
 let sha   = null;
 let dirty = false;
@@ -196,11 +197,99 @@ function probeImage(src) {
   });
 }
 
+/* 楽天ウェブサービス（JSONPなのでGitHub Pagesから直接呼べる） */
+const RAKUTEN_EP    = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701";
+const DEFAULT_PROXY = "https://api.allorigins.win/raw?url={url}";
+
+/* item.rakuten.co.jp/{店舗}/{商品番号}/ → itemCode「店舗:商品番号」 */
+function rakutenItemCode(url) {
+  try {
+    const u = new URL(url);
+    if (!/(^|\.)item\.rakuten\.co\.jp$/i.test(u.hostname)) return "";
+    const seg = u.pathname.split("/").filter(Boolean);
+    return seg.length >= 2 ? `${seg[0]}:${seg[1]}` : "";
+  } catch { return ""; }
+}
+
+/* <script>タグでJSONPを1回呼ぶ。失敗・タイムアウトは null */
+function jsonp(url, ms = 8000) {
+  return new Promise((resolve) => {
+    const cb = "kata_cb_" + Math.random().toString(36).slice(2, 9);
+    const tag = document.createElement("script");
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      delete window[cb];
+      tag.remove();
+      resolve(v);
+    };
+    const timer = setTimeout(() => finish(null), ms);
+    window[cb] = finish;
+    tag.onerror = () => finish(null);
+    tag.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cb;
+    document.head.appendChild(tag);
+  });
+}
+
+async function rakutenImage(url) {
+  const code = rakutenItemCode(url);
+  if (!code || !cfg.rakutenAppId) return "";
+  const q = new URLSearchParams({
+    applicationId: cfg.rakutenAppId,
+    itemCode: code,
+    format: "json",
+    hits: "1",
+    elements: "mediumImageUrls,itemUrl",
+  });
+  if (cfg.rakutenAccessKey) q.set("accessKey", cfg.rakutenAccessKey);
+  const res = await jsonp(`${RAKUTEN_EP}?${q}`);
+  const first = res?.Items?.[0];
+  const arr = first?.Item?.mediumImageUrls || first?.mediumImageUrls || [];
+  const raw = arr[0]?.imageUrl || arr[0] || "";
+  // ?_ex=128x128 のままだとサムネが小さいので大きめに差し替える
+  return raw ? String(raw).replace(/\?_ex=\d+x\d+/, "?_ex=500x500") : "";
+}
+
+/* 中継サービス経由でページのHTMLを取り、og:image を拾う（楽天以外の保険） */
+async function ogImage(url) {
+  const tpl = cfg.imgProxy === "-" ? "" : (cfg.imgProxy || DEFAULT_PROXY);
+  if (!tpl) return "";
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 9000);
+    const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return "";
+    const html = (await res.text()).slice(0, 500000);
+    const tags = html.match(/<meta[^>]+>/gi) || [];
+    const pick = (key) => {
+      const t = tags.find((x) =>
+        new RegExp(`(?:property|name)\\s*=\\s*["']${key}["']`, "i").test(x));
+      return t ? (t.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] || "") : "";
+    };
+    let src = pick("og:image:secure_url") || pick("og:image") || pick("twitter:image") || pick("twitter:image:src");
+    if (!src) return "";
+    src = src.replace(/&amp;/g, "&").trim();
+    if (src.startsWith("//")) src = "https:" + src;
+    else if (src.startsWith("/")) src = new URL(src, url).href;
+    return /^https?:\/\//i.test(src) ? src : "";
+  } catch { return ""; }
+}
+
+/* 商品URLからメイン画像を1つ決める。Amazon → 楽天API → og:image の順 */
 async function guessImage(url) {
-  for (const c of imageCandidates(url)) {
+  if (!url) return "";
+  for (const c of imageCandidates(url)) {          // 1) Amazon（URLのASINだけで完結）
     const hit = await probeImage(c);
     if (hit) return hit;
   }
+  const rk = await rakutenImage(url);              // 2) 楽天ウェブサービス
+  if (rk && await probeImage(rk)) return rk;
+
+  const og = await ogImage(url);                   // 3) 中継サービスで og:image
+  if (og && await probeImage(og)) return og;
   return "";
 }
 
@@ -536,7 +625,7 @@ function renderBody() {
       if (!url) { toast("商品URLを入力してください", true); row.querySelector(".pick-url").focus(); return; }
       const it = itemsOf(view).find((i) => i.id === id);
       let image = row.querySelector(".pick-image").value.trim();
-      if (!image && asinOf(url)) {                       // 画像未入力ならAmazonから自動取得
+      if (!image) {                                      // 画像未入力ならURLから自動取得
         const btn = row.querySelector(".pick-add");
         btn.disabled = true; btn.textContent = "取得中…";
         image = await guessImage(url);
@@ -606,7 +695,7 @@ function renderBody() {
       const p  = it.picks.find((x) => x.id === pid);
       p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
       p.image   = row.querySelector(".pe-image").value.trim();
-      if (!p.image && asinOf(url)) p.image = await guessImage(url);
+      if (!p.image) p.image = await guessImage(url);
       p.url     = url;
       p.title   = row.querySelector(".pe-title").value.trim();
       it.updatedAt = nowIso();
@@ -1151,6 +1240,10 @@ function openCfg() {
   $("cRepo").value   = cfg.repo;
   $("cBranch").value = cfg.branch;
   $("cPat").value    = cfg.pat;
+  $("cRkAppId").value = cfg.rakutenAppId || "";
+  $("cRkKey").value   = cfg.rakutenAccessKey || "";
+  $("cProxy").value   = cfg.imgProxy || "";
+  $("cProxy").placeholder = DEFAULT_PROXY;
   $("cfgStatus").textContent = "";
   renderCfgUrl();
   $("cfgModal").hidden = false;
@@ -1185,7 +1278,14 @@ function parseRepoInput(ownerRaw, repoRaw) {
 
 function readCfgForm() {
   const [owner, repo] = parseRepoInput($("cOwner").value, $("cRepo").value);
-  cfg = { owner, repo, branch: normId($("cBranch").value) || "main", pat: $("cPat").value.trim() };
+  cfg = {
+    owner, repo,
+    branch: normId($("cBranch").value) || "main",
+    pat: $("cPat").value.trim(),
+    rakutenAppId:     $("cRkAppId").value.trim(),
+    rakutenAccessKey: $("cRkKey").value.trim(),
+    imgProxy:         $("cProxy").value.trim(),
+  };
 
   // 正規化した結果を画面にも反映して、何が送られるか見えるようにする
   $("cOwner").value  = cfg.owner;

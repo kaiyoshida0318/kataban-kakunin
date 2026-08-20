@@ -481,6 +481,9 @@ body.resizing *{cursor:col-resize !important}
 .field-row{display:flex;gap:10px;margin-bottom:12px}
 .field-row .field{margin-bottom:0}
 .field.w-sm{max-width:110px}
+.cfg-sep{border:0;border-top:1px solid var(--border);margin:16px 0 12px}
+.cfg-sec-ttl{font-size:12.5px;font-weight:700;margin:0 0 4px}
+.hint code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;background:var(--row-alt);padding:1px 4px;border-radius:4px}
 #rUrlFields .field{margin-bottom:12px}
 
 .link-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
