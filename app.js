@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.45.0";
+const VERSION   = "0.47.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -84,13 +84,44 @@ function pickColsOf(sectionKey) {
   ];
 }
 
-let colW = {};
-const ROW_H_KEY  = "_rowH";
+let colW = {};                 // 旧localStorage（移行にだけ使う）
 const ROW_H_DEF  = 96;
-const PROW_H_KEY = "_pickRowH";
 const PROW_H_DEF = 66;
-const rowH  = () => colW[ROW_H_KEY]  || ROW_H_DEF;
-const pRowH = () => colW[PROW_H_KEY] || PROW_H_DEF;
+const ALIGNS = [
+  { v: "left",   label: "左",   mark: "⇤" },
+  { v: "center", label: "中央", mark: "⇔" },
+  { v: "right",  label: "右",   mark: "⇥" },
+];
+/* 列の設定は data.cols にまとめる（端末をまたいで同じ見た目になる） */
+function ensureCols() {
+  const c = data.cols;
+  if (!c || typeof c !== "object" || typeof c.items !== "object" || !c.items) {
+    data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF, items: (c && c.items) || {} };
+  }
+  return data.cols;
+}
+const colSet = (key) => ensureCols().items[key] || {};
+const rowH  = () => ensureCols().rowH || ROW_H_DEF;
+const pRowH = () => ensureCols().pickRowH || PROW_H_DEF;
+/* 項目名・幅・揃え。未設定なら既定値 */
+const colLabel = (c) => colSet(c.key).label || (c.key === "name" ? SEC(view).nameLabel : c.label);
+const colAlign = (c) => colSet(c.key).align || "";
+function normCols(raw) {
+  const out = {
+    rowH: Number(raw?.rowH) >= 40 ? Math.min(600, Number(raw.rowH)) : ROW_H_DEF,
+    pickRowH: Number(raw?.pickRowH) >= 30 ? Math.min(600, Number(raw.pickRowH)) : PROW_H_DEF,
+    items: {},
+  };
+  for (const [k, v] of Object.entries(raw?.items || {})) {
+    if (!v || typeof v !== "object") continue;
+    const o = {};
+    if (v.label) o.label = String(v.label).slice(0, 24);
+    if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
+    if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
+    if (Object.keys(o).length) out.items[k] = o;
+  }
+  return out;
+}
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
@@ -203,6 +234,55 @@ function normLabels(raw) {
     out[f.key] = list.length ? list : f.opts.map((o) => ({ ...o }));
   }
   return out;
+}
+
+/* ---------- 色つきドロップダウン ----------
+   <select> は展開したときの各行の色をブラウザに任せるしかないので、自前で描く。 */
+function stButton(list, v, attrs, extraCls) {
+  const cur = list.find((o) => o.v === v) || list[0];
+  return `<button type="button" class="st-sel ${cur.cls}${extraCls ? " " + extraCls : ""}" ${attrs}
+    title="${esc(cur.label)}"><span class="st-lb">${esc(cur.label)}</span><span class="st-ar">▾</span></button>`;
+}
+
+let stMenuClose = null;
+function closeStMenu() {
+  if (stMenuClose) { stMenuClose(); stMenuClose = null; }
+}
+function openStMenu(btn, list, value, onPick) {
+  closeStMenu();
+  const box = $("stMenu");
+  box.innerHTML = list.map((o) =>
+    `<button type="button" class="${o.cls}${o.v === value ? " on" : ""}" data-v="${esc(o.v)}">${esc(o.label)}</button>`).join("");
+  box.hidden = false;
+
+  const r = btn.getBoundingClientRect();
+  const h = box.offsetHeight;
+  const w = Math.max(box.offsetWidth, r.width);
+  box.style.minWidth = r.width + "px";
+  const below = window.innerHeight - r.bottom;
+  box.style.top  = (below >= h + 8 || r.top < h + 8 ? r.bottom + 4 : r.top - h - 4) + "px";
+  box.style.left = Math.max(6, Math.min(window.innerWidth - w - 6, r.left)) + "px";
+  btn.classList.add("st-open");
+
+  box.querySelectorAll("button").forEach((b) => {
+    b.onclick = (e) => { e.stopPropagation(); closeStMenu(); onPick(b.dataset.v); };
+  });
+
+  const away = (e) => { if (!box.contains(e.target) && e.target !== btn) closeStMenu(); };
+  const esc2 = (e) => { if (e.key === "Escape") closeStMenu(); };
+  setTimeout(() => document.addEventListener("mousedown", away), 0);
+  document.addEventListener("keydown", esc2);
+  window.addEventListener("scroll", closeStMenu, true);
+  window.addEventListener("resize", closeStMenu);
+
+  stMenuClose = () => {
+    box.hidden = true;
+    btn.classList.remove("st-open");
+    document.removeEventListener("mousedown", away);
+    document.removeEventListener("keydown", esc2);
+    window.removeEventListener("scroll", closeStMenu, true);
+    window.removeEventListener("resize", closeStMenu);
+  };
 }
 
 const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を付ける
@@ -615,6 +695,7 @@ function emptyData() {
     version: 3,
     updatedAt: "",
     labels: normLabels(null),
+    cols: normCols(null),
     sections: Object.fromEntries(SECTIONS.map((s) => [s.key, { items: [] }])),
   };
 }
@@ -696,6 +777,7 @@ function normalize(d) {
   const out = emptyData();
   out.updatedAt = d?.updatedAt || "";
   out.labels = normLabels(d?.labels);
+  out.cols   = normCols(d?.cols);
   const s = d?.sections || {};
   // v1（items が直下）からの移行
   const legacy = Array.isArray(d?.items) ? d.items : null;
@@ -740,7 +822,19 @@ function saveCfg() { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }
 function loadCols() {
   try { colW = JSON.parse(localStorage.getItem(LS_COLS)) || {}; } catch { colW = {}; }
 }
-function saveCols() { localStorage.setItem(LS_COLS, JSON.stringify(colW)); }
+/* 旧版の localStorage に入っていた列幅を、一度だけ data.cols へ移す */
+function migrateColsFromLocal() {
+  const c = ensureCols();
+  if (!colW || !Object.keys(colW).length) return;
+  if (Object.keys(c.items).length) return;              // すでに設定済みなら触らない
+  for (const [k, v] of Object.entries(colW)) {
+    if (k === "_rowH") c.rowH = Number(v) || ROW_H_DEF;
+    else if (k === "_pickRowH") c.pickRowH = Number(v) || PROW_H_DEF;
+    else if (Number(v) >= 40) c.items[k] = { w: Number(v) };
+  }
+  data.cols = normCols(c);
+}
+function saveCols() { persistLocal(); markDirty(true); }
 
 /* 並べ替えの指定（手動並びを含む）はブラウザに残す */
 function loadSort() {
@@ -753,7 +847,7 @@ function saveSort() {
   localStorage.setItem(LS_SORT, JSON.stringify(
     Object.fromEntries(Object.entries(filters).map(([k, v]) => [k, { sort: v.sort, dir: v.dir }]))));
 }
-const colWidth = (c) => colW[c.key] || c.w;
+const colWidth = (c) => (colSet(c.key).w ?? c.w);
 /* 表編集中は画像URL欄が入るので画像列を広げる */
 const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c), 170) : colWidth(c));
 
@@ -1022,6 +1116,7 @@ function th(key, label, cls) {
 }
 
 function renderBody() {
+  closeStMenu();
   const s = SEC(view);
   const added = s.kind === "added";
   const list  = added ? visiblePicks() : visibleItems();
@@ -1083,13 +1178,15 @@ function renderBody() {
     };
   });
   // 区分：選び直すとその区分のタブへ行が移る
-  root.querySelectorAll("[data-side]").forEach((sel) => {
-    sel.onchange = () => {
+  root.querySelectorAll("[data-side]").forEach((btn) => {
+    btn.onclick = () => {
       const from = view;
-      const to   = sideSecOf(sel.value);
-      const it   = itemsOf(from).find((i) => i.id === sel.dataset.side);
-      if (!it || to === from) return;
-      moveItem(it, from, to);
+      openStMenu(btn, SIDES, SEC(from).side, (v) => {
+        const to = sideSecOf(v);
+        const it = itemsOf(from).find((i) => i.id === btn.dataset.side);
+        if (!it || to === from) return;
+        moveItem(it, from, to);
+      });
     };
   });
   root.querySelectorAll("[data-del]").forEach((b) => {
@@ -1208,16 +1305,23 @@ function renderBody() {
       persistLocal(); markDirty(true);
     };
   });
-  root.querySelectorAll("[data-pickstatus]").forEach((sel) => {
-    const [id, pid, field] = sel.dataset.pickstatus.split("|");
-    sel.onchange = () => {
-      const at = locatePick(`${id}|${pid}`);
-      if (!at) return;
-      const { it, p } = at;
-      p[field] = sel.value;
-      it.updatedAt = nowIso();
-      persistLocal(); markDirty(true);
-      sel.className = "st-sel " + stCls(stList(field), sel.value);
+  root.querySelectorAll("[data-pickstatus]").forEach((btn) => {
+    const [id, pid, field] = btn.dataset.pickstatus.split("|");
+    btn.onclick = () => {
+      const at0 = locatePick(`${id}|${pid}`);
+      if (!at0) return;
+      const list = stList(field);
+      openStMenu(btn, list, at0.p[field], (v) => {
+        const at = locatePick(`${id}|${pid}`);
+        if (!at) return;
+        at.p[field] = v;
+        at.it.updatedAt = nowIso();
+        persistLocal(); markDirty(true);
+        const cur = list.find((o) => o.v === v) || list[0];
+        btn.className = "st-sel " + cur.cls;
+        btn.title = cur.label;
+        btn.querySelector(".st-lb").textContent = cur.label;
+      });
     };
   });
   root.querySelectorAll("[data-pickedit]").forEach((b) => {
@@ -1277,14 +1381,14 @@ function rankTable(list) {
     return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
   }).join("");
   const heads = COLS.map((c) => {
+    const label = colLabel(c);
     if (c.key === "ord") {
       const on = F().sort === "manual";
       return `<th class="c-ord sortable${on ? " on" : ""}" data-sort="manual" ` +
-        `title="↑↓ で手動並べ替え。押すと手動⇔自動を切り替えます">${esc(c.label)}` +
+        `title="↑↓ で手動並べ替え。押すと手動⇔自動を切り替えます">${esc(label)}` +
         `${on ? '<span class="sort-mark">手動</span>' : ""}<span class="col-resizer" data-col="ord"></span></th>`;
     }
     const on = c.sort && F().sort === c.sort;
-    const label = c.key === "name" ? SEC(view).nameLabel : c.label;
     return `<th class="${c.cls}${c.sort ? " sortable" : ""}${on ? " on" : ""}"${c.sort ? ` data-sort="${c.sort}"` : ""}>` +
       `${esc(label)}${c.sort ? sortMark(c.sort) : ""}` +
       `<span class="col-resizer" data-col="${c.key}"></span></th>`;
@@ -1292,11 +1396,22 @@ function rankTable(list) {
 
   /* 行の高さに収まる行数だけ、ジャンル名を折り返して見せる */
   const nameLines = Math.max(1, Math.floor((rowH() - 16) / 19));
-  return `<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
+  return `${alignStyle(COLS, "table.rank-tbl")}<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
   </table></div>`;
+}
+
+/* 列ごとの揃えを nth-child で流し込む（セルの生成箇所を触らずに済む） */
+function alignStyle(cols, rowSel) {
+  const rules = cols.map((c, i) => {
+    const a = colAlign(c);
+    if (!a) return "";
+    const n = i + 1;
+    return `#list ${rowSel} th:nth-child(${n}),#list ${rowSel} td:nth-child(${n}){text-align:${a}}`;
+  }).filter(Boolean).join("");
+  return rules ? `<style>${rules}</style>` : "";
 }
 
 /* ===== 追加した商品（全タブ横断・追加日ごと） ===== */
@@ -1304,11 +1419,11 @@ function addedTable(rows) {
   if (!rows.length) return "";
 
   const cols = ADDED_COLS.map((c) => {
-    const w = colW[c.key] || c.w;
+    const w = colWidth(c);
     return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
   }).join("");
   const heads = ADDED_COLS.map((c) =>
-    `<th class="${c.cls}">${esc(c.label)}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("");
+    `<th class="${c.cls}">${esc(colLabel(c))}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("");
 
   /* 追加日ごとにまとめる */
   const groups = [];
@@ -1328,7 +1443,7 @@ function addedTable(rows) {
       </td></tr>` + g.list.map(addedRow).join("");
   }).join("");
 
-  return `<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
+  return `${alignStyle(ADDED_COLS, "table.added-tbl")}<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${body}</tbody>
@@ -1361,11 +1476,7 @@ function addedRow(r) {
     </td>`;
   const stCell = (field, cls) => {
     const list = stList(field);
-    return `<td class="${cls}">
-      <select class="st-sel ${stCls(list, p[field])}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}">
-        ${stOptions(list, p[field])}
-      </select>
-    </td>`;
+    return `<td class="${cls}">${stButton(list, p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
   };
   const rivalCell = stCell("rival", "td-rival");
   const qualCell  = stCell("quality", "td-rival");
@@ -1432,37 +1543,83 @@ function fitColumns() {
 
 /* 列幅パネル（上部の「⇔ 幅調整」） */
 function renderColPanel() {
-  const item = (key, label, val, ph, cls) => `
-    <label class="col-item${cls ? " " + cls : ""}">
-      <span class="col-item-name">${esc(label)}</span>
-      <input type="number" min="40" max="1200" step="4" data-colw="${key}" value="${val || ""}" placeholder="${ph || "自動"}">
-      <span class="col-item-unit">px</span>
-    </label>`;
-
-  $("colPanelBody").innerHTML = `
-    <div class="col-grp">
-      <span class="col-grp-ttl">一覧表</span>
-      <div class="col-grp-items">
-        ${item(ROW_H_KEY, "行の高さ", rowH(), ROW_H_DEF, "row-h")}
-        ${colsOf(view).map((c) => item(c.key, c.key === "name" ? SEC(view).nameLabel : c.label, colW[c.key] || c.w)).join("")}
-      </div>
-    </div>
-    <div class="col-grp">
-      <span class="col-grp-ttl">チェックした商品</span>
-      <div class="col-grp-items">
-        ${item(PROW_H_KEY, "行の高さ", pRowH(), PROW_H_DEF, "row-h")}
-        ${PICK_COLS.map((c) => item(c.key, c.label, colW[c.key] || c.w)).join("")}
+  const rowInput = (which, val, def) => `
+    <div class="col-card row-h">
+      <span class="col-card-ttl">行の高さ</span>
+      <div class="col-card-row">
+        <input class="col-w" type="number" min="30" max="600" step="4" data-rowh="${which}" value="${val}" placeholder="${def}">
+        <span class="col-unit">px</span>
       </div>
     </div>`;
 
-  $("colPanelBody").querySelectorAll("[data-colw]").forEach((inp) => {
+  const card = (c) => {
+    const st = colSet(c.key);
+    const al = colAlign(c);
+    return `<div class="col-card" data-col="${esc(c.key)}">
+      <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名">
+      <div class="col-card-row">
+        <input class="col-w" type="number" min="40" max="1600" step="4" value="${st.w ?? (c.w || "")}" placeholder="${c.w || "自動"}">
+        <span class="col-unit">px</span>
+        <span class="col-al">${ALIGNS.map((a) =>
+          `<button type="button" class="${a.v === al ? "on" : ""}" data-al="${a.v}" title="${a.label}揃え">${a.mark}</button>`).join("")}</span>
+      </div>
+    </div>`;
+  };
+
+  /* 「追加した商品」タブの表は商品用の行の高さを使う */
+  const added = isAdded(view);
+  const groups = [
+    added
+      ? { ttl: SEC(view).label, which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: ADDED_COLS }
+      : { ttl: SEC(view).label, which: "rowH",     val: rowH(),  def: ROW_H_DEF,  cols: colsOf(view) },
+  ];
+  if (!added) {
+    groups.push({ ttl: "チェックした商品", which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: pickColsOf(view) });
+  }
+
+  $("colPanelBody").innerHTML = groups.map((g) => `
+    <div class="col-grp">
+      <span class="col-grp-ttl">${esc(g.ttl)}</span>
+      <div class="col-grp-items">
+        ${rowInput(g.which, g.val, g.def)}
+        ${g.cols.map(card).join("")}
+      </div>
+    </div>`).join("");
+
+  const apply = () => { saveCols(); renderBody(); };
+
+  $("colPanelBody").querySelectorAll("[data-rowh]").forEach((inp) => {
     inp.oninput = () => {
-      const key = inp.dataset.colw;
       const v = parseInt(inp.value, 10);
-      if (Number.isFinite(v) && v >= 40) colW[key] = v; else delete colW[key];
-      saveCols();
-      renderBody();
+      ensureCols()[inp.dataset.rowh] = Number.isFinite(v) && v >= 30 ? v : (inp.dataset.rowh === "rowH" ? ROW_H_DEF : PROW_H_DEF);
+      apply();
     };
+  });
+
+  $("colPanelBody").querySelectorAll(".col-card[data-col]").forEach((cd) => {
+    const key = cd.dataset.col;
+    const box = () => (ensureCols().items[key] ||= {});
+
+    cd.querySelector(".col-name").oninput = (e) => {
+      const v = e.target.value.slice(0, 24).trim();
+      if (v) box().label = v; else delete ensureCols().items[key]?.label;
+      apply();
+    };
+    cd.querySelector(".col-w").oninput = (e) => {
+      const v = parseInt(e.target.value, 10);
+      if (Number.isFinite(v) && v >= 40) box().w = v; else delete ensureCols().items[key]?.w;
+      apply();
+    };
+    cd.querySelectorAll("[data-al]").forEach((b) => {
+      b.onclick = () => {
+        const cur = colAlign({ key });
+        if (cur === b.dataset.al) delete ensureCols().items[key]?.align;
+        else box().align = b.dataset.al;
+        cd.querySelectorAll("[data-al]").forEach((x) =>
+          x.classList.toggle("on", x.dataset.al === colAlign({ key })));
+        apply();
+      };
+    });
   });
 }
 
@@ -1495,10 +1652,12 @@ function bindResizers(root) {
         document.removeEventListener("mouseup", up);
         document.body.classList.remove("resizing");
         rz.classList.remove("dragging");
-        colW[rz.dataset.col] = parseInt(col.style.width, 10);
+        const px = parseInt(col.style.width, 10);
+        const it = (ensureCols().items[rz.dataset.col] ||= {});
+        it.w = px;
         saveCols();
         const inp = document.querySelector(`[data-colw="${rz.dataset.col}"]`);
-        if (inp) inp.value = colW[rz.dataset.col];
+        if (inp) inp.value = px;
       };
       document.addEventListener("mousemove", move);
       document.addEventListener("mouseup", up);
@@ -1506,7 +1665,7 @@ function bindResizers(root) {
     // ダブルクリックで既定値に戻す
     rz.ondblclick = (e) => {
       e.stopPropagation();
-      delete colW[rz.dataset.col];
+      delete ensureCols().items[rz.dataset.col];
       saveCols(); renderBody(); if (!$("colPanel").hidden) renderColPanel();
     };
   });
@@ -1543,7 +1702,7 @@ function rankRow(it, idx = 0, all = []) {
       case "side": {
         const v = SEC(view).side;
         return `<td class="c-side">
-            <select class="side-sel ${SIDE(v).cls}" data-side="${esc(it.id)}" title="選び直すとその区分のタブへ移ります">${sideOptions(v)}</select>
+            ${stButton(SIDES.map((o) => ({ ...o, cls: o.cls })), v, `data-side="${esc(it.id)}"`, "side-sel")}
           </td>`;
       }
       case "img":
@@ -1629,7 +1788,7 @@ function thumbTag(src, cls, id) {
 
 function statusCells(itemId, p) {
   const sel = (field, list, v) =>
-    `<select class="st-sel ${stCls(list, v)}" data-pickstatus="${esc(itemId)}|${esc(p.id)}|${field}">${stOptions(list, v)}</select>`;
+    stButton(list, v, `data-pickstatus="${esc(itemId)}|${esc(p.id)}|${field}"`);
   return `<td class="td-st">${sel("check", stList("check"), p.check)}</td>` +
          `<td class="td-st">${sel("buy", stList("buy"), p.buy)}</td>`;
 }
@@ -1696,12 +1855,13 @@ function pickPanel(it) {
       <button class="btn btn-ghost btn-xs pick-close" data-rowclose="${esc(it.id)}">✕ 閉じる</button>
     </div>
 
+    ${alignStyle(cols, "table.pick-tbl:not(.added-tbl)")}
     <div class="pick-tbl-wrap"><table class="pick-tbl" style="--pick-row-h:${pRowH()}px">
       <colgroup>${cols.map((c) => {
-        const w = colW[c.key] || c.w;
-        return `<col${w ? ` style="width:${w}px"` : ""}>`;
+        const w = colWidth(c);
+        return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
       }).join("")}</colgroup>
-      <thead><tr>${cols.map((c) => `<th class="${c.cls}">${esc(c.label)}</th>`).join("")}</tr></thead>
+      <thead><tr>${cols.map((c) => `<th class="${c.cls}">${esc(colLabel(c))}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("")}</tr></thead>
       <tbody>
         ${addRows.has(it.id) ? `<tr class="pick-new" data-for="${esc(it.id)}">
           <td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>
@@ -1718,7 +1878,10 @@ function pickPanel(it) {
   </section>`;
 }
 
-function renderAll() { renderNav(); renderToolbar(); renderBody(); }
+function renderAll() {
+  renderNav(); renderToolbar(); renderBody();
+  if (!$("colPanel").hidden) renderColPanel();     // タブで項目が変わるので追従させる
+}
 
 /* =========================================================
    編集モーダル
@@ -2436,8 +2599,10 @@ function bind() {
   $("btnSettings").onclick = openCfg;
   $("btnCols").onclick     = () => toggleColPanel();
   $("btnColsReset").onclick = () => {
-    colW = {}; saveCols(); renderBody(); renderColPanel();
-    toast("幅と高さを既定に戻しました");
+    if (!confirm("項目名・幅・揃え・行の高さを既定に戻します。よろしいですか？")) return;
+    data.cols = normCols(null);
+    saveCols(); renderBody(); renderColPanel();
+    toast("項目の設定を既定に戻しました");
   };
   $("btnSaveGh").onclick   = () => saveToGitHub(false);
   $("saveState").onclick   = () => { if (saveErr || dirty) saveToGitHub(false); };
@@ -2578,6 +2743,7 @@ async function boot() {
       if (res.ok) data = normalize(await res.json());
     } catch { /* noop */ }
   }
+  migrateColsFromLocal();
   markDirty(false);
   renderAll();
 
