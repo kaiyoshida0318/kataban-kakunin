@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T05:31:43.080Z",
+  "updatedAt": "2026-08-20T05:31:54.961Z",
   "sections": {
     "amazon": {
       "items": [
@@ -36,6 +36,20 @@
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
           "updatedAt": "2026-08-20T05:31:34.371Z"
+        },
+        {
+          "id": "itm_ku2gtnx7no2",
+          "name": "スマートウォッチケースの売れ筋ランキング",
+          "category": "スマートウォッチアクセサリ",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/812-hewlOzL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616561051/ref=zg_bs_nav_electronics_4_14616557051",
+          "urlRakuten": "",
+          "checkNote": "",
+          "checkedAt": "2026-08-20",
+          "picks": [],
+          "createdAt": "2026-08-20T05:08:00.530Z",
+          "updatedAt": "2026-08-20T05:31:33.550Z"
         },
         {
           "id": "itm_l7plowx4grx",
@@ -97,20 +111,6 @@
           "picks": [],
           "createdAt": "2026-08-19T09:28:11.238Z",
           "updatedAt": "2026-08-20T05:31:38.606Z"
-        },
-        {
-          "id": "itm_ku2gtnx7no2",
-          "name": "スマートウォッチケースの売れ筋ランキング",
-          "category": "スマートウォッチアクセサリ",
-          "image": "https://images-fe.ssl-images-amazon.com/images/I/812-hewlOzL._AC_UL600_SR600,400_.jpg",
-          "url": "",
-          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616561051/ref=zg_bs_nav_electronics_4_14616557051",
-          "urlRakuten": "",
-          "checkNote": "",
-          "checkedAt": "2026-08-20",
-          "picks": [],
-          "createdAt": "2026-08-20T05:08:00.530Z",
-          "updatedAt": "2026-08-20T05:31:33.550Z"
         }
       ]
     },
