@@ -1,8 +1,23 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:15:47.100Z",
+  "updatedAt": "2026-08-20T08:16:08.540Z",
   "labels": {
     "rival": [
+      {
+        "v": "o_9rscsw",
+        "label": "ライバル0-amaは良い",
+        "color": "gray"
+      },
+      {
+        "v": "o_dn58o9",
+        "label": "倒せそう",
+        "color": "gray"
+      },
+      {
+        "v": "o_ww912j",
+        "label": "売れそうにない",
+        "color": "gray"
+      },
       {
         "v": "",
         "label": "未調査",
@@ -22,21 +37,6 @@
         "v": "heavy",
         "label": "激戦",
         "color": "red"
-      },
-      {
-        "v": "o_dn58o9",
-        "label": "倒せそう",
-        "color": "gray"
-      },
-      {
-        "v": "o_ww912j",
-        "label": "売れそうにない",
-        "color": "gray"
-      },
-      {
-        "v": "o_9rscsw",
-        "label": "ライバル0-amaは良い",
-        "color": "gray"
       }
     ],
     "check": [
