@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.43.0";
+const VERSION   = "0.44.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -136,51 +136,65 @@ const SWATCHES = [
 const SWATCH_OK = (c) => SWATCHES.some((x) => x.c === c);
 
 const ST_FIELDS = [
-  { key: "check", title: "確認",           opts: [
-    { v: "before", label: "確認前",   color: "gray"   },
-    { v: "after",  label: "確認後",   color: "green"  },
-    { v: "skip",   label: "スキップ", color: "purple" },
-  ] },
-  { key: "buy", title: "買付", opts: [
-    { v: "before", label: "買付前", color: "gray"   },
-    { v: "done",   label: "買付済", color: "green"  },
-    { v: "skip",   label: "スキップ", color: "purple" },
-  ] },
   { key: "rival", title: "楽天ライバル状況", opts: [
     { v: "",      label: "未調査",       color: "gray"  },
     { v: "few",   label: "少数",         color: "blue"  },
     { v: "some",  label: "そこそこいる", color: "amber" },
     { v: "heavy", label: "激戦",         color: "red"   },
   ] },
+  { key: "check", title: "確認", opts: [
+    { v: "before", label: "確認前",   color: "gray"   },
+    { v: "after",  label: "確認後",   color: "green"  },
+    { v: "skip",   label: "スキップ", color: "purple" },
+  ] },
+  { key: "buy", title: "買付", opts: [
+    { v: "before", label: "買付前",   color: "gray"   },
+    { v: "done",   label: "買付済",   color: "green"  },
+    { v: "skip",   label: "スキップ", color: "purple" },
+  ] },
 ];
 const ST_DEF = (key) => ST_FIELDS.find((f) => f.key === key);
+const newOptVal = () => "o_" + Math.random().toString(36).slice(2, 8);
 
 /* 設定（data.labels）を反映した選択肢を返す */
 function stList(key) {
-  const def = ST_DEF(key);
-  const saved = data?.labels?.[key] || [];
-  return def.opts.map((o) => {
-    const s = saved.find((x) => x && x.v === o.v) || {};
-    const color = SWATCH_OK(s.color) ? s.color : o.color;
-    return { v: o.v, label: (s.label || o.label), cls: "sw-" + color, color };
-  });
+  const saved = data?.labels?.[key];
+  const src = Array.isArray(saved) && saved.length ? saved : ST_DEF(key).opts;
+  return src.map((o) => ({
+    v: String(o.v ?? ""),
+    label: o.label || "(未設定)",
+    color: SWATCH_OK(o.color) ? o.color : "gray",
+    cls: "sw-" + (SWATCH_OK(o.color) ? o.color : "gray"),
+  }));
 }
 const stCls = (list, v) => (list.find((o) => o.v === v) || list[0]).cls;
 const stOptions = (list, v) =>
-  list.map((o) => `<option value="${o.v}"${o.v === v ? " selected" : ""}>${o.label}</option>`).join("");
-/* 保存用に整える */
+  list.map((o) => `<option value="${esc(o.v)}"${o.v === v ? " selected" : ""}>${esc(o.label)}</option>`).join("");
+const stFirst = (key) => stList(key)[0].v;
+
+/* 既にきちんとした形なら作り直さない（同じ配列を返し続ける） */
+function ensureLabels() {
+  const ok = data.labels && ST_FIELDS.every((f) =>
+    Array.isArray(data.labels[f.key]) && data.labels[f.key].length);
+  if (!ok) data.labels = normLabels(data.labels);
+  return data.labels;
+}
+
+/* 保存用に整える。項目の増減・並べ替えができるので中身は自由 */
 function normLabels(raw) {
   const out = {};
   for (const f of ST_FIELDS) {
-    const saved = (raw && raw[f.key]) || [];
-    out[f.key] = f.opts.map((o) => {
-      const s = saved.find((x) => x && x.v === o.v) || {};
-      return {
-        v: o.v,
-        label: String(s.label || o.label).slice(0, 24),
-        color: SWATCH_OK(s.color) ? s.color : o.color,
-      };
-    });
+    const saved = Array.isArray(raw?.[f.key]) ? raw[f.key] : null;
+    const src = saved && saved.length ? saved : f.opts;
+    const list = src
+      .filter((o) => o && typeof o === "object")
+      .map((o) => ({
+        v: String(o.v ?? ""),
+        label: String(o.label || "").slice(0, 24) || "(未設定)",
+        color: SWATCH_OK(o.color) ? o.color : "gray",
+      }))
+      .filter((o, i, a) => a.findIndex((x) => x.v === o.v) === i);   // 値の重複は落とす
+    out[f.key] = list.length ? list : f.opts.map((o) => ({ ...o }));
   }
   return out;
 }
@@ -622,10 +636,10 @@ function normRank(it) {
         image:   p.image || "",                    // 旧形式（移行に使う）
         url:     p.url || "",                      // 同上
         title:   p.title || p.note || p.name || "", // 商品名（旧 note / name から移行）
-        check:   ST_DEF("check").opts.some((o) => o.v === p.check) ? p.check : "before",
-        buy:     ST_DEF("buy").opts.some((o) => o.v === p.buy)     ? p.buy   : "before",
+        check:   String(p.check ?? "before"),
+        buy:     String(p.buy ?? "before"),
         sales30: p.sales30 == null ? "" : String(p.sales30),      // 30日販売数（自由入力）
-        rival:   ST_DEF("rival").opts.some((o) => o.v === p.rival) ? p.rival : "",
+        rival:   String(p.rival ?? ""),
       })),
     createdAt: it.createdAt || nowIso(),
     updatedAt: it.updatedAt || it.createdAt || nowIso(),
@@ -689,7 +703,21 @@ function normalize(d) {
       .map((x) => migratePicks(x, sec.key))
       .filter((x) => fields.some((f) => x[f]) || (sec.key === "products" && x.name));
   }
+  reconcileLabels(out);
   return out;
+}
+
+/* 選択肢が消された場合、その値を使っている商品を先頭の選択肢に寄せる */
+function reconcileLabels(d) {
+  for (const f of ST_FIELDS) {
+    const ok = new Set((d.labels[f.key] || []).map((o) => o.v));
+    const first = (d.labels[f.key] || [{ v: "" }])[0].v;
+    for (const sec of Object.values(d.sections)) {
+      for (const it of sec.items) {
+        for (const p of it.picks) if (!ok.has(p[f.key])) p[f.key] = first;
+      }
+    }
+  }
 }
 
 function loadCfg() {
@@ -1133,9 +1161,9 @@ function renderBody() {
         urlAmazon: "", urlRakuten: "", imageAmazon: "", imageRakuten: "",
         [sd.url]: url,
         [sd.img]: image,
-        sales30: "", rival: "",
-        check:   "before",
-        buy:     "before",
+        sales30: "", rival: stFirst("rival"),
+        check:   stFirst("check"),
+        buy:     stFirst("buy"),
       });
       it.updatedAt = nowIso();
       const sec = view;
@@ -2001,42 +2029,94 @@ function flushSave() {
    ドロップダウンのラベル編集
    ========================================================= */
 function renderLabelEditor() {
+  const L = ensureLabels;
+
   $("labEditor").innerHTML = ST_FIELDS.map((f) => {
     const list = stList(f.key);
-    return `<div class="lab-grp">
+    return `<div class="lab-grp" data-grp="${esc(f.key)}">
       <p class="cfg-sec-ttl">${esc(f.title)}</p>
-      ${list.map((o) => `
+      ${list.map((o, i) => `
         <div class="lab-row" data-lab="${esc(f.key)}|${esc(o.v)}">
+          <span class="lab-move">
+            <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ上へ">↑</button>
+            <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ下へ">↓</button>
+          </span>
           <span class="lab-sw">${SWATCHES.map((sw) =>
             `<button type="button" class="sw-${sw.c}${sw.c === o.color ? " on" : ""}"
                      data-color="${sw.c}" title="${esc(sw.label)}"></button>`).join("")}</span>
           <input class="lab-in" type="text" maxlength="24" value="${esc(o.label)}" placeholder="表示名">
           <span class="lab-prev sw-${o.color}">${esc(o.label)}</span>
+          <button type="button" class="icon-btn lab-del" data-del title="この選択肢を削除"${list.length < 2 ? " disabled" : ""}>✕</button>
         </div>`).join("")}
+      <button type="button" class="btn btn-ghost btn-xs lab-add" data-add>＋ 選択肢を追加</button>
     </div>`;
   }).join("");
 
-  const apply = (row, patch) => {
-    const [key, v] = row.dataset.lab.split("|");
-    data.labels = normLabels(data.labels);
-    const o = data.labels[key].find((x) => x.v === v);
-    if (patch.label === "") patch.label = ST_DEF(key).opts.find((x) => x.v === v).label;  // 空なら既定へ
-    Object.assign(o, patch);
+  const commit = (redraw) => {
     persistLocal(); markDirty(true); renderBody();
-
-    const prev = row.querySelector(".lab-prev");
-    prev.textContent = o.label;
-    prev.className = "lab-prev sw-" + o.color;
-    row.querySelectorAll(".lab-sw button").forEach((b) =>
-      b.classList.toggle("on", b.dataset.color === o.color));
+    if (redraw) renderLabelEditor();
   };
 
   $("labEditor").querySelectorAll(".lab-row").forEach((row) => {
-    row.querySelector(".lab-in").oninput = (e) =>
-      apply(row, { label: e.target.value.slice(0, 24) });
+    const [key, v] = row.dataset.lab.split("|");
+    const at = () => { const arr = L()[key]; return { arr, i: arr.findIndex((x) => x.v === v) }; };
+
+    row.querySelector(".lab-in").oninput = (e) => {
+      const { arr, i } = at();
+      if (i < 0) return;
+      const o = arr[i];
+      o.label = e.target.value.slice(0, 24) || "(未設定)";
+      const prev = row.querySelector(".lab-prev");
+      prev.textContent = o.label;
+      commit(false);
+    };
     row.querySelectorAll(".lab-sw button").forEach((b) => {
-      b.onclick = () => apply(row, { color: b.dataset.color });
+      b.onclick = () => {
+        const { arr, i } = at();
+        if (i < 0) return;
+        const o = arr[i];
+        o.color = b.dataset.color;
+        row.querySelector(".lab-prev").className = "lab-prev sw-" + o.color;
+        row.querySelectorAll(".lab-sw button").forEach((x) =>
+          x.classList.toggle("on", x.dataset.color === o.color));
+        commit(false);
+      };
     });
+    row.querySelectorAll("[data-mv]").forEach((b) => {
+      b.onclick = () => {
+        const { arr, i } = at();
+        const j = i + (b.dataset.mv === "up" ? -1 : 1);
+        if (i < 0 || j < 0 || j >= arr.length) return;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        commit(true);
+      };
+    });
+    row.querySelector("[data-del]").onclick = () => {
+      const { arr, i } = at();
+      if (i < 0) return;
+      if (arr.length < 2) { toast("選択肢は1つ以上必要です", true); return; }
+      const used = allPicks().filter((r) => r.p[key] === v).length;
+      const name = arr[i].label;
+      const moveTo = (arr[0].v === v ? arr[1] : arr[0]).label;
+      if (!confirm(used
+        ? `「${name}」を削除します。この選択肢が付いた商品 ${used} 件は「${moveTo}」に変わります。よろしいですか？`
+        : `「${name}」を削除します。よろしいですか？`)) return;
+      arr.splice(i, 1);
+      reconcileLabels(data);
+      commit(true);
+      toast(used ? `削除しました（商品 ${used} 件を付け替え）` : "削除しました");
+    };
+  });
+
+  $("labEditor").querySelectorAll("[data-add]").forEach((b) => {
+    b.onclick = () => {
+      const key = b.closest(".lab-grp").dataset.grp;
+      L()[key].push({ v: newOptVal(), label: "新しい選択肢", color: "gray" });
+      commit(true);
+      const rows = $("labEditor").querySelectorAll(`.lab-grp[data-grp="${key}"] .lab-row .lab-in`);
+      const last = rows[rows.length - 1];
+      if (last) { last.focus(); last.select(); }
+    };
   });
 }
 

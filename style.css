@@ -602,19 +602,24 @@ button.pick-thumb.none:hover::after{color:var(--accent)}
 .cfg-adv .field{padding:10px 12px;margin-bottom:0}
 /* ラベル編集 */
 .lab-grp{margin-bottom:18px}
-.lab-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.lab-sw{display:flex;gap:4px}
+.lab-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.lab-move{display:flex;gap:2px;flex:0 0 auto}
+.lab-move .ord-btn{width:20px;height:20px;font-size:10px;border-radius:5px}
+.lab-sw{display:flex;gap:3px;flex:0 0 auto}
 .lab-sw button{
-  width:20px;height:20px;border-radius:6px;cursor:pointer;padding:0;
+  width:18px;height:18px;border-radius:5px;cursor:pointer;padding:0;
   border:1px solid rgba(0,0,0,.14);
 }
 .lab-sw button.on{outline:2px solid var(--accent);outline-offset:1px}
-.lab-in{flex:1;min-width:0;font-size:12.5px;padding:6px 9px}
+.lab-in{flex:1 1 auto;min-width:70px;font-size:12.5px;padding:6px 9px}
 .lab-prev{
-  flex:0 0 118px;font-size:11.5px;font-weight:700;text-align:center;
+  flex:0 0 104px;font-size:11.5px;font-weight:700;text-align:center;
   border:1px solid var(--border);border-radius:7px;padding:5px 6px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+.lab-del{flex:0 0 auto;width:24px;height:24px;font-size:11px}
+.lab-del:disabled{opacity:.25;cursor:default}
+.lab-add{margin-top:2px}
 .cfg-sep{border:0;border-top:1px solid var(--border);margin:16px 0 12px}
 .img-test{display:flex;gap:12px;align-items:flex-start;margin-top:8px;padding:10px 12px;background:var(--row-alt);border:1px solid var(--border);border-radius:9px}
 .img-test-log{flex:1;margin:0;padding:0;list-style:none;font-size:11.5px;line-height:1.7;min-width:0}
