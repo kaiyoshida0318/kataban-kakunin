@@ -471,6 +471,20 @@ body.resizing *{cursor:col-resize !important}
   border-radius:999px;padding:2px 8px}
 .day-cnt{margin-left:8px;font-size:11px;color:var(--muted)}
 .added-tbl .td-src{font-size:11.5px;overflow:hidden}
+.added-tbl .td-sales{text-align:center;padding:4px 6px}
+.added-tbl .td-rival{text-align:center;padding:4px 6px}
+.sales-in{
+  width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;
+  text-align:right;padding:5px 8px;border:1px solid var(--border);border-radius:7px;
+  background:var(--surface);color:var(--text);
+}
+.sales-in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.sales-in::placeholder{color:#c3c8d1;font-weight:400}
+/* 楽天ライバル状況 */
+.rv-sel.rv-none{background:var(--row-alt);border-color:var(--border);color:var(--muted)}
+.rv-sel.rv-few{background:#e8f0fb;border-color:#c3d7f2;color:#1a55a6}
+.rv-sel.rv-some{background:var(--warn-soft);border-color:#f0dcbd;color:#9a6212}
+.rv-sel.rv-heavy{background:#fdecea;border-color:#f3cac3;color:#c0392b}
 .src-side{
   display:inline-block;font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-right:6px;
   vertical-align:middle;

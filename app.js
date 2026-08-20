@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.40.0";
+const VERSION   = "0.41.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -19,14 +19,16 @@ const URL_COLS = {
 };
 /* ---------- 「追加した商品」ビューの列 ---------- */
 const ADDED_COLS = [
-  { key: "a_img",   label: "画像",    w: 64,  cls: "td-img"   },
-  { key: "a_title", label: "商品名",  w: 300, cls: "td-title" },
-  { key: "a_url",   label: "商品URL", w: 0,   cls: "td-url"   },
-  { key: "a_src",   label: "出所",    w: 230, cls: "td-src"   },
-  { key: "a_check", label: "確認",    w: 98,  cls: "td-st"    },
-  { key: "a_buy",   label: "買付",    w: 98,  cls: "td-st"    },
-  { key: "a_edit",  label: "編集",    w: 78,  cls: "td-edit"  },
-  { key: "a_act",   label: "操作",    w: 76,  cls: "td-acts"  },
+  { key: "a_src",   label: "出所",           w: 210, cls: "td-src"   },
+  { key: "a_img",   label: "画像",           w: 64,  cls: "td-img"   },
+  { key: "a_title", label: "商品名",         w: 260, cls: "td-title" },
+  { key: "a_url",   label: "商品URL",        w: 0,   cls: "td-url"   },
+  { key: "a_sales", label: "30日販売数",     w: 112, cls: "td-sales" },
+  { key: "a_rival", label: "楽天ライバル状況", w: 136, cls: "td-rival" },
+  { key: "a_check", label: "確認",           w: 96,  cls: "td-st"    },
+  { key: "a_buy",   label: "買付",           w: 96,  cls: "td-st"    },
+  { key: "a_edit",  label: "編集",           w: 74,  cls: "td-edit"  },
+  { key: "a_act",   label: "操作",           w: 72,  cls: "td-acts"  },
 ];
 const isAdded = (key) => SEC(key)?.kind === "added";
 
@@ -110,12 +112,21 @@ const PICK_CHECK = [
   { v: "after",  label: "確認後",   cls: "st-done" },
   { v: "skip",   label: "スキップ", cls: "st-skip" },
 ];
+/* 楽天のライバル状況 */
+const PICK_RIVAL = [
+  { v: "",      label: "未調査",       cls: "rv-none"  },
+  { v: "few",   label: "少数",         cls: "rv-few"   },
+  { v: "some",  label: "そこそこいる", cls: "rv-some"  },
+  { v: "heavy", label: "激戦",         cls: "rv-heavy" },
+];
 const PICK_BUY = [
   { v: "before", label: "買付前",   cls: "st-todo" },
   { v: "done",   label: "買付済",   cls: "st-done" },
   { v: "skip",   label: "スキップ", cls: "st-skip" },
 ];
 const stCls = (list, v) => (list.find((o) => o.v === v) || list[0]).cls;
+/* ドロップダウンの項目名 → 選択肢の対応 */
+const ST_LISTS = { check: PICK_CHECK, buy: PICK_BUY, rival: PICK_RIVAL };
 const stOptions = (list, v) =>
   list.map((o) => `<option value="${o.v}"${o.v === v ? " selected" : ""}>${o.label}</option>`).join("");
 
@@ -538,6 +549,8 @@ function normRank(it) {
         title:   p.title || p.note || p.name || "", // 商品名（旧 note / name から移行）
         check:   PICK_CHECK.some((o) => o.v === p.check) ? p.check : "before",
         buy:     PICK_BUY.some((o) => o.v === p.buy)     ? p.buy   : "before",
+        sales30: p.sales30 == null ? "" : String(p.sales30),      // 30日販売数（自由入力）
+        rival:   PICK_RIVAL.some((o) => o.v === p.rival) ? p.rival : "",
       }))
       .filter((p) => p.url),
     createdAt: it.createdAt || nowIso(),
@@ -811,7 +824,7 @@ function visiblePicks() {
     .filter((r) => {
       if (F().cat !== "*" && r.sec !== F().cat) return false;
       if (!q) return true;
-      const hay = [r.p.title, r.p.url, r.item.name, r.item.category, SEC(r.sec).label].join(" ");
+      const hay = [r.p.title, r.p.url, r.p.sales30, r.item.name, r.item.category, SEC(r.sec).label].join(" ");
       return hay.toLowerCase().includes(q);
     })
     .sort((a, b) => (b.p.addedAt || "").localeCompare(a.p.addedAt || ""));
@@ -1051,6 +1064,15 @@ function renderBody() {
     };
   });
 
+  root.querySelectorAll("[data-picksales]").forEach((inp) => {
+    inp.onchange = () => {
+      const at = locatePick(inp.dataset.picksales);
+      if (!at) return;
+      at.p.sales30 = inp.value.trim();
+      at.it.updatedAt = nowIso();
+      persistLocal(); markDirty(true);
+    };
+  });
   root.querySelectorAll("[data-pickstatus]").forEach((sel) => {
     const [id, pid, field] = sel.dataset.pickstatus.split("|");
     sel.onchange = () => {
@@ -1060,8 +1082,8 @@ function renderBody() {
       p[field] = sel.value;
       it.updatedAt = nowIso();
       persistLocal(); markDirty(true);
-      const list = field === "check" ? PICK_CHECK : PICK_BUY;
-      sel.className = "st-sel " + stCls(list, sel.value);
+      const list = ST_LISTS[field] || PICK_CHECK;
+      sel.className = (field === "rival" ? "st-sel rv-sel " : "st-sel ") + stCls(list, sel.value);
     };
   });
   root.querySelectorAll("[data-pickedit]").forEach((b) => {
@@ -1084,6 +1106,8 @@ function renderBody() {
       p.image   = row.querySelector(".pe-image").value.trim();
       p.url     = url;
       p.title   = row.querySelector(".pe-title").value.trim();
+      const sIn = row.querySelector(".pe-sales");
+      if (sIn) p.sales30 = sIn.value.trim();
       it.updatedAt = nowIso();
       editPicks.delete(key);
       const sec = at.sec;
@@ -1173,18 +1197,32 @@ function addedRow(r) {
   const { sec, item: it, p } = r;
   const key = `${it.id}|${p.id}`;
   const side = SEC(sec).side;
+
   const srcCell = `<td class="td-src">
       ${side ? `<span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label)}</span>` : ""}
       <a class="src-name" href="${esc(mainUrl(it, sec))}" target="_blank" rel="noopener noreferrer"
          title="${esc(it.name)}">${esc(it.name)}</a>
     </td>`;
 
+  const salesCell = `<td class="td-sales">
+      <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
+             data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
+    </td>`;
+
+  const rivalCell = `<td class="td-rival">
+      <select class="st-sel rv-sel ${stCls(PICK_RIVAL, p.rival)}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|rival">
+        ${stOptions(PICK_RIVAL, p.rival)}
+      </select>
+    </td>`;
+
   if (editPicks.has(key)) return `
     <tr class="pick-editing" data-row="${esc(key)}">
+      <td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>
       <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
       <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
       <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
-      <td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>
+      <td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>
+      ${rivalCell}
       ${statusCells(it.id, p)}
       <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
       <td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>
@@ -1192,10 +1230,12 @@ function addedRow(r) {
 
   return `
     <tr>
+      ${srcCell}
       <td class="td-img" data-pickimg="${esc(key)}">${pickThumb(it.id, p)}</td>
       <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
       <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
-      ${srcCell}
+      ${salesCell}
+      ${rivalCell}
       ${statusCells(it.id, p)}
       <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
       <td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>
