@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.38.0";
+const VERSION   = "0.40.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1392,6 +1392,30 @@ function rankRow(it, idx = 0, all = []) {
   ${open ? `<tr class="r-sub"><td colspan="${cols.length}">${pickPanel(it)}</td></tr>` : ""}`;
 }
 
+/* サムネのURLから、できるだけ大きい版を組み立てる */
+function bigImageUrl(u) {
+  let v = String(u || "");
+  v = v.replace(/(\/images\/I\/[^./]+)\.[^/]*\.(jpg|jpeg|png|webp)(\?.*)?$/i, "$1._AC_SL1500_.$2");  // Amazon
+  v = v.replace(/\?_ex=\d+x\d+/i, "?_ex=1200x1200");                                                   // 楽天
+  return v;
+}
+
+function openLightbox(src, title, href) {
+  if (!src || src.startsWith("data:")) return;
+  const big = bigImageUrl(src);
+  const img = $("lbImg");
+  img.onerror = () => { img.onerror = null; img.src = src; };     // 大きい版が無ければ元に戻す
+  img.src = big;
+  $("lbTitle").textContent = title || "";
+  $("lbLink").href = href || "";
+  $("lbLink").hidden = !href;
+  $("lightbox").hidden = false;
+}
+function closeLightbox() {
+  $("lightbox").hidden = true;
+  $("lbImg").removeAttribute("src");
+}
+
 function thumbTag(src, cls, id) {
   const mark = id ? ` data-thumb="${esc(id)}"` : "";
   return src
@@ -1916,7 +1940,14 @@ async function restoreFromHistory() {
 /* =========================================================
    設定
    ========================================================= */
+function showCfgPane(id) {
+  $("cfgTabs").querySelectorAll(".cfg-tab").forEach((t) =>
+    t.classList.toggle("on", t.dataset.pane === id));
+  document.querySelectorAll(".cfg-pane").forEach((p) => { p.hidden = p.id !== id; });
+}
+
 function openCfg() {
+  showCfgPane("pSave");
   $("cOwner").value  = cfg.owner;
   $("cRepo").value   = cfg.repo;
   $("cBranch").value = cfg.branch;
@@ -2124,6 +2155,22 @@ function bind() {
   $("btnTestGh").onclick  = testConnection;
   $("btnImgTest").onclick = runImgTest;
   $("btnRestore").onclick = restoreFromHistory;
+
+  /* サムネを押したら拡大表示 */
+  document.addEventListener("click", (e) => {
+    const img = e.target.closest("img.pick-thumb, .rank-tbl img.thumb");
+    if (!img || img.classList.contains("broken")) return;
+    const row = img.closest("tr");
+    const title = row?.querySelector(".td-title, .c-name")?.textContent.trim() || "";
+    const link  = row?.querySelector(".td-url a, .c-url a");
+    openLightbox(img.currentSrc || img.src, title, link?.href || "");
+  });
+  $("lbClose").onclick = closeLightbox;
+  $("lightbox").onclick = (e) => { if (e.target.closest(".lb-link")) return; closeLightbox(); };
+  /* 設定内のタブ切り替え */
+  $("cfgTabs").querySelectorAll(".cfg-tab").forEach((t) => {
+    t.onclick = () => showCfgPane(t.dataset.pane);
+  });
   /* 伏せ字の表示切り替え */
   document.querySelectorAll("[data-pw]").forEach((b) => {
     b.onclick = () => {
@@ -2156,7 +2203,10 @@ function bind() {
     $(id).onclick = (e) => { if (e.target.id === id) $(id).hidden = true; };
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") ["rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
+    if (e.key === "Escape") {
+      if (!$("lightbox").hidden) { closeLightbox(); return; }
+      ["rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveToGitHub(false); }
   });
   let fitTimer = null;

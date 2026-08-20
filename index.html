@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.38.0">
+<link rel="stylesheet" href="style.css?v=0.40.0">
 </head>
 <body>
 
@@ -24,7 +24,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.38.0</span>
+      <span class="ver-badge" id="verLabel">v0.40.0</span>
       <span class="dirty-badge" id="saveState" hidden title=""></span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -150,67 +150,94 @@
 
 <!-- ===== 設定モーダル ===== -->
 <div class="modal-overlay" id="cfgModal" hidden>
-  <div class="modal">
+  <div class="modal modal-cfg">
     <div class="modal-head">
       <h2 class="modal-ttl">設定</h2>
       <button class="icon-btn" id="cfgClose" title="閉じる">✕</button>
     </div>
+
+    <nav class="cfg-tabs" id="cfgTabs">
+      <button class="cfg-tab on" type="button" data-pane="pSave">💾 保存先</button>
+      <button class="cfg-tab" type="button" data-pane="pImg">📷 商品画像</button>
+      <button class="cfg-tab" type="button" data-pane="pRestore">↩ 復元</button>
+    </nav>
+
     <div class="modal-body">
-      <div class="field-row">
-        <div class="field">
-          <label for="cOwner">オーナー</label>
-          <input id="cOwner" type="text" placeholder="kaiyoshida0318">
-        </div>
-        <div class="field">
-          <label for="cRepo">リポジトリ</label>
-          <input id="cRepo" type="text" placeholder="kataban-kakunin">
-        </div>
-        <div class="field w-sm">
-          <label for="cBranch">ブランチ</label>
-          <input id="cBranch" type="text" placeholder="main">
-        </div>
-      </div>
-      <div class="field">
-        <label for="cPat">Personal Access Token</label>
-        <div class="pw-wrap">
-          <input id="cPat" type="password" placeholder="github_pat_…" autocomplete="off">
-          <button class="pw-eye" type="button" data-pw="cPat" title="表示する" aria-label="表示する">表示</button>
-        </div>
-        <p class="hint">Contents の Read and write 権限が必要です。この端末のブラウザ内にのみ保存されます。</p>
-      </div>
-      <label class="chk">
-        <input type="checkbox" id="cAutoSave" checked>
-        <span><b>自動保存する</b>　変更してから数秒で GitHub に保存します（触り続けているときも1分に1回は保存）。タブを閉じる・裏に回すときにも保存します。</span>
-      </label>
-      <hr class="cfg-sep">
-      <p class="cfg-sec-ttl">商品画像の自動取得</p>
-      <p class="hint">商品URLを入れるだけで画像を拾います。Amazonは設定なしでOK。楽天は下のアプリIDを入れると公式APIから取得します。それ以外のサイトは中継サービス経由で <code>og:image</code> を拾います。</p>
-      <div class="field-row">
-        <div class="field">
-          <label for="cRkAppId">楽天アプリID</label>
-          <input id="cRkAppId" type="text" placeholder="1234567890123456789" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="cRkKey">楽天アクセスキー</label>
-          <div class="pw-wrap">
-            <input id="cRkKey" type="password" placeholder="（新しいAPIでは必須）" autocomplete="off">
-            <button class="pw-eye" type="button" data-pw="cRkKey" title="表示する" aria-label="表示する">表示</button>
+
+      <!-- ===== 保存先 ===== -->
+      <section class="cfg-pane" id="pSave">
+        <div class="field-row">
+          <div class="field">
+            <label for="cOwner">オーナー</label>
+            <input id="cOwner" type="text" placeholder="kaiyoshida0318">
+          </div>
+          <div class="field">
+            <label for="cRepo">リポジトリ</label>
+            <input id="cRepo" type="text" placeholder="kataban-kakunin">
+          </div>
+          <div class="field w-sm">
+            <label for="cBranch">ブランチ</label>
+            <input id="cBranch" type="text" placeholder="main">
           </div>
         </div>
-      </div>
-      <p class="hint"><a href="https://webservice.rakuten.co.jp/app/list" target="_blank" rel="noopener noreferrer">楽天ウェブサービスのアプリ一覧</a>で無料登録して取得できます。</p>
-      <div class="field">
-        <label for="cAmzTag">Amazonアソシエイト タグ</label>
-        <input id="cAmzTag" type="text" placeholder="例) yourname-22" autocomplete="off">
-        <p class="hint">持っていれば入れてください。ASINから商品画像を引く公式ウィジェットが確実に通るようになります。空でも動きますが、商品によっては画像が返りません。</p>
-      </div>
-      <div class="field">
-        <label for="cProxy">中継サービス（楽天・Amazon以外の画像取得）</label>
-        <input id="cProxy" type="text" autocomplete="off">
-        <p class="hint">空欄なら既定の中継先（複数を順に試す）を使います。<code>{url}</code> の位置に商品URLが入ります。中継を使いたくないときは <code>-</code> だけ入れてください。</p>
-      </div>
-      <div class="field">
-        <label for="cImgTest">画像取得テスト</label>
+        <div class="field">
+          <label for="cPat">Personal Access Token</label>
+          <div class="pw-wrap">
+            <input id="cPat" type="password" placeholder="github_pat_…" autocomplete="off">
+            <button class="pw-eye" type="button" data-pw="cPat" title="表示する" aria-label="表示する">表示</button>
+          </div>
+          <p class="hint">Contents が Read and write のもの。この端末のブラウザ内にのみ保存されます。</p>
+        </div>
+
+        <label class="chk">
+          <input type="checkbox" id="cAutoSave" checked>
+          <span><b>自動保存する</b>　変更の数秒後にGitHubへ保存します（触り続けていても1分に1回）。</span>
+        </label>
+
+        <div class="cfg-actions">
+          <button class="btn btn-ghost btn-sm" id="btnPullGh" type="button">⤓ GitHubから読み込む</button>
+          <button class="btn btn-ghost btn-sm" id="btnTestGh" type="button">接続テスト</button>
+          <span class="hint" id="cfgStatus"></span>
+        </div>
+        <p class="hint">保存先：<a id="cfgUrl" class="cfg-url" target="_blank" rel="noopener noreferrer"></a></p>
+      </section>
+
+      <!-- ===== 商品画像 ===== -->
+      <section class="cfg-pane" id="pImg" hidden>
+        <p class="hint pane-lead">商品URLを入れるだけで画像を拾います。Amazonは設定なしで動きます。</p>
+
+        <p class="cfg-sec-ttl">楽天</p>
+        <div class="field-row">
+          <div class="field">
+            <label for="cRkAppId">アプリID</label>
+            <input id="cRkAppId" type="text" placeholder="1234567890123456789" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="cRkKey">アクセスキー</label>
+            <div class="pw-wrap">
+              <input id="cRkKey" type="password" placeholder="新しいAPIでは必須" autocomplete="off">
+              <button class="pw-eye" type="button" data-pw="cRkKey" title="表示する" aria-label="表示する">表示</button>
+            </div>
+          </div>
+        </div>
+        <p class="hint"><a href="https://webservice.rakuten.co.jp/app/list" target="_blank" rel="noopener noreferrer">楽天ウェブサービス</a>で無料登録すると取得できます。</p>
+
+        <p class="cfg-sec-ttl">Amazon</p>
+        <div class="field">
+          <label for="cAmzTag">アソシエイト タグ</label>
+          <input id="cAmzTag" type="text" placeholder="例) yourname-22（任意）" autocomplete="off">
+          <p class="hint">入れると公式ウィジェットが通り、取得の成功率が上がります。</p>
+        </div>
+
+        <details class="cfg-adv">
+          <summary>その他のサイト（中継サービス）</summary>
+          <div class="field">
+            <input id="cProxy" type="text" autocomplete="off">
+            <p class="hint">空欄なら既定の中継先を順に試します。<code>{url}</code> に商品URLが入ります。使わないときは <code>-</code>。</p>
+          </div>
+        </details>
+
+        <p class="cfg-sec-ttl">取得テスト</p>
         <div class="date-row">
           <input id="cImgTest" type="url" placeholder="https://item.rakuten.co.jp/店舗/商品番号/">
           <button class="btn btn-ghost btn-sm" id="btnImgTest" type="button">実行</button>
@@ -219,25 +246,22 @@
           <ul class="img-test-log" id="imgTestLog"></ul>
           <div class="img-test-prev" id="imgTestPrev"></div>
         </div>
-      </div>
-      <hr class="cfg-sep">
-      <p class="cfg-sec-ttl">履歴から復元</p>
-      <p class="hint">GitHubのコミット履歴を古い順に全部読んで、途中で消えた行や商品を拾い集めて1つにまとめます。壊れた画像URLもここで直します。読み込んだだけではGitHubに書き込みません。</p>
-      <div class="restore-row">
-        <label class="restore-n">直近
-          <input id="cHistN" type="number" min="1" max="100" step="1" value="30">
-          版</label>
-        <button class="btn btn-ghost btn-sm" id="btnRestore" type="button">履歴を読み込んで統合</button>
-      </div>
-      <div class="restore-out" id="restoreOut" hidden></div>
-      <hr class="cfg-sep">
-      <div class="cfg-actions">
-        <button class="btn btn-ghost" id="btnPullGh">⤓ GitHubから読み込む</button>
-        <button class="btn btn-ghost" id="btnTestGh">接続テスト</button>
-        <span class="hint" id="cfgStatus"></span>
-      </div>
-      <p class="hint">問い合わせ先：<a id="cfgUrl" class="cfg-url" target="_blank" rel="noopener noreferrer"></a></p>
+      </section>
+
+      <!-- ===== 復元 ===== -->
+      <section class="cfg-pane" id="pRestore" hidden>
+        <p class="hint pane-lead">コミット履歴を古い順に全部読んで、途中で消えた行や商品を拾い集めて1つにまとめます。壊れた画像URLもここで直します。<b>読み込んだだけではGitHubに書き込みません。</b></p>
+        <div class="restore-row">
+          <label class="restore-n">直近
+            <input id="cHistN" type="number" min="1" max="100" step="1" value="30">
+            版</label>
+          <button class="btn btn-ghost btn-sm" id="btnRestore" type="button">履歴を読み込んで統合</button>
+        </div>
+        <div class="restore-out" id="restoreOut" hidden></div>
+      </section>
+
     </div>
+
     <div class="modal-foot">
       <div class="grow"></div>
       <button class="btn btn-primary" id="btnSaveCfg">保存</button>
@@ -245,8 +269,20 @@
   </div>
 </div>
 
+<!-- ===== 画像の拡大表示 ===== -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" id="lbClose" type="button" title="閉じる（Esc）">✕</button>
+  <figure class="lb-fig">
+    <img id="lbImg" alt="" referrerpolicy="no-referrer">
+    <figcaption class="lb-cap">
+      <span id="lbTitle"></span>
+      <a id="lbLink" class="lb-link" target="_blank" rel="noopener noreferrer" hidden>商品ページを開く ↗</a>
+    </figcaption>
+  </figure>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.38.0"></script>
+<script src="app.js?v=0.40.0"></script>
 </body>
 </html>

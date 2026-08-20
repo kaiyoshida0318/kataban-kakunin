@@ -250,6 +250,28 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 }
 .dash{color:#c3c8d1}
 
+/* --- 画像の拡大表示 --- */
+img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
+.lightbox{
+  position:fixed;inset:0;z-index:200;background:rgba(16,20,28,.82);
+  display:flex;align-items:center;justify-content:center;padding:40px 24px;
+}
+.lb-fig{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:100%;max-height:100%}
+.lb-fig img{
+  max-width:min(1000px,100%);max-height:calc(100vh - 150px);
+  min-width:min(420px,86vw);min-height:min(320px,60vh);   /* 元が小さい画像でも見える大きさに */
+  object-fit:contain;background:#fff;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.4);
+}
+.lb-cap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;color:#fff;font-size:13px}
+.lb-link{color:#9ec5ff;font-size:12px;white-space:nowrap}
+.lb-link:hover{color:#fff;text-decoration:underline}
+.lb-close{
+  position:absolute;top:16px;right:20px;width:36px;height:36px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;
+  font-size:15px;cursor:pointer;line-height:1;
+}
+.lb-close:hover{background:rgba(255,255,255,.22)}
+
 .thumb{
   width:52px;height:52px;object-fit:contain;display:block;margin:0 auto;
   border-radius:6px;background:#fff;border:1px solid var(--border);
@@ -542,6 +564,25 @@ button.pick-thumb.none:hover::after{color:var(--accent)}
 .field-row{display:flex;gap:10px;margin-bottom:12px}
 .field-row .field{margin-bottom:0}
 .field.w-sm{max-width:110px}
+.modal-cfg{max-width:720px}
+.cfg-tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--row-alt)}
+.cfg-tab{
+  font-family:inherit;font-size:12.5px;font-weight:500;
+  border:0;background:transparent;color:var(--muted);
+  padding:10px 14px;cursor:pointer;white-space:nowrap;
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:.12s;
+}
+.cfg-tab:hover{color:var(--text)}
+.cfg-tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:700;background:var(--surface)}
+.cfg-pane > .cfg-sec-ttl:first-child,.cfg-pane > .pane-lead:first-child{margin-top:0}
+.pane-lead{margin:0 0 14px}
+.cfg-adv{margin:4px 0 14px;border:1px solid var(--border);border-radius:8px;background:var(--row-alt)}
+.cfg-adv > summary{cursor:pointer;font-size:11.5px;font-weight:700;color:var(--muted);padding:8px 12px;list-style:none}
+.cfg-adv > summary::-webkit-details-marker{display:none}
+.cfg-adv > summary::before{content:"▸ ";font-size:10px}
+.cfg-adv[open] > summary::before{content:"▾ "}
+.cfg-adv[open] > summary{border-bottom:1px solid var(--border)}
+.cfg-adv .field{padding:10px 12px;margin-bottom:0}
 .cfg-sep{border:0;border-top:1px solid var(--border);margin:16px 0 12px}
 .img-test{display:flex;gap:12px;align-items:flex-start;margin-top:8px;padding:10px 12px;background:var(--row-alt);border:1px solid var(--border);border-radius:9px}
 .img-test-log{flex:1;margin:0;padding:0;list-style:none;font-size:11.5px;line-height:1.7;min-width:0}
@@ -552,7 +593,8 @@ button.pick-thumb.none:hover::after{color:var(--accent)}
 .img-test-log li.ng span{color:var(--red);font-weight:700}
 .img-test-prev{flex:0 0 84px;height:84px;border:1px solid var(--border);border-radius:8px;background:var(--surface);display:grid;place-items:center;overflow:hidden}
 .img-test-prev img{max-width:100%;max-height:100%}
-.cfg-sec-ttl{font-size:12.5px;font-weight:700;margin:0 0 4px}
+.cfg-sec-ttl{font-size:12px;font-weight:700;margin:18px 0 6px;color:var(--text);
+  padding-bottom:4px;border-bottom:1px solid var(--border)}
 .restore-row{display:flex;align-items:center;gap:10px;margin:8px 0}
 .restore-n{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .restore-n input{width:70px;text-align:right}
