@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:43:22.715Z",
+  "updatedAt": "2026-08-20T08:43:29.701Z",
   "labels": {
     "rival": [
       {
@@ -57,7 +57,7 @@
       },
       {
         "v": "high",
-        "label": "4.0以上",
+        "label": "まあOK",
         "color": "green"
       }
     ],
