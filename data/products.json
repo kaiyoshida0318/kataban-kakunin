@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:36:47.753Z",
+  "updatedAt": "2026-08-20T08:39:31.287Z",
   "labels": {
     "rival": [
       {
@@ -47,8 +47,13 @@
       },
       {
         "v": "low",
-        "label": "4.0以下",
+        "label": "評価低すぎかも",
         "color": "amber"
+      },
+      {
+        "v": "o_mk4n54",
+        "label": "新しい選択肢",
+        "color": "gray"
       },
       {
         "v": "high",
