@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T09:29:23.692Z",
+  "updatedAt": "2026-08-20T09:31:29.348Z",
   "labels": {
     "rival": [
       {
@@ -76,6 +76,11 @@
         "v": "skip",
         "label": "スキップ",
         "color": "purple"
+      },
+      {
+        "v": "o_b8w7jj",
+        "label": "新しい選択肢",
+        "color": "gray"
       }
     ],
     "buy": [
