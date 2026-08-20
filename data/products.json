@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T09:32:27.316Z",
+  "updatedAt": "2026-08-20T09:33:04.420Z",
   "labels": {
     "rival": [
       {
@@ -372,7 +372,7 @@
               "imageAmazon": "",
               "imageRakuten": "https://shop.r10s.jp/insole-phoenix/cabinet/10095176/1-ys00028.jpg",
               "title": "サンダル用 インソール",
-              "check": "before",
+              "check": "after",
               "buy": "before",
               "sales30": "",
               "rival": "o_dn58o9",
@@ -394,7 +394,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-20T08:49:54.684Z"
+          "updatedAt": "2026-08-20T09:32:59.898Z"
         }
       ]
     },
