@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T07:19:19.521Z",
+  "updatedAt": "2026-08-20T07:23:55.284Z",
   "sections": {
     "amazon": {
       "items": [
@@ -103,19 +103,10 @@
               "title": "Xiaomi Smart Band 10/9/8 ベルト",
               "check": "before",
               "buy": "before"
-            },
-            {
-              "id": "itm_tjvs0ll9v3r",
-              "addedAt": "2026-08-19",
-              "image": "https://m.media-amazon.com/images/I/71YKVKfZx3L._AC_SL1500_.jpg",
-              "url": "https://x.gd/96Mjr",
-              "title": "",
-              "check": "before",
-              "buy": "before"
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
-          "updatedAt": "2026-08-20T06:12:17.276Z"
+          "updatedAt": "2026-08-20T07:23:50.744Z"
         },
         {
           "id": "itm_c0u7ctd2eau",
@@ -141,28 +132,9 @@
           "urlRakuten": "",
           "checkNote": "Garmin等の新商品を確認実施。上位に食い込む型番と、対応機種の広さを見る。",
           "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_a01",
-              "addedAt": "2026-08-19",
-              "image": "",
-              "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB/dp/B0EXAMPLE9",
-              "title": "Garmin充電ケーブル",
-              "check": "after",
-              "buy": "before"
-            },
-            {
-              "id": "pk_a02",
-              "addedAt": "2026-08-05",
-              "image": "",
-              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
-              "title": "",
-              "check": "skip",
-              "buy": "skip"
-            }
-          ],
+          "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "updatedAt": "2026-08-20T07:23:49.401Z"
         },
         {
           "id": "itm_5t0ipbd3tqv",
@@ -267,28 +239,9 @@
           "urlRakuten": "https://ranking.rakuten.co.jp/daily/562637/",
           "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
           "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_r02",
-              "addedAt": "2026-08-19",
-              "image": "",
-              "url": "https://item.rakuten.co.jp/example/slim-fan/",
-              "title": "スリムファン 新型",
-              "check": "before",
-              "buy": "before"
-            },
-            {
-              "id": "pk_r01",
-              "addedAt": "2026-08-12",
-              "image": "",
-              "url": "https://item.rakuten.co.jp/example/dc-fan/",
-              "title": "静音DCサーキュレーター",
-              "check": "after",
-              "buy": "done"
-            }
-          ],
+          "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "updatedAt": "2026-08-20T07:23:45.487Z"
         },
         {
           "id": "rk_sample02",
@@ -318,28 +271,9 @@
           "urlRakuten": "",
           "checkNote": "競合の価格とレビュー数を見る。",
           "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_p01",
-              "addedAt": "2026-08-18",
-              "image": "",
-              "url": "https://ranking.rakuten.co.jp/daily/101070/",
-              "title": "デイリーランキング",
-              "check": "before",
-              "buy": "before"
-            },
-            {
-              "id": "pk_p02",
-              "addedAt": "2026-08-18",
-              "image": "",
-              "url": "https://detail.1688.com/offer/000000000000.html",
-              "title": "1688 仕入元",
-              "check": "before",
-              "buy": "before"
-            }
-          ],
+          "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "updatedAt": "2026-08-20T07:23:44.222Z"
         }
       ]
     }
