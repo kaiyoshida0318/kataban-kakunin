@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.44.0";
+const VERSION   = "0.44.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2465,7 +2465,9 @@ function bind() {
   });
 
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };
-  $("btnSaveCfg").onclick = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
+  const saveCfgAndClose = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
+  $("btnSaveCfg").onclick    = saveCfgAndClose;
+  $("btnSaveCfgTop").onclick = saveCfgAndClose;
   $("btnTestGh").onclick  = testConnection;
   $("btnImgTest").onclick = runImgTest;
   $("btnRestore").onclick = restoreFromHistory;
