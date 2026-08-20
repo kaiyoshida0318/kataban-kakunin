@@ -1,22 +1,22 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:16:16.218Z",
+  "updatedAt": "2026-08-20T08:16:58.511Z",
   "labels": {
     "rival": [
       {
         "v": "o_9rscsw",
         "label": "ライバル0-amaは良い",
-        "color": "gray"
+        "color": "blue"
       },
       {
         "v": "o_dn58o9",
         "label": "倒せそう",
-        "color": "gray"
+        "color": "blue"
       },
       {
         "v": "o_ww912j",
         "label": "売れそうにない",
-        "color": "gray"
+        "color": "red"
       },
       {
         "v": "",
