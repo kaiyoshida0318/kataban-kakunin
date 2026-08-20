@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:39:31.287Z",
+  "updatedAt": "2026-08-20T08:43:22.715Z",
   "labels": {
     "rival": [
       {
@@ -48,12 +48,12 @@
       {
         "v": "low",
         "label": "評価低すぎかも",
-        "color": "amber"
+        "color": "pink"
       },
       {
         "v": "o_mk4n54",
-        "label": "新しい選択肢",
-        "color": "gray"
+        "label": "バリエ多すぎ？",
+        "color": "pink"
       },
       {
         "v": "high",
