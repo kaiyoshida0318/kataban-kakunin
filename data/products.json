@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T06:34:14.757Z",
+  "updatedAt": "2026-08-20T06:35:52.843Z",
   "sections": {
     "amazon": {
       "items": [
@@ -23,10 +23,19 @@
               "url": "https://www.amazon.co.jp/BINGPET-airtag-Airtag%E5%AF%BE%E5%BF%9C-%E3%82%BB%E3%83%BC%E3%83%95%E3%83%86%E3%82%A3%E3%83%90%E3%83%83%E3%82%AF%E3%83%AB-%E5%8F%AF%E6%84%9B%E3%81%84%E9%A6%96%E9%A3%BE%E3%82%8A/dp/B0C5R5M23J/ref=sr_1_1_sspa?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1",
               "check": "before",
               "buy": "before"
+            },
+            {
+              "id": "itm_zzjbkdtckbd",
+              "addedAt": "2026-08-20",
+              "image": "",
+              "title": "首輪用ホルダー",
+              "url": "https://www.amazon.co.jp/Airtag-%E3%82%A6%E3%82%A9%E3%83%AC%E3%83%83%E3%83%88%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC-2%E5%80%8B%E3%83%91%E3%83%83%E3%82%AF-%E3%83%91%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88%E3%80%81%E3%83%8F%E3%83%B3%E3%83%89%E3%83%90%E3%83%83%E3%82%B0%E3%80%81%E3%83%90%E3%83%83%E3%82%AF%E3%83%91%E3%83%83%E3%82%AF%E8%B2%A1%E5%B8%83%E3%80%81%E3%82%AF%E3%83%A9%E3%83%83%E3%83%81%E3%80%81%E3%83%9D%E3%82%B1%E3%83%83%E3%83%88%E7%94%A8-%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%81Airtag%E3%81%AF%E5%90%AB%E3%81%BE%E3%82%8C%E3%81%A6%E3%81%84%E3%81%BE%E3%81%9B%E3%82%93/dp/B0D925HGJM/ref=sr_1_9?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-9&th=1",
+              "check": "before",
+              "buy": "before"
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
-          "updatedAt": "2026-08-20T06:32:41.140Z"
+          "updatedAt": "2026-08-20T06:35:48.313Z"
         },
         {
           "id": "itm_ku2gtnx7no2",
