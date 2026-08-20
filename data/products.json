@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T07:25:26.778Z",
+  "updatedAt": "2026-08-20T07:25:40.878Z",
   "sections": {
     "amazon": {
       "items": [
@@ -126,7 +126,7 @@
           "id": "am_sample01",
           "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
           "category": "家電",
-          "image": "",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71KN3-p0MqL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
           "urlRakuten": "",
@@ -134,7 +134,7 @@
           "checkedAt": "2026-08-19",
           "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-20T07:23:49.401Z"
+          "updatedAt": "2026-08-20T07:25:36.393Z"
         },
         {
           "id": "itm_5t0ipbd3tqv",
