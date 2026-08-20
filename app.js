@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.23.0";
+const VERSION   = "0.24.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -19,10 +19,12 @@ const URL_COLS = {
 /* ---------- 一覧表の列（そのタブのURL列を挟み込む） ---------- */
 function colsOf(key) {
   const urls = urlFieldsOf(key).map((f) => URL_COLS[f]);
+  const sided = Boolean(SEC(key)?.side);
   return [
+    ...(sided ? [{ key: "side", label: "区分", w: 118, cls: "c-side" }] : []),
     { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
     { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
-    { key: "cat",   label: "カテゴリ",   w: 100, cls: "c-cat",   sort: "category"  },
+    ...(sided ? [] : [{ key: "cat", label: "カテゴリ", w: 100, cls: "c-cat", sort: "category" }]),
     ...urls,
     { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
     { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
@@ -58,13 +60,13 @@ const pRowH = () => colW[PROW_H_KEY] || PROW_H_DEF;
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "amazon",   icon: "📊", label: "amazon基準", nameLabel: "ジャンル名",
-    defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"],
+  { key: "amazon",   icon: "📊", label: "amazon基準（オフェンス）", nameLabel: "ジャンル名",
+    defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"], side: "offense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "Amazon基準で見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天基準",   nameLabel: "ジャンル名",
-    defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"],
+  { key: "rakuten",  icon: "🏆", label: "楽天基準（ディフェンス）",   nameLabel: "ジャンル名",
+    defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
@@ -75,6 +77,16 @@ const SECTIONS = [
     emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
 ];
 const SEC = (k) => SECTIONS.find((s) => s.key === k);
+
+/* 区分（オフェンス / ディフェンス）。どちらを選ぶかでタブそのものが決まる */
+const SIDES = [
+  { v: "offense", label: "オフェンス",   cls: "sd-off", sec: "amazon"  },
+  { v: "defense", label: "ディフェンス", cls: "sd-def", sec: "rakuten" },
+];
+const SIDE = (v) => SIDES.find((o) => o.v === v) || SIDES[0];
+const sideSecOf = (v) => SIDE(v).sec;
+const sideOptions = (v) =>
+  SIDES.map((o) => `<option value="${o.v}"${o.v === v ? " selected" : ""}>${o.label}</option>`).join("");
 
 /* 商品行のステータス（2つのドロップダウン） */
 const PICK_CHECK = [
@@ -342,7 +354,8 @@ function renderToolbar() {
   $("q").value = F().q;
   $("btnNew").textContent = s.add;
 
-  const cats = categories(view);
+  if (SEC(view).side) F().cat = "*";
+  const cats = SEC(view).side ? [] : categories(view);
   const seg = (k, label, cnt, on) =>
     `<button class="seg-btn${on ? " on" : ""}" data-k="${esc(k)}">${esc(label)}<span class="seg-cnt">${cnt}</span></button>`;
   $("catSeg").innerHTML = cats.length < 2 ? "" :
@@ -445,6 +458,16 @@ function renderBody() {
         old.outerHTML = html;
       };
     }
+  });
+  // 区分：選び直すとその区分のタブへ行が移る
+  root.querySelectorAll("[data-side]").forEach((sel) => {
+    sel.onchange = () => {
+      const from = view;
+      const to   = sideSecOf(sel.value);
+      const it   = itemsOf(from).find((i) => i.id === sel.dataset.side);
+      if (!it || to === from) return;
+      moveItem(it, from, to);
+    };
   });
   root.querySelectorAll("[data-del]").forEach((b) => {
     b.onclick = () => {
@@ -749,6 +772,12 @@ function rankRow(it) {
 
   const cell = (c) => {
     switch (c.key) {
+      case "side": {
+        const v = SEC(view).side;
+        return `<td class="c-side">
+            <select class="side-sel ${SIDE(v).cls}" data-side="${esc(it.id)}" title="選び直すとその区分のタブへ移ります">${sideOptions(v)}</select>
+          </td>`;
+      }
       case "img":
         return tableEdit
           ? `<td class="c-img">
@@ -898,6 +927,16 @@ function openRank(item) {
   const FIELD_BOX = { url: "fUrl", urlAmazon: "fUrlAmz", urlRakuten: "fUrlRak" };
   $("rankModalBox").classList.toggle("modal-xwide", fields.length > 1);
 
+  /* 区分タブ（amazon基準 / 楽天基準）はカテゴリの代わりに区分ドロップダウン */
+  const side = SEC(view).side;
+  $("fSide").hidden = !side;
+  $("fCat").hidden  = Boolean(side);
+  if (side) {
+    $("rSide").innerHTML = sideOptions(side);
+    $("rSide").value = side;
+    $("rSide").className = "side-sel side-sel-lg " + SIDE(side).cls;
+  }
+
   const urlWrap = $("rUrlFields");
   Object.values(FIELD_BOX).forEach((id) => { $(id).hidden = true; });
   fields.forEach((f) => {                                // 並び順もタブに合わせる
@@ -980,15 +1019,21 @@ function saveRank() {
   entry.url        = vals.url || "";
   entry.urlAmazon  = vals.urlAmazon || "";
   entry.urlRakuten = vals.urlRakuten || "";
-  entry.category  = $("rCat").value.trim() || "未分類";
+  entry.category  = SEC(view).side ? (entry.category || "未分類") : ($("rCat").value.trim() || "未分類");
   entry.image     = $("rImage").value.trim();
   entry.checkNote = $("rNote").value.trim();
   entry.checkedAt = $("rChecked").value || "";
   entry.updatedAt = nowIso();
 
-  upsert(view, entry);
+  /* 区分タブなら、選んだ区分のタブへ入れる（違うタブを選んだら移動） */
+  const target = SEC(view).side ? sideSecOf($("rSide").value) : view;
+  const moved  = target !== view;
+  if (moved && !isNew) removeById(view, entry.id);
+  upsert(target, entry);
+  if (moved) { view = target; renderAll(); }
   closeRank();
-  toast(isNew ? "追加しました" : "保存しました");
+  toast(moved ? `${SEC(target).label} に${isNew ? "追加" : "移動"}しました`
+              : (isNew ? "追加しました" : "保存しました"));
 }
 
 function deleteRank() {
@@ -996,6 +1041,17 @@ function deleteRank() {
   removeById(view, entry.id);
   closeRank();
   toast("削除しました");
+}
+
+/* 行を別のタブ（区分）へ移す。データ形式は共通なのでそのまま渡すだけ */
+function moveItem(item, from, to) {
+  data.sections[from].items = itemsOf(from).filter((x) => x.id !== item.id);
+  item.updatedAt = nowIso();
+  itemsOf(to).push(item);
+  persistLocal(); markDirty(true);
+  view = to;                       // 移した先のタブを開いて結果を見せる
+  renderAll();
+  toast(`「${item.name}」を ${SEC(to).label} に移しました`);
 }
 
 /* ---------- 共通の更新 ---------- */
@@ -1229,6 +1285,9 @@ function bind() {
     if (found) { $("rImage").value = found; renderImgPrev(); toast("画像を取得しました"); }
     else if (!asinOf(url)) toast("自動取得はAmazonの商品URL（/dp/…）のみ対応しています", true);
     else toast("画像が見つかりませんでした。手動でURLを貼ってください", true);
+  };
+  $("rSide").onchange = () => {
+    $("rSide").className = "side-sel side-sel-lg " + SIDE($("rSide").value).cls;
   };
   ["rUrl", "rUrlAmz", "rUrlRak"].forEach((id) => {
     $(id).onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveRank(); } };
