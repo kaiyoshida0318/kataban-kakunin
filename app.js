@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.47.1";
+const VERSION   = "0.48.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -168,29 +168,38 @@ const SWATCHES = [
 const SWATCH_OK = (c) => SWATCHES.some((x) => x.c === c);
 
 const ST_FIELDS = [
-  { key: "rival", title: "楽天ライバル状況", opts: [
+  { key: "rival", title: "楽天ライバル状況", cols: ["a_rival"], opts: [
     { v: "",      label: "未調査",       color: "gray"  },
     { v: "few",   label: "少数",         color: "blue"  },
     { v: "some",  label: "そこそこいる", color: "amber" },
     { v: "heavy", label: "激戦",         color: "red"   },
   ] },
-  { key: "quality", title: "商品品質", opts: [
+  { key: "quality", title: "商品品質", cols: ["a_qual"], opts: [
     { v: "",     label: "未調査",  color: "gray"  },
     { v: "low",  label: "4.0以下", color: "amber" },
     { v: "high", label: "4.0以上", color: "green" },
   ] },
-  { key: "check", title: "確認", opts: [
+  { key: "check", title: "確認", cols: ["a_check", "p_check"], opts: [
     { v: "before", label: "確認前",   color: "gray"   },
     { v: "after",  label: "確認後",   color: "green"  },
     { v: "skip",   label: "スキップ", color: "purple" },
   ] },
-  { key: "buy", title: "買付", opts: [
+  { key: "buy", title: "買付", cols: ["a_buy", "p_buy"], opts: [
     { v: "before", label: "買付前",   color: "gray"   },
     { v: "done",   label: "買付済",   color: "green"  },
     { v: "skip",   label: "スキップ", color: "purple" },
   ] },
 ];
 const ST_DEF = (key) => ST_FIELDS.find((f) => f.key === key);
+/* 見出しは「項目編集」で付けた名前に合わせる */
+function stTitle(key) {
+  const f = ST_DEF(key);
+  for (const ck of f.cols || []) {
+    const l = colSet(ck).label;
+    if (l) return l;
+  }
+  return f.title;
+}
 const newOptVal = () => "o_" + Math.random().toString(36).slice(2, 8);
 
 /* 設定（data.labels）を反映した選択肢を返す */
@@ -2224,7 +2233,7 @@ function renderLabelEditor() {
   $("labEditor").innerHTML = ST_FIELDS.map((f) => {
     const list = stList(f.key);
     return `<div class="lab-grp" data-grp="${esc(f.key)}">
-      <p class="cfg-sec-ttl">${esc(f.title)}</p>
+      <p class="cfg-sec-ttl">${esc(stTitle(f.key))}</p>
       ${list.map((o, i) => `
         <div class="lab-row" data-lab="${esc(f.key)}|${esc(o.v)}">
           <span class="lab-move">
