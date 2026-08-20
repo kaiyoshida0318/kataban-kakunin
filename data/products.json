@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T06:34:05.262Z",
+  "updatedAt": "2026-08-20T06:34:14.757Z",
   "sections": {
     "amazon": {
       "items": [
@@ -51,7 +51,7 @@
             {
               "id": "itm_z26p7jnab5u",
               "addedAt": "2026-08-20",
-              "image": "",
+              "image": "https://m.media-amazon.com/images/I/61rHzyh301L._AC_SL1500_.jpg",
               "title": "pixel watch ケース",
               "url": "https://www.amazon.co.jp/TEMEDO-%E3%83%94%E3%82%AF%E3%82%BB%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%83%E3%83%814-Google-%E3%82%B0%E3%83%BC%E3%82%B0%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81-pixel%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81/dp/B0FRM5YFLF/ref=zg_bs_g_14616561051_d_sccl_22/355-0893691-4316449?th=1",
               "check": "before",
@@ -59,7 +59,7 @@
             }
           ],
           "createdAt": "2026-08-20T05:08:00.530Z",
-          "updatedAt": "2026-08-20T06:34:03.138Z"
+          "updatedAt": "2026-08-20T06:34:09.962Z"
         },
         {
           "id": "itm_f8u59p96341",
