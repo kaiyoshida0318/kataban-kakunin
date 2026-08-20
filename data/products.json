@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:43:48.343Z",
+  "updatedAt": "2026-08-20T08:44:01.490Z",
   "labels": {
     "rival": [
       {
@@ -21,7 +21,7 @@
       {
         "v": "o_ww912j",
         "label": "売れそうにない",
-        "color": "red"
+        "color": "pink"
       },
       {
         "v": "few",
@@ -58,7 +58,7 @@
       {
         "v": "high",
         "label": "まあOK",
-        "color": "green"
+        "color": "blue"
       }
     ],
     "check": [
