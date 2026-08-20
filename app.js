@@ -4,11 +4,12 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.28.0";
+const VERSION   = "0.30.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
 const LS_COLS   = "kata_cols_v1";
+const LS_SORT   = "kata_sort_v1";
 
 /* ---------- URL列（タブごとに本数と並びが変わる） ---------- */
 const URL_COLS = {
@@ -21,6 +22,7 @@ function colsOf(key) {
   const urls = urlFieldsOf(key).map((f) => URL_COLS[f]);
   const sided = Boolean(SEC(key)?.side);
   return [
+    { key: "ord", label: "並び", w: 68, cls: "c-ord" },
     ...(sided ? [{ key: "side", label: "区分", w: 118, cls: "c-side" }] : []),
     { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
     { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
@@ -177,7 +179,15 @@ const isAmazonUrl = (url) => /(^|\.)amazon\.(co\.jp|com)/i.test((() => {
 function imageCandidates(url) {
   const asin = asinOf(url);
   if (!asin) return [];
+  /* AsinImageウィジェット。ASINから実際の商品画像へリダイレクトされる（書籍以外でも効く） */
+  const widget = (host, mp, size) =>
+    `https://${host}/widgets/q?_encoding=UTF8&ASIN=${asin}&Format=_SL${size}_` +
+    `&ID=AsinImage&MarketPlace=${mp}&ServiceVersion=20070822&WS=1&tag=`;
   return [
+    widget("ws-fe.amazon-adsystem.com", "JP", 500),
+    widget("ws-na.amazon-adsystem.com", "JP", 500),
+    widget("ws-fe.amazon-adsystem.com", "JP", 250),
+    /* 旧来のパターン。書籍・メディアはこちらで取れる */
     `https://m.media-amazon.com/images/P/${asin}.09._SCLZZZZZZZ_.jpg`,
     `https://m.media-amazon.com/images/P/${asin}.01._SCLZZZZZZZ_.jpg`,
     `https://images-na.ssl-images-amazon.com/images/P/${asin}.09.LZZZZZZZ.jpg`,
@@ -208,6 +218,7 @@ const DEFAULT_PROXIES = [
   "https://api.allorigins.win/raw?url={url}",
   "https://api.codetabs.com/v1/proxy/?quest={url}",
   "https://corsproxy.io/?url={url}",
+  "https://r.jina.ai/{url}",
 ];
 const proxyList = () => {
   if (cfg.imgProxy === "-") return [];
@@ -296,10 +307,21 @@ async function rakutenImages(url, log = () => {}) {
   return [];
 }
 
-/* 中継サービス経由でページのHTMLを取り、og:image を拾う */
+/* AmazonのHTMLから商品のメイン画像を探す。hiRes → data-old-hires → large → images/I の順 */
+function amazonImageFromHtml(html) {
+  const unesc = (v) => String(v || "")
+    .replace(/\\u002F/gi, "/").replace(/\\\//g, "/").replace(/\\/g, "");
+  const m = html.match(/"hiRes"\s*:\s*"(https:[^"]+?)"/i)
+         || html.match(/data-old-hires\s*=\s*["'](https:[^"']+?)["']/i)
+         || html.match(/"large"\s*:\s*"(https:[^"]+?)"/i)
+         || html.match(/https:(?:\\?\/){2}m\.media-amazon\.com(?:\\?\/)images(?:\\?\/)I(?:\\?\/)[A-Za-z0-9%._+-]+\.(?:jpg|jpeg|png|webp)/i);
+  return m ? unesc(m[1] || m[0]) : "";
+}
+
+/* 中継サービス経由でページのHTMLを取り、商品画像 / og:image を拾う */
 async function ogImages(url, log = () => {}) {
   const list = proxyList();
-  if (!list.length) { log("og:image", "中継なしの設定のためスキップ"); return []; }
+  if (!list.length) { log("ページ", "中継なしの設定のためスキップ"); return []; }
 
   for (const tpl of list) {
     const via = (() => { try { return new URL(tpl.replace("{url}", "")).hostname; } catch { return tpl; } })();
@@ -308,24 +330,30 @@ async function ogImages(url, log = () => {}) {
       const timer = setTimeout(() => ctrl.abort(), 9000);
       const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
       clearTimeout(timer);
-      if (!res.ok) { log("og:image", `${via} → HTTP ${res.status}`); continue; }
+      if (!res.ok) { log("ページ", `${via} → HTTP ${res.status}`); continue; }
 
-      const html = (await res.text()).slice(0, 600000);
+      const html = (await res.text()).slice(0, 900000);
       const tags = html.match(/<meta[^>]+>/gi) || [];
       const pick = (key) => {
         const t = tags.find((x) => new RegExp(`(?:property|name)\\s*=\\s*["']${key}["']`, "i").test(x));
         return t ? (t.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] || "") : "";
       };
-      let src = pick("og:image:secure_url") || pick("og:image") || pick("twitter:image") || pick("twitter:image:src");
-      if (!src) { log("og:image", `${via} → ページは取れたが og:image なし`); continue; }
-      src = src.replace(/&amp;/g, "&").trim();
-      if (src.startsWith("//")) src = "https:" + src;
-      else if (src.startsWith("/")) src = new URL(src, url).href;
-      if (!/^https?:\/\//i.test(src)) { log("og:image", `${via} → URLの形が不正`); continue; }
-      log("og:image", `${via} → 取得`);
-      return [src];
+      const found = [
+        isAmazonUrl(url) ? amazonImageFromHtml(html) : "",   // Amazonはページ内の商品画像を直接探す
+        pick("og:image:secure_url"), pick("og:image"),
+        pick("twitter:image"), pick("twitter:image:src"),
+      ].filter(Boolean).map((src) => {
+        src = src.replace(/&amp;/g, "&").trim();
+        if (src.startsWith("//")) return "https:" + src;
+        if (src.startsWith("/")) { try { return new URL(src, url).href; } catch { return ""; } }
+        return src;
+      }).filter((x) => /^https?:\/\//i.test(x));
+
+      if (!found.length) { log("ページ", `${via} → 取れたが画像が見つからない`); continue; }
+      log("ページ", `${via} → 画像URLあり`);
+      return [...new Set(found)];
     } catch (e) {
-      log("og:image", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
+      log("ページ", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
     }
   }
   return [];
@@ -341,7 +369,7 @@ async function guessImage(url, log = () => {}) {
       const hit = await probeImage(c);
       if (hit) { log("Amazon", "画像を確認"); return hit; }
     }
-    log("Amazon", "候補は作れたが画像が読めない");
+    log("Amazon", "ASINからの候補では画像が読めない");
   }
 
   for (const c of await rakutenImages(url, log)) {     // 2) 楽天ウェブサービス
@@ -349,7 +377,7 @@ async function guessImage(url, log = () => {}) {
   }
 
   for (const c of await ogImages(url, log)) {          // 3) 中継サービスで og:image
-    if (await probeImage(c)) { log("結果", "og:imageを採用"); return c; }
+    if (await probeImage(c)) { log("結果", "ページから拾った画像を採用"); return c; }
   }
   log("結果", "画像が見つかりませんでした");
   return "";
@@ -452,6 +480,18 @@ function loadCols() {
   try { colW = JSON.parse(localStorage.getItem(LS_COLS)) || {}; } catch { colW = {}; }
 }
 function saveCols() { localStorage.setItem(LS_COLS, JSON.stringify(colW)); }
+
+/* 並べ替えの指定（手動並びを含む）はブラウザに残す */
+function loadSort() {
+  try {
+    const o = JSON.parse(localStorage.getItem(LS_SORT)) || {};
+    for (const k of Object.keys(filters)) if (o[k]) Object.assign(filters[k], o[k]);
+  } catch { /* noop */ }
+}
+function saveSort() {
+  localStorage.setItem(LS_SORT, JSON.stringify(
+    Object.fromEntries(Object.entries(filters).map(([k, v]) => [k, { sort: v.sort, dir: v.dir }]))));
+}
 const colWidth = (c) => colW[c.key] || c.w;
 /* 表編集中は画像URL欄が入るので画像列を広げる */
 const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c), 170) : colWidth(c));
@@ -603,15 +643,15 @@ function paintPickThumb(sectionKey, key) {
    ========================================================= */
 function visibleItems() {
   const q = F().q.trim().toLowerCase();
-  return itemsOf(view)
+  const list = itemsOf(view)
     .filter((it) => {
       if (F().cat !== "*" && (it.category || "未分類") !== F().cat) return false;
       if (!q) return true;
       const hay = [it.name, it.category, it.url, it.urlAmazon, it.urlRakuten, it.checkNote,
                    it.picks.map((p) => p.title + " " + p.url).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
-    })
-    .sort(comparator());
+    });
+  return F().sort === "manual" ? list : list.sort(comparator());
 }
 
 /* 並べ替え。列見出しクリックで key/dir が切り替わる */
@@ -634,9 +674,35 @@ function comparator() {
 
 function setSort(key) {
   const f = F();
+  if (key === "manual") {
+    if (f.sort === "manual") { f.sort = SEC(view).defSort || "checkedAt"; f.dir = "desc"; }
+    else { data.sections[view].items = itemsOf(view).slice().sort(comparator()); f.sort = "manual"; persistLocal(); }
+    saveSort(); renderBody();
+    return;
+  }
   if (f.sort === key) f.dir = f.dir === "asc" ? "desc" : "asc";
   else { f.sort = key; f.dir = key === "checkedAt" || key === "updatedAt" ? "desc" : "asc"; }
-  renderBody();
+  saveSort(); renderBody();
+}
+
+/* ↑↓ で行を1つ動かす。自動並べ替え中なら、今見えている順を確定してから手動並びに切り替える */
+function moveRow(id, delta) {
+  const vis = visibleItems();
+  const i = vis.findIndex((x) => x.id === id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= vis.length) return;
+
+  if (F().sort !== "manual") {
+    data.sections[view].items = itemsOf(view).slice().sort(comparator());
+    F().sort = "manual";
+    saveSort();
+    toast("手動の並びに切り替えました（列見出しを押すと自動に戻ります）");
+  }
+  const arr = itemsOf(view);
+  const a = arr.findIndex((x) => x.id === vis[i].id);
+  const b = arr.findIndex((x) => x.id === vis[j].id);
+  [arr[a], arr[b]] = [arr[b], arr[a]];
+  persistLocal(); markDirty(true); renderBody();
 }
 function sortMark(key) {
   const f = F();
@@ -688,6 +754,13 @@ function renderBody() {
         old.outerHTML = html;
       };
     }
+  });
+  // 並び：↑↓ で1つずつ動かす
+  root.querySelectorAll("[data-move]").forEach((b) => {
+    b.onclick = () => {
+      const [id, dir] = b.dataset.move.split("|");
+      moveRow(id, dir === "up" ? -1 : 1);
+    };
   });
   // 区分：選び直すとその区分のタブへ行が移る
   root.querySelectorAll("[data-side]").forEach((sel) => {
@@ -862,6 +935,12 @@ function rankTable(list) {
     return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
   }).join("");
   const heads = COLS.map((c) => {
+    if (c.key === "ord") {
+      const on = F().sort === "manual";
+      return `<th class="c-ord sortable${on ? " on" : ""}" data-sort="manual" ` +
+        `title="↑↓ で手動並べ替え。押すと手動⇔自動を切り替えます">${esc(c.label)}` +
+        `${on ? '<span class="sort-mark">手動</span>' : ""}<span class="col-resizer" data-col="ord"></span></th>`;
+    }
     const on = c.sort && F().sort === c.sort;
     const label = c.key === "name" ? SEC(view).nameLabel : c.label;
     return `<th class="${c.cls}${c.sort ? " sortable" : ""}${on ? " on" : ""}"${c.sort ? ` data-sort="${c.sort}"` : ""}>` +
@@ -983,7 +1062,7 @@ function bindResizers(root) {
   });
 }
 
-function rankRow(it) {
+function rankRow(it, idx = 0, all = []) {
   const d = daysSince(it.checkedAt);
   const stale = d == null || d > STALE_DAYS;
   const open = openRows.has(it.id);
@@ -1001,6 +1080,16 @@ function rankRow(it) {
 
   const cell = (c) => {
     switch (c.key) {
+      case "ord": {
+        const btn = (dir, mark, label, off) =>
+          `<button class="ord-btn" data-move="${esc(it.id)}|${dir}" title="${label}"${off ? " disabled" : ""}>${mark}</button>`;
+        return `<td class="c-ord">
+            <span class="ord-cell">
+              ${btn("up", "↑", "1つ上へ", idx === 0)}
+              ${btn("down", "↓", "1つ下へ", idx >= all.length - 1)}
+            </span>
+          </td>`;
+      }
       case "side": {
         const v = SEC(view).side;
         return `<td class="c-side">
@@ -1119,7 +1208,7 @@ function pickPanel(it) {
     <div class="pick-hdr">
       <span class="pick-hdr-ttl">チェックした商品</span>
       <span class="pick-hdr-cnt">${it.picks.length} 件</span>
-      <button class="btn btn-cancel btn-xs pick-close" data-rowclose="${esc(it.id)}">キャンセル</button>
+      <button class="btn btn-ghost btn-xs pick-close" data-rowclose="${esc(it.id)}">✕ 閉じる</button>
     </div>
 
     <div class="pick-tbl-wrap"><table class="pick-tbl" style="--pick-row-h:${pRowH()}px">
@@ -1646,14 +1735,12 @@ function bind() {
     clearTimeout(fitTimer);
     fitTimer = setTimeout(fitColumns, 120);
   });
-  window.addEventListener("beforeunload", (e) => {
-    if (dirty) { e.preventDefault(); e.returnValue = ""; }
-  });
 }
 
 async function boot() {
   loadCfg();
   loadCols();
+  loadSort();
   bind();
   renderHeadBits();
 

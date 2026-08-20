@@ -401,6 +401,15 @@ body.resizing *{cursor:col-resize !important}
 .st-sel.st-skip{background:#f2f0f4;border-color:#e2dde8;color:#8b7fa0}
 
 /* 区分（オフェンス=赤 / ディフェンス=緑） */
+.rank-tbl .c-ord{text-align:center;padding:4px 2px}
+.ord-cell{display:inline-flex;gap:3px}
+.ord-btn{
+  font-family:inherit;font-size:12px;line-height:1;
+  width:23px;height:23px;padding:0;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+}
+.ord-btn:hover:not(:disabled){background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.ord-btn:disabled{opacity:.3;cursor:default}
 .rank-tbl .c-side{text-align:center;padding:4px 6px}
 .side-sel{
   width:100%;font-size:11.5px;font-weight:700;padding:5px 18px 5px 8px;border-radius:7px;
