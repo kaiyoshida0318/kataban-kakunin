@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=0.35.0">
+<link rel="stylesheet" href="style.css?v=0.35.1">
 </head>
 <body>
 
@@ -24,7 +24,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.35.0</span>
+      <span class="ver-badge" id="verLabel">v0.35.1</span>
       <span class="dirty-badge" id="saveState" hidden title=""></span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -172,7 +172,10 @@
       </div>
       <div class="field">
         <label for="cPat">Personal Access Token</label>
-        <input id="cPat" type="password" placeholder="github_pat_…" autocomplete="off">
+        <div class="pw-wrap">
+          <input id="cPat" type="password" placeholder="github_pat_…" autocomplete="off">
+          <button class="pw-eye" type="button" data-pw="cPat" title="表示する" aria-label="表示する">表示</button>
+        </div>
         <p class="hint">Contents の Read and write 権限が必要です。この端末のブラウザ内にのみ保存されます。</p>
       </div>
       <label class="chk">
@@ -189,7 +192,10 @@
         </div>
         <div class="field">
           <label for="cRkKey">楽天アクセスキー</label>
-          <input id="cRkKey" type="password" placeholder="（新しいAPIでは必須）" autocomplete="off">
+          <div class="pw-wrap">
+            <input id="cRkKey" type="password" placeholder="（新しいAPIでは必須）" autocomplete="off">
+            <button class="pw-eye" type="button" data-pw="cRkKey" title="表示する" aria-label="表示する">表示</button>
+          </div>
         </div>
       </div>
       <p class="hint"><a href="https://webservice.rakuten.co.jp/app/list" target="_blank" rel="noopener noreferrer">楽天ウェブサービスのアプリ一覧</a>で無料登録して取得できます。</p>
@@ -231,6 +237,6 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="app.js?v=0.35.0"></script>
+<script src="app.js?v=0.35.1"></script>
 </body>
 </html>

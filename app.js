@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.35.0";
+const VERSION   = "0.35.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1736,6 +1736,11 @@ function openCfg() {
   $("cPat").value    = cfg.pat;
   $("cRkAppId").value = cfg.rakutenAppId || "";
   $("cRkKey").value   = cfg.rakutenAccessKey || "";
+  document.querySelectorAll("[data-pw]").forEach((b) => {   // 開くたびに伏せ字へ戻す
+    $(b.dataset.pw).type = "password";
+    b.textContent = "表示"; b.title = b.ariaLabel = "表示する";
+    b.classList.remove("on");
+  });
   $("cProxy").value   = cfg.imgProxy || "";
   $("cAmzTag").value  = cfg.amazonTag || "";
   $("cProxy").placeholder = DEFAULT_PROXIES[0];
@@ -1931,6 +1936,17 @@ function bind() {
   $("btnSaveCfg").onclick = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
   $("btnTestGh").onclick  = testConnection;
   $("btnImgTest").onclick = runImgTest;
+  /* 伏せ字の表示切り替え */
+  document.querySelectorAll("[data-pw]").forEach((b) => {
+    b.onclick = () => {
+      const inp = $(b.dataset.pw);
+      const show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      b.textContent = show ? "隠す" : "表示";
+      b.title = b.ariaLabel = show ? "隠す" : "表示する";
+      b.classList.toggle("on", show);
+    };
+  });
   $("cImgTest").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); runImgTest(); } };
   ["cOwner", "cRepo", "cBranch"].forEach((id) => {
     $(id).onblur = () => {

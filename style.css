@@ -550,6 +550,18 @@ button.pick-thumb.none:hover::after{color:var(--accent)}
 .hint code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;background:var(--row-alt);padding:1px 4px;border-radius:4px}
 #rUrlFields .field{margin-bottom:12px}
 
+/* パスワード欄の表示切り替え */
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:56px}
+.pw-eye{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  font-family:inherit;font-size:11px;font-weight:700;line-height:1;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  border-radius:6px;padding:5px 8px;cursor:pointer;transition:.12s;
+}
+.pw-eye:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.pw-eye.on{border-color:var(--accent);background:var(--accent);color:#fff}
+
 .link-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
 .link-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .link-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:9px;padding:7px 10px;background:var(--row-alt)}
