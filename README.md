@@ -74,7 +74,9 @@ SETUP.md            セットアップ手順
   1. **Amazon** — URL内のASINから、アソシエイトのAsinImageウィジェットと旧来の画像パターンを候補にして、実際に読めたものを採用（⚙️設定にアソシエイトタグを入れると通りやすい）
   2. **楽天** — `item.rakuten.co.jp/{店舗}/{商品番号}/` から itemCode を作り、楽天ウェブサービスの商品検索APIをJSONPで呼ぶ（⚙️設定にアプリID・アクセスキーが要る）
   3. **メタ情報サービス** — microlink にURLを渡して画像URLをもらう
-  4. **中継サービス** — ページのHTMLを取って、商品画像（Amazonなら `hiRes` / `data-old-hires`）や `og:image` / `twitter:image` を拾う（6つを順に試す）
+  4. **中継サービス** — ページのHTMLを取って、商品画像や `og:image` / `twitter:image` を拾う（6つを順に試す）。
+     Amazonは `hiRes` / `data-old-hires` に加えて、ページ中の `images/I/…` を全部拾い、
+     画像IDから大きいサイズのURLを組み立て直して大きい順に試す（サムネやアイコンを掴まないため）
 
   AmazonのURLは `https://www.amazon.co.jp/dp/{ASIN}` の短い形に直してから照会する。
   画像が入らなかった商品はサムネが `↻` になり、押すともう一度取りにいく（既定で複数の中継先を順に試す。⚙️設定で変更・無効化できる）

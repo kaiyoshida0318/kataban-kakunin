@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.34.0";
+const VERSION   = "0.35.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -242,10 +242,10 @@ const RAKUTEN_EPS = [
 ];
 /* 楽天・Amazon以外はページのHTMLを中継サービス越しに読む */
 const DEFAULT_PROXIES = [
+  "https://r.jina.ai/{url}",
   "https://api.allorigins.win/raw?url={url}",
   "https://api.codetabs.com/v1/proxy/?quest={url}",
   "https://corsproxy.io/?url={url}",
-  "https://r.jina.ai/{url}",
   "https://api.cors.lol/?url={url}",
   "https://thingproxy.freeboard.io/fetch/{url}",
 ];
@@ -336,15 +336,32 @@ async function rakutenImages(url, log = () => {}) {
   return [];
 }
 
-/* AmazonのHTMLから商品のメイン画像を探す。hiRes → data-old-hires → large → images/I の順 */
-function amazonImageFromHtml(html) {
-  const unesc = (v) => String(v || "")
-    .replace(/\\u002F/gi, "/").replace(/\\\//g, "/").replace(/\\/g, "");
-  const m = html.match(/"hiRes"\s*:\s*"(https:[^"]+?)"/i)
-         || html.match(/data-old-hires\s*=\s*["'](https:[^"']+?)["']/i)
-         || html.match(/"large"\s*:\s*"(https:[^"]+?)"/i)
-         || html.match(/https:(?:\\?\/){2}m\.media-amazon\.com(?:\\?\/)images(?:\\?\/)I(?:\\?\/)[A-Za-z0-9%._+-]+\.(?:jpg|jpeg|png|webp)/i);
-  return m ? unesc(m[1] || m[0]) : "";
+/* AmazonのHTMLやテキストから、商品画像の候補を大きい順に集める。
+   中継サービスによってはmarkdown化されて返るので、画像IDだけ拾って自前で大きいURLを組み立てる。 */
+function amazonImagesFromHtml(html) {
+  const unesc = (v) => String(v || "").replace(/\\u002F/gi, "/").replace(/\\\//g, "/").replace(/\\/g, "");
+  const out = [];
+  const push = (u, score) => { if (u) out.push({ u: unesc(u), score }); };
+
+  /* 商品ページ本体が持っているメイン画像 */
+  for (const re of [/"hiRes"\s*:\s*"(https:[^"]+?)"/gi,
+                    /data-old-hires\s*=\s*["'](https:[^"']+?)["']/gi,
+                    /"large"\s*:\s*"(https:[^"]+?)"/gi]) {
+    for (const m of html.matchAll(re)) push(m[1], 100000);
+  }
+  /* テキスト中の images/I/ を全部拾う。URLに入っているサイズ指定を目安に順位を付ける */
+  for (const m of html.matchAll(/https:(?:\\?\/){2}m\.media-amazon\.com(?:\\?\/)images(?:\\?\/)I(?:\\?\/)([A-Za-z0-9%+-]+)((?:\._[A-Za-z0-9,_-]+)*)\.(jpg|jpeg|png|webp)/gi)) {
+    const id = m[1], mod = m[2] || "";
+    const size = Math.max(0, ...[...mod.matchAll(/_(?:S[LXY]|U[LXY])(\d{2,4})_/gi)].map((x) => +x[1]));
+    push(`https://m.media-amazon.com/images/I/${id}._AC_SL1500_.${m[3]}`, size || 1);
+    push(`https://m.media-amazon.com/images/I/${id}.${m[3]}`, (size || 1) - 1);
+  }
+
+  const seen = new Set();
+  return out.sort((a, b) => b.score - a.score)
+    .map((x) => x.u)
+    .filter((u) => !seen.has(u) && seen.add(u))
+    .slice(0, 10);
 }
 
 /* メタ情報サービス（JSONで画像URLを返す）。ページを自前で取れないときの本命 */
@@ -394,7 +411,7 @@ async function ogImages(url, log = () => {}) {
         return t ? (t.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] || "") : "";
       };
       const found = [
-        isAmazonUrl(url) ? amazonImageFromHtml(html) : "",   // Amazonはページ内の商品画像を直接探す
+        ...(isAmazonUrl(url) ? amazonImagesFromHtml(html) : []),   // Amazonはページ内の商品画像を直接探す
         pick("og:image:secure_url"), pick("og:image"),
         pick("twitter:image"), pick("twitter:image:src"),
       ].filter(Boolean).map((src) => {
@@ -405,7 +422,7 @@ async function ogImages(url, log = () => {}) {
       }).filter((x) => /^https?:\/\//i.test(x));
 
       if (!found.length) { log("ページ", `${via} → 取れたが画像が見つからない`); continue; }
-      log("ページ", `${via} → 画像URLあり`);
+      log("ページ", `${via} → 画像候補 ${new Set(found).size} 件`);
       return [...new Set(found)];
     } catch (e) {
       log("ページ", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
@@ -446,9 +463,11 @@ async function guessImage(url, log = () => {}) {
     if (await probeImage(c)) { log("結果", "メタ情報サービスの画像を採用"); return c; }
   }
 
-  for (const c of await ogImages(target, log)) {       // 4) 中継してページを読む
+  const pageCand = await ogImages(target, log);         // 4) 中継してページを読む
+  for (const c of pageCand) {
     if (await probeImage(c)) { log("結果", "ページから拾った画像を採用"); return c; }
   }
+  if (pageCand.length) log("ページ", `候補 ${pageCand.length} 件すべて画像として読めず`);
   log("結果", "画像が見つかりませんでした");
   return "";
 }
