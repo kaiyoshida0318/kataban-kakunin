@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.26.0";
+const VERSION   = "0.28.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -107,7 +107,7 @@ const STALE_DAYS = 14;   // 最終確認からこの日数を超えたら色を�
 
 /* ---------- 状態 ---------- */
 let cfg   = { owner: "", repo: "", branch: "main", pat: "",
-              rakutenAppId: "", rakutenAccessKey: "", imgProxy: "" };
+              rakutenAppId: "", rakutenAccessKey: "", imgProxy: "", autoSave: true };
 let data  = emptyData();
 let sha   = null;
 let dirty = false;
@@ -119,6 +119,7 @@ let tableEdit = false;   // 表からの直接編集モード
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
 const openRows  = new Set();   // 商品欄を開いている行
 const addRows   = new Set();   // 入力行（新規追加）を出している行
+const imgBusy   = new Set();   // 画像を裏で取得中の商品行 "itemId|pickId"
 const filters = Object.fromEntries(SECTIONS.map((s) =>
   [s.key, { q: "", cat: "*", sort: s.defSort || "checkedAt", dir: "desc" }]));
 const F = () => filters[view];
@@ -443,6 +444,7 @@ function loadCfg() {
     if (raw) cfg = Object.assign(cfg, JSON.parse(raw));
   } catch { /* noop */ }
   if (!cfg.branch) cfg.branch = "main";
+  if (cfg.autoSave === undefined) cfg.autoSave = true;
 }
 function saveCfg() { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }
 
@@ -468,9 +470,56 @@ function loadLocal() {
   return null;
 }
 
+/* =========================================================
+   自動保存
+   手が止まって AUTO_IDLE ms、または触り続けていても AUTO_MAX ms で保存する。
+   タブを閉じる/裏に回すときにも保存を試みる。
+   ========================================================= */
+const AUTO_IDLE = 4000;
+const AUTO_MAX  = 60000;
+let autoTimer = null;   // 予約中のタイマー
+let dirtySince = 0;     // 最初に汚れた時刻
+let saving = false;     // 保存中
+let saveAgain = false;  // 保存中にさらに変更された
+let savedAt = "";       // 最後に保存できた時刻 HH:MM
+let saveErr = "";       // 直近の保存エラー
+let saveFails = 0;      // 連続失敗回数（一時的な不調に備えて数回だけ再試行する）
+const RETRY_WAIT = 30000;
+const RETRY_MAX  = 5;
+
+const canSave = () => cfgReady() && Boolean(cfg.pat);
+
 function markDirty(v) {
   dirty = v;
-  $("saveState").hidden = !dirty;
+  if (v) {
+    saveErr = ""; saveFails = 0;
+    if (!dirtySince) dirtySince = Date.now();
+    scheduleAutoSave();
+  } else {
+    dirtySince = 0;
+    clearTimeout(autoTimer); autoTimer = null;
+  }
+  renderSaveState();
+}
+
+function scheduleAutoSave() {
+  if (!cfg.autoSave || !canSave() || saving) return;
+  clearTimeout(autoTimer);
+  const capLeft = dirtySince + AUTO_MAX - Date.now();
+  autoTimer = setTimeout(() => saveToGitHub(true), Math.max(0, Math.min(AUTO_IDLE, capLeft)));
+}
+
+function renderSaveState() {
+  const el = $("saveState");
+  let cls = "dirty-badge", txt = "";
+  if (saving)        { cls += " is-saving"; txt = "⟳ 保存中…"; }
+  else if (saveErr)  { cls += " is-err";    txt = "⚠ 保存できず（クリックで再試行）"; }
+  else if (dirty)    { txt = cfg.autoSave && canSave() ? "● 未保存（まもなく保存）" : "● 未保存"; }
+  else if (savedAt)  { cls += " is-saved";  txt = `✓ ${savedAt} 保存済み`; }
+  el.className = cls;
+  el.textContent = txt;
+  el.hidden = !txt;
+  el.title = saveErr || "";
 }
 
 /* =========================================================
@@ -516,6 +565,37 @@ function renderToolbar() {
   });
 
   $("rankCatList").innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
+}
+
+/* 画像は裏で取りにいく。取れたらその行だけ差し替える */
+async function fetchPickImage(sectionKey, itemId, pickId, url) {
+  const key = `${itemId}|${pickId}`;
+  if (imgBusy.has(key)) return;
+  imgBusy.add(key);
+  paintPickThumb(sectionKey, key);
+
+  let found = "";
+  try { found = await guessImage(url); } catch { /* noop */ }
+  imgBusy.delete(key);
+
+  const it = itemsOf(sectionKey).find((i) => i.id === itemId);
+  const p  = it?.picks.find((x) => x.id === pickId);
+  if (!p) return;                       // 取得中に消された
+  if (found && !p.image) {
+    p.image = found;
+    it.updatedAt = nowIso();
+    persistLocal(); markDirty(true);
+  }
+  paintPickThumb(sectionKey, key);
+}
+
+/* 画像セルだけを描き直す（入力中のフォーカスを飛ばさないため） */
+function paintPickThumb(sectionKey, key) {
+  const cell = $("list").querySelector(`[data-pickimg="${CSS.escape(key)}"]`);
+  if (!cell) return;
+  const [itemId, pickId] = key.split("|");
+  const p = itemsOf(sectionKey).find((i) => i.id === itemId)?.picks.find((x) => x.id === pickId);
+  if (p) cell.innerHTML = pickThumb(itemId, p);
 }
 
 /* =========================================================
@@ -685,15 +765,10 @@ function renderBody() {
       const url = row.querySelector(".pick-url").value.trim();
       if (!url) { toast("商品URLを入力してください", true); row.querySelector(".pick-url").focus(); return; }
       const it = itemsOf(view).find((i) => i.id === id);
-      let image = row.querySelector(".pick-image").value.trim();
-      if (!image) {                                      // 画像未入力ならURLから自動取得
-        const btn = row.querySelector(".pick-add");
-        btn.disabled = true; btn.textContent = "取得中…";
-        image = await guessImage(url);
-        btn.disabled = false; btn.textContent = "追加";
-      }
+      const image = row.querySelector(".pick-image").value.trim();
+      const pickId = uid();
       it.picks.push({
-        id:      uid(),
+        id:      pickId,
         addedAt: row.querySelector(".pick-added").value || today(),
         image,
         title:   row.querySelector(".pick-title").value.trim(),
@@ -702,8 +777,10 @@ function renderBody() {
         buy:     "before",
       });
       it.updatedAt = nowIso();
-      upsert(view, it);
-      toast(image ? "商品を追加しました（画像を自動取得）" : "商品を追加しました");
+      const sec = view;
+      upsert(sec, it);                                   // 追加はここで完了。待たせない
+      toast(image ? "商品を追加しました" : "商品を追加しました（画像は裏で取得します）");
+      if (!image) fetchPickImage(sec, id, pickId, url);  // 画像は裏で取りにいく
       setTimeout(() => {
         const next = $("list").querySelector(`tr.pick-new[data-for="${id}"] .pick-url`);
         if (next) next.focus();
@@ -756,13 +833,15 @@ function renderBody() {
       const p  = it.picks.find((x) => x.id === pid);
       p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
       p.image   = row.querySelector(".pe-image").value.trim();
-      if (!p.image) p.image = await guessImage(url);
       p.url     = url;
       p.title   = row.querySelector(".pe-title").value.trim();
       it.updatedAt = nowIso();
       editPicks.delete(key);
-      upsert(view, it);
-      toast("商品を更新しました");
+      const sec = view;
+      const needImg = !p.image;
+      upsert(sec, it);
+      toast(needImg ? "商品を更新しました（画像は裏で取得します）" : "商品を更新しました");
+      if (needImg) fetchPickImage(sec, id, pid, url);
     };
     b.onclick = save;
     row.querySelectorAll("input").forEach((inp) => {
@@ -992,12 +1071,18 @@ function statusCells(itemId, p) {
          `<td class="td-st">${sel("buy", PICK_BUY, p.buy)}</td>`;
 }
 
-function pickPanel(it) {
-  const thumb = (p) => p.image
+function pickThumb(itemId, p) {
+  if (imgBusy.has(`${itemId}|${p.id}`))
+    return `<span class="pick-thumb busy" title="画像を取得しています">取得中</span>`;
+  return p.image
     ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
            title="${esc(p.image)}"
            onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
     : `<span class="pick-thumb none"></span>`;
+}
+
+function pickPanel(it) {
+  const thumb = (p) => pickThumb(it.id, p);
 
   const picks = it.picks
     .slice()
@@ -1019,7 +1104,7 @@ function pickPanel(it) {
       return `
       <tr>
         <td class="td-date">${esc(p.addedAt || "—")}</td>
-        <td class="td-img">${thumb(p)}</td>
+        <td class="td-img" data-pickimg="${esc(key)}">${thumb(p)}</td>
         <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
         <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
         <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
@@ -1254,18 +1339,24 @@ async function pullFromGitHub(silent) {
   }
 }
 
-async function saveToGitHub() {
-  if (!cfgReady()) { toast("設定でオーナー/リポジトリを入力してください", true); openCfg(); return; }
-  if (!cfg.pat)   { toast("設定でPersonal Access Tokenを入力してください", true); openCfg(); return; }
+async function saveToGitHub(auto = false) {
+  if (!cfgReady()) {
+    if (auto) return;
+    toast("設定でオーナー/リポジトリを入力してください", true); openCfg(); return;
+  }
+  if (!cfg.pat) {
+    if (auto) return;
+    toast("設定でPersonal Access Tokenを入力してください", true); openCfg(); return;
+  }
+  if (saving) { saveAgain = true; return; }          // 保存中の変更は終わってからもう一度
+  if (auto && !dirty) return;
 
+  clearTimeout(autoTimer); autoTimer = null;
+  saving = true; renderSaveState();
   const btn = $("btnSaveGh");
   btn.disabled = true; btn.textContent = "保存中…";
-  try {
-    const head = await fetch(ghGetUrl(), { headers: ghHeaders(), cache: "no-store" });
-    if (head.ok) sha = (await head.json()).sha;
-    else if (head.status === 404) sha = null;
-    else throw new Error(`${head.status} ${head.statusText}`);
 
+  const put = async () => {
     data.updatedAt = nowIso();
     const n = SECTIONS.reduce((t, s) => t + itemsOf(s.key).length, 0);
     const body = {
@@ -1274,23 +1365,53 @@ async function saveToGitHub() {
       branch:  cfg.branch,
     };
     if (sha) body.sha = sha;
-
     const res = await fetch(ghBase(), {
       method: "PUT",
       headers: { ...ghHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const out = await res.json();
+    return { res, out: await res.json() };
+  };
+
+  try {
+    const head = await fetch(ghGetUrl(), { headers: ghHeaders(), cache: "no-store" });
+    if (head.ok) sha = (await head.json()).sha;
+    else if (head.status === 404) sha = null;
+    else throw new Error(`${head.status} ${head.statusText}`);
+
+    let { res, out } = await put();
+    if (res.status === 409) {                        // 別端末が先に保存した → shaを取り直して一度だけ再試行
+      const again = await fetch(ghGetUrl(), { headers: ghHeaders(), cache: "no-store" });
+      sha = again.ok ? (await again.json()).sha : null;
+      ({ res, out } = await put());
+    }
     if (!res.ok) throw new Error(`${res.status} ${out.message || res.statusText}`);
 
     sha = out.content.sha;
-    markDirty(false);
-    toast("GitHubに保存しました");
+    saveErr = ""; saveFails = 0;
+    savedAt = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+    dirty = false; dirtySince = 0;
+    if (!auto) toast("GitHubに保存しました");
   } catch (e) {
-    toast("保存失敗: " + e.message, true);
+    saveErr = e.message;
+    saveFails++;
+    if (!auto || saveFails === 1) toast((auto ? "自動保存に失敗: " : "保存失敗: ") + e.message, true);
+    if (cfg.autoSave && saveFails <= RETRY_MAX) {          // 一時的な不調なら少し待って再試行
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => saveToGitHub(true), RETRY_WAIT);
+    }
   } finally {
+    saving = false;
     btn.disabled = false; btn.textContent = "💾 保存";
+    renderSaveState();
+    if (saveAgain) { saveAgain = false; markDirty(true); }
+    else if (dirty && cfg.autoSave && !saveErr) scheduleAutoSave();
   }
+}
+
+/* 画面を離れる/裏に回すときに取りこぼさない */
+function flushSave() {
+  if (dirty && cfg.autoSave && canSave() && !saving) saveToGitHub(true);
 }
 
 /* =========================================================
@@ -1305,6 +1426,7 @@ function openCfg() {
   $("cRkKey").value   = cfg.rakutenAccessKey || "";
   $("cProxy").value   = cfg.imgProxy || "";
   $("cProxy").placeholder = DEFAULT_PROXIES[0];
+  $("cAutoSave").checked = cfg.autoSave !== false;
   $("cfgStatus").textContent = "";
   renderCfgUrl();
   $("cfgModal").hidden = false;
@@ -1373,6 +1495,7 @@ function readCfgForm() {
     rakutenAppId:     $("cRkAppId").value.trim(),
     rakutenAccessKey: $("cRkKey").value.trim(),
     imgProxy:         $("cProxy").value.trim(),
+    autoSave:         $("cAutoSave").checked,
   };
 
   // 正規化した結果を画面にも反映して、何が送られるか見えるようにする
@@ -1450,7 +1573,16 @@ function bind() {
     colW = {}; saveCols(); renderBody(); renderColPanel();
     toast("幅と高さを既定に戻しました");
   };
-  $("btnSaveGh").onclick   = saveToGitHub;
+  $("btnSaveGh").onclick   = () => saveToGitHub(false);
+  $("saveState").onclick   = () => { if (saveErr || dirty) saveToGitHub(false); };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushSave(); });
+  window.addEventListener("pagehide", flushSave);
+  window.addEventListener("beforeunload", (e) => {
+    if (!dirty) return;
+    flushSave();
+    // 自動保存が効かない状況のときだけ、閉じる前に確認する
+    if (!cfg.autoSave || !canSave() || saveErr) { e.preventDefault(); e.returnValue = ""; }
+  });
 
   $("q").oninput      = (e) => { F().q = e.target.value; renderBody(); };
   $("qClear").onclick = () => { $("q").value = ""; F().q = ""; renderBody(); };
@@ -1507,7 +1639,7 @@ function bind() {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") ["rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
-    if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveToGitHub(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveToGitHub(false); }
   });
   let fitTimer = null;
   window.addEventListener("resize", () => {
