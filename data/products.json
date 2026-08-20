@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T06:32:45.582Z",
+  "updatedAt": "2026-08-20T06:33:53.161Z",
   "sections": {
     "amazon": {
       "items": [
@@ -38,9 +38,19 @@
           "urlRakuten": "",
           "checkNote": "",
           "checkedAt": "2026-08-20",
-          "picks": [],
+          "picks": [
+            {
+              "id": "itm_gz93e9c9zyo",
+              "addedAt": "2026-08-20",
+              "image": "",
+              "title": "vivoactive5 ケース",
+              "url": "https://www.amazon.co.jp/YealRed-Garmin-Vivoactive-vivoactive-%E4%BF%9D%E8%AD%B7%E3%82%B1%E3%83%BC%E3%82%B9%EF%BC%88%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%EF%BC%89/dp/B0DL5PQB3Y/ref=zg_bs_g_14616561051_d_sccl_21/355-0893691-4316449?th=1",
+              "check": "before",
+              "buy": "before"
+            }
+          ],
           "createdAt": "2026-08-20T05:08:00.530Z",
-          "updatedAt": "2026-08-20T05:31:33.550Z"
+          "updatedAt": "2026-08-20T06:33:48.624Z"
         },
         {
           "id": "itm_f8u59p96341",
