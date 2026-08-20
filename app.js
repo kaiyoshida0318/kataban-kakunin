@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.22.0";
+const VERSION   = "0.23.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -896,6 +896,8 @@ function openRank(item) {
   /* URL欄はタブごとに本数と並びが変わる（amazon基準 = Amazon→楽天 / 楽天基準 = 楽天→Amazon） */
   const fields = urlFieldsOf(view);
   const FIELD_BOX = { url: "fUrl", urlAmazon: "fUrlAmz", urlRakuten: "fUrlRak" };
+  $("rankModalBox").classList.toggle("modal-xwide", fields.length > 1);
+
   const urlWrap = $("rUrlFields");
   Object.values(FIELD_BOX).forEach((id) => { $(id).hidden = true; });
   fields.forEach((f) => {                                // 並び順もタブに合わせる

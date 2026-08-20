@@ -451,6 +451,8 @@ body.resizing *{cursor:col-resize !important}
   display:flex;align-items:flex-start;justify-content:center;padding:48px 20px;overflow-y:auto;
 }
 .modal{background:var(--surface);border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.18);width:100%;max-width:640px;display:flex;flex-direction:column}
+/* amazon基準・楽天基準（URL2本）のモーダルは1.5倍幅 */
+.modal.modal-xwide{max-width:960px}
 .modal-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
 .modal-ttl{font-size:16px;font-weight:700;flex:1}
 .modal-body{padding:18px 20px}
