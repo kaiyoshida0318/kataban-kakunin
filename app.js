@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.37.0";
+const VERSION   = "0.38.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1796,6 +1796,124 @@ function flushSave() {
 }
 
 /* =========================================================
+   履歴から復元（コミット履歴を全部読んで統合する）
+   ========================================================= */
+const ghCommitsUrl = (n) =>
+  `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/commits` +
+  `?path=${encodeURIComponent(DATA_PATH)}&sha=${encodeURIComponent(cfg.branch)}&per_page=${n}`;
+const ghFileAtUrl = (sha) => `${ghBase()}?ref=${encodeURIComponent(sha)}`;
+
+/* 壊れた画像URLを直す。連結してしまったものは最初の1本を取り、ロゴ類は捨てる */
+function cleanImage(v) {
+  const all = String(v || "").match(/https?:\/\/[^\s"']+?\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"']*)?/gi) || [];
+  for (const u of all) if (!isJunkImage(u)) return u;
+  return "";
+}
+
+/* 古い版から新しい版へ重ねて、消えたものを拾い直す */
+function mergeVersions(versions) {
+  const items = new Map();                    // itemId → { sec, item }
+  const picksOf = new Map();                  // itemId → Map(URL or id → pick)
+
+  for (const v of versions) {                 // versions は古い順
+    for (const sec of SECTIONS) {
+      for (const it of v.sections[sec.key].items) {
+        const bag = picksOf.get(it.id) || new Map();
+        for (const p of it.picks) {
+          const key = p.url || p.id;
+          const old = bag.get(key);
+          bag.set(key, old
+            ? { ...old, ...p,
+                image: cleanImage(p.image) || cleanImage(old.image),
+                title: p.title || old.title,
+                addedAt: old.addedAt || p.addedAt }   // 追加日は最初に見た日を残す
+            : { ...p, image: cleanImage(p.image) });
+        }
+        picksOf.set(it.id, bag);
+        const prev = items.get(it.id);
+        items.set(it.id, { sec: sec.key, item: { ...(prev?.item || {}), ...it, image: cleanImage(it.image) || (prev?.item.image || "") } });
+      }
+    }
+  }
+
+  /* 並びは最新版のものを尊重し、最新版に無いものは後ろに付ける */
+  const newest = versions.at(-1);
+  const order = new Map();
+  let n = 0;
+  for (const sec of SECTIONS) for (const it of newest.sections[sec.key].items) order.set(it.id, n++);
+
+  const out = emptyData();
+  const list = [...items.values()].sort((a, b) =>
+    (order.has(a.item.id) ? order.get(a.item.id) : 1e9) - (order.has(b.item.id) ? order.get(b.item.id) : 1e9));
+  for (const { sec, item } of list) {
+    const picks = [...(picksOf.get(item.id) || new Map()).values()]
+      .filter((p) => p.url)
+      .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
+    out.sections[sec].items.push({ ...item, picks });
+  }
+  out.updatedAt = nowIso();
+  return out;
+}
+
+async function restoreFromHistory() {
+  if (!cfgReady() || !cfg.pat) { toast("先にオーナー／リポジトリ／トークンを入れてください", true); return; }
+  const n = Math.min(100, Math.max(1, parseInt($("cHistN").value, 10) || 30));
+  const btn = $("btnRestore"), out = $("restoreOut");
+  btn.disabled = true; btn.textContent = "読み込み中…";
+  out.hidden = false;
+  out.innerHTML = `<p class="hint">コミット一覧を取得しています…</p>`;
+
+  try {
+    const res = await fetch(ghCommitsUrl(n), { headers: ghHeaders(), cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const commits = await res.json();
+    if (!commits.length) throw new Error("履歴が見つかりません");
+
+    const rows = [];
+    const versions = [];
+    for (let i = commits.length - 1; i >= 0; i--) {          // 古い順に読む
+      const c = commits[i];
+      out.innerHTML = `<p class="hint">${commits.length - i} / ${commits.length} 版を読み込み中…</p>`;
+      const r = await fetch(ghFileAtUrl(c.sha), { headers: ghHeaders(), cache: "no-store" });
+      if (!r.ok) continue;
+      let v;
+      try { v = normalize(JSON.parse(b64decode((await r.json()).content))); } catch { continue; }
+      versions.push(v);
+      const it = SECTIONS.reduce((t, s) => t + v.sections[s.key].items.length, 0);
+      const pk = SECTIONS.reduce((t, s) => t + v.sections[s.key].items.reduce((m, x) => m + x.picks.length, 0), 0);
+      rows.unshift({ sha: c.sha.slice(0, 7), at: (c.commit?.author?.date || "").replace("T", " ").slice(0, 16), it, pk });
+    }
+    if (!versions.length) throw new Error("読める版がありませんでした");
+
+    const merged = mergeVersions(versions);
+    const mi = SECTIONS.reduce((t, s) => t + merged.sections[s.key].items.length, 0);
+    const mp = SECTIONS.reduce((t, s) => t + merged.sections[s.key].items.reduce((m, x) => m + x.picks.length, 0), 0);
+    const cur = [SECTIONS.reduce((t, s) => t + itemsOf(s.key).length, 0), pickTotal()];
+
+    out.innerHTML = `
+      <p class="restore-sum"><b>${versions.length} 版</b>を統合しました →
+        ランキング行 <b>${mi}</b>（いま ${cur[0]}） / 商品 <b>${mp}</b>（いま ${cur[1]}）</p>
+      <div class="restore-list"><table class="restore-tbl">
+        <thead><tr><th>コミット</th><th>日時</th><th>行</th><th>商品</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr><td class="mono">${esc(r.sha)}</td><td class="mono">${esc(r.at)}</td><td>${r.it}</td><td>${r.pk}</td></tr>`).join("")}</tbody>
+      </table></div>
+      <button class="btn btn-primary btn-sm" id="btnApplyRestore">この内容を画面に反映する</button>
+      <p class="hint">反映しても、この時点ではGitHubに書き込みません。中身を確かめてから「💾 保存」を押してください。</p>`;
+
+    $("btnApplyRestore").onclick = () => {
+      data = merged;
+      persistLocal(); markDirty(true); renderAll();
+      $("cfgModal").hidden = true;
+      toast(`復元しました（行 ${mi} / 商品 ${mp}）。確認して「💾 保存」を押してください`);
+    };
+  } catch (e) {
+    out.innerHTML = `<p class="hint err-text">読み込めませんでした: ${esc(e.message)}</p>`;
+  } finally {
+    btn.disabled = false; btn.textContent = "履歴を読み込んで統合";
+  }
+}
+
+/* =========================================================
    設定
    ========================================================= */
 function openCfg() {
@@ -2005,6 +2123,7 @@ function bind() {
   $("btnSaveCfg").onclick = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
   $("btnTestGh").onclick  = testConnection;
   $("btnImgTest").onclick = runImgTest;
+  $("btnRestore").onclick = restoreFromHistory;
   /* 伏せ字の表示切り替え */
   document.querySelectorAll("[data-pw]").forEach((b) => {
     b.onclick = () => {
