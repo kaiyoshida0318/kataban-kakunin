@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:16:58.511Z",
+  "updatedAt": "2026-08-20T08:17:05.759Z",
   "labels": {
     "rival": [
       {
@@ -17,11 +17,6 @@
         "v": "o_ww912j",
         "label": "売れそうにない",
         "color": "red"
-      },
-      {
-        "v": "",
-        "label": "未調査",
-        "color": "gray"
       },
       {
         "v": "few",
@@ -99,7 +94,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "1230",
-              "rival": ""
+              "rival": "o_9rscsw"
             },
             {
               "id": "itm_x9st70mqew8",
@@ -112,7 +107,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "413",
-              "rival": ""
+              "rival": "o_9rscsw"
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
@@ -167,7 +162,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             }
           ],
           "createdAt": "2026-08-20T05:08:00.530Z",
@@ -195,7 +190,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
@@ -237,7 +232,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             },
             {
               "id": "itm_zzjbkdtckbd",
@@ -250,7 +245,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             },
             {
               "id": "itm_udzcz52ke67",
@@ -263,7 +258,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
@@ -309,7 +304,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             },
             {
               "id": "itm_v6fgtxmr1ny",
@@ -322,7 +317,7 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": ""
+              "rival": "o_9rscsw"
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
