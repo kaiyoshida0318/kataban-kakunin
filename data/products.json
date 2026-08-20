@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:01:54.474Z",
+  "updatedAt": "2026-08-20T08:02:03.601Z",
   "sections": {
     "amazon": {
       "items": [
@@ -34,7 +34,7 @@
               "urlAmazon": "https://www.amazon.co.jp/UrbanPulse-Google-%E3%83%9E%E3%82%B0%E3%83%8D%E3%83%83%E3%83%88%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB-%E6%8C%81%E3%81%A1%E9%81%8B%E3%81%B3%E3%81%AB%E4%BE%BF%E5%88%A9-Type-C/dp/B0DK4HCR2K/ref=zg_bs_g_14616559051_d_sccl_10/355-0893691-4316449?th=1",
               "urlRakuten": "https://item.rakuten.co.jp/nnbay/pixelwatch2-cable/",
               "imageAmazon": "https://m.media-amazon.com/images/I/513eXe95hcL._AC_SL1200_.jpg",
-              "imageRakuten": "",
+              "imageRakuten": "https://shop.r10s.jp/nnbay/cabinet/sumaho-sonota/sonota/pw2c_new1.jpg",
               "title": "Google Pixel ケーブル",
               "check": "before",
               "buy": "before",
@@ -43,7 +43,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-20T08:01:49.938Z"
+          "updatedAt": "2026-08-20T08:01:58.098Z"
         },
         {
           "id": "itm_l7plowx4grx",
