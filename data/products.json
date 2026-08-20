@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T06:21:31.674Z",
+  "updatedAt": "2026-08-20T06:29:46.732Z",
   "sections": {
     "amazon": {
       "items": [
@@ -77,17 +77,26 @@
           "checkedAt": "2026-08-19",
           "picks": [
             {
+              "id": "itm_tjvs0ll9v3r",
+              "addedAt": "2026-08-19",
+              "image": "https://m.media-amazon.com/images/I/71YKVKfZx3L._AC_SL1500_.jpg",
+              "url": "https://x.gd/96Mjr",
+              "title": "",
+              "check": "before",
+              "buy": "before"
+            },
+            {
               "id": "itm_u66ago127zf",
               "addedAt": "2026-08-20",
               "image": "https://m.media-amazon.com/images/I/61BCdw3T2aL._AC_SL1500_.jpg",
               "url": "https://www.amazon.co.jp/Dikeshgu-Xiaomi-10%E4%BA%A4%E6%8F%9B%E3%83%90%E3%83%B3%E3%83%89-%E3%82%B7%E3%83%A3%E3%82%AA%E3%83%9F%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%90%E3%83%B3%E3%83%8910-8%E6%9B%BF%E3%81%88%E3%83%90%E3%83%B3%E3%83%89/dp/B0GT4P3GN2/ref=zg_bs_g_18195127051_d_sccl_19/355-8190517-1304632?th=1",
-              "title": "Xiaomi Smart Band 10/9/8 ベルト",
+              "title": "",
               "check": "before",
               "buy": "before"
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
-          "updatedAt": "2026-08-20T06:12:17.276Z"
+          "updatedAt": "2026-08-20T05:55:48.692Z"
         },
         {
           "id": "itm_c0u7ctd2eau",
@@ -102,6 +111,20 @@
           "picks": [],
           "createdAt": "2026-08-19T09:28:11.238Z",
           "updatedAt": "2026-08-20T05:31:38.606Z"
+        },
+        {
+          "id": "itm_5t0ipbd3tqv",
+          "name": "猫用首輪の売れ筋ランキング",
+          "category": "首輪・リード",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71XNdNQ6YeL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/pet-supplies/2155362051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/215391/",
+          "checkNote": "",
+          "checkedAt": "2026-08-20",
+          "picks": [],
+          "createdAt": "2026-08-20T06:29:00.631Z",
+          "updatedAt": "2026-08-20T06:29:42.169Z"
         }
       ]
     },
