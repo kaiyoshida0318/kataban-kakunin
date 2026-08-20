@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:02:03.601Z",
+  "updatedAt": "2026-08-20T08:02:33.144Z",
   "sections": {
     "amazon": {
       "items": [
@@ -25,7 +25,7 @@
               "title": "Garminケーブルナイロン",
               "check": "before",
               "buy": "before",
-              "sales30": "",
+              "sales30": "1230",
               "rival": ""
             },
             {
@@ -43,7 +43,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-20T08:01:58.098Z"
+          "updatedAt": "2026-08-20T08:02:28.676Z"
         },
         {
           "id": "itm_l7plowx4grx",
