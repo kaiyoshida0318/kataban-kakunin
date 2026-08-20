@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.25.0";
+const VERSION   = "0.26.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -198,8 +198,21 @@ function probeImage(src) {
 }
 
 /* 楽天ウェブサービス（JSONPなのでGitHub Pagesから直接呼べる） */
-const RAKUTEN_EP    = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701";
-const DEFAULT_PROXY = "https://api.allorigins.win/raw?url={url}";
+const RAKUTEN_EPS = [
+  "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701",   // 現行
+  "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601",       // 旧（アプリIDのみで通る場合がある）
+];
+/* 楽天・Amazon以外はページのHTMLを中継サービス越しに読む */
+const DEFAULT_PROXIES = [
+  "https://api.allorigins.win/raw?url={url}",
+  "https://api.codetabs.com/v1/proxy/?quest={url}",
+  "https://corsproxy.io/?url={url}",
+];
+const proxyList = () => {
+  if (cfg.imgProxy === "-") return [];
+  const own = (cfg.imgProxy || "").split(/[\s,]+/).filter((x) => x.includes("{url}"));
+  return own.length ? own : DEFAULT_PROXIES;
+};
 
 /* item.rakuten.co.jp/{店舗}/{商品番号}/ → itemCode「店舗:商品番号」 */
 function rakutenItemCode(url) {
@@ -209,6 +222,17 @@ function rakutenItemCode(url) {
     const seg = u.pathname.split("/").filter(Boolean);
     return seg.length >= 2 ? `${seg[0]}:${seg[1]}` : "";
   } catch { return ""; }
+}
+
+/* レスポンスの形（Items/items, Item/item, formatVersion違い）に依存せず値を探す */
+function deepFind(obj, keys, depth = 0) {
+  if (!obj || typeof obj !== "object" || depth > 6) return null;
+  for (const k of keys) if (obj[k] != null) return obj[k];
+  for (const v of Array.isArray(obj) ? obj : Object.values(obj)) {
+    const hit = deepFind(v, keys, depth + 1);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 /* <script>タグでJSONPを1回呼ぶ。失敗・タイムアウトは null */
@@ -233,63 +257,100 @@ function jsonp(url, ms = 8000) {
   });
 }
 
-async function rakutenImage(url) {
-  const code = rakutenItemCode(url);
-  if (!code || !cfg.rakutenAppId) return "";
-  const q = new URLSearchParams({
-    applicationId: cfg.rakutenAppId,
-    itemCode: code,
-    format: "json",
-    hits: "1",
-    elements: "mediumImageUrls,itemUrl",
-  });
-  if (cfg.rakutenAccessKey) q.set("accessKey", cfg.rakutenAccessKey);
-  const res = await jsonp(`${RAKUTEN_EP}?${q}`);
-  const first = res?.Items?.[0];
-  const arr = first?.Item?.mediumImageUrls || first?.mediumImageUrls || [];
-  const raw = arr[0]?.imageUrl || arr[0] || "";
-  // ?_ex=128x128 のままだとサムネが小さいので大きめに差し替える
-  return raw ? String(raw).replace(/\?_ex=\d+x\d+/, "?_ex=500x500") : "";
+/* 楽天のサムネURLは ?_ex=128x128 が付くので、大きい順に候補を作る */
+function rakutenVariants(raw) {
+  const u = String(raw || "");
+  if (!u) return [];
+  return [...new Set([
+    u.replace(/\?_ex=\d+x\d+/, "?_ex=600x600"),
+    u.replace(/\?_ex=\d+x\d+/, ""),
+    u,
+  ])];
 }
 
-/* 中継サービス経由でページのHTMLを取り、og:image を拾う（楽天以外の保険） */
-async function ogImage(url) {
-  const tpl = cfg.imgProxy === "-" ? "" : (cfg.imgProxy || DEFAULT_PROXY);
-  if (!tpl) return "";
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
-    const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (!res.ok) return "";
-    const html = (await res.text()).slice(0, 500000);
-    const tags = html.match(/<meta[^>]+>/gi) || [];
-    const pick = (key) => {
-      const t = tags.find((x) =>
-        new RegExp(`(?:property|name)\\s*=\\s*["']${key}["']`, "i").test(x));
-      return t ? (t.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] || "") : "";
-    };
-    let src = pick("og:image:secure_url") || pick("og:image") || pick("twitter:image") || pick("twitter:image:src");
-    if (!src) return "";
-    src = src.replace(/&amp;/g, "&").trim();
-    if (src.startsWith("//")) src = "https:" + src;
-    else if (src.startsWith("/")) src = new URL(src, url).href;
-    return /^https?:\/\//i.test(src) ? src : "";
-  } catch { return ""; }
+async function rakutenImages(url, log = () => {}) {
+  const code = rakutenItemCode(url);
+  if (!code) { log("楽天", "対象外のURL"); return []; }
+  if (!cfg.rakutenAppId) { log("楽天", "アプリID未設定のためスキップ"); return []; }
+  log("楽天", `itemCode = ${code}`);
+
+  for (const ep of RAKUTEN_EPS) {
+    const q = new URLSearchParams({
+      applicationId: cfg.rakutenAppId,
+      itemCode: code,
+      format: "json",
+      hits: "1",
+    });
+    if (cfg.rakutenAccessKey) q.set("accessKey", cfg.rakutenAccessKey);
+    const res = await jsonp(`${ep}?${q}`);
+    const host = new URL(ep).hostname;
+    if (!res) { log("楽天", `${host} → 応答なし`); continue; }
+
+    const err = deepFind(res, ["error_description", "error"]);
+    const arr = deepFind(res, ["mediumImageUrls", "smallImageUrls"]);
+    const raw = Array.isArray(arr) ? (arr[0]?.imageUrl || arr[0] || "") : "";
+    if (raw) { log("楽天", `${host} → 画像URLあり`); return rakutenVariants(raw); }
+    log("楽天", `${host} → ${err ? "エラー: " + err : "画像URLが見つからない"}`);
+  }
+  return [];
+}
+
+/* 中継サービス経由でページのHTMLを取り、og:image を拾う */
+async function ogImages(url, log = () => {}) {
+  const list = proxyList();
+  if (!list.length) { log("og:image", "中継なしの設定のためスキップ"); return []; }
+
+  for (const tpl of list) {
+    const via = (() => { try { return new URL(tpl.replace("{url}", "")).hostname; } catch { return tpl; } })();
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 9000);
+      const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) { log("og:image", `${via} → HTTP ${res.status}`); continue; }
+
+      const html = (await res.text()).slice(0, 600000);
+      const tags = html.match(/<meta[^>]+>/gi) || [];
+      const pick = (key) => {
+        const t = tags.find((x) => new RegExp(`(?:property|name)\\s*=\\s*["']${key}["']`, "i").test(x));
+        return t ? (t.match(/content\s*=\s*["']([^"']+)["']/i)?.[1] || "") : "";
+      };
+      let src = pick("og:image:secure_url") || pick("og:image") || pick("twitter:image") || pick("twitter:image:src");
+      if (!src) { log("og:image", `${via} → ページは取れたが og:image なし`); continue; }
+      src = src.replace(/&amp;/g, "&").trim();
+      if (src.startsWith("//")) src = "https:" + src;
+      else if (src.startsWith("/")) src = new URL(src, url).href;
+      if (!/^https?:\/\//i.test(src)) { log("og:image", `${via} → URLの形が不正`); continue; }
+      log("og:image", `${via} → 取得`);
+      return [src];
+    } catch (e) {
+      log("og:image", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
+    }
+  }
+  return [];
 }
 
 /* 商品URLからメイン画像を1つ決める。Amazon → 楽天API → og:image の順 */
-async function guessImage(url) {
+async function guessImage(url, log = () => {}) {
   if (!url) return "";
-  for (const c of imageCandidates(url)) {          // 1) Amazon（URLのASINだけで完結）
-    const hit = await probeImage(c);
-    if (hit) return hit;
-  }
-  const rk = await rakutenImage(url);              // 2) 楽天ウェブサービス
-  if (rk && await probeImage(rk)) return rk;
 
-  const og = await ogImage(url);                   // 3) 中継サービスで og:image
-  if (og && await probeImage(og)) return og;
+  const amazon = imageCandidates(url);                 // 1) Amazon（URLのASINだけで完結）
+  if (amazon.length) {
+    for (const c of amazon) {
+      const hit = await probeImage(c);
+      if (hit) { log("Amazon", "画像を確認"); return hit; }
+    }
+    log("Amazon", "候補は作れたが画像が読めない");
+  }
+
+  for (const c of await rakutenImages(url, log)) {     // 2) 楽天ウェブサービス
+    if (await probeImage(c)) { log("結果", "楽天APIの画像を採用"); return c; }
+  }
+
+  for (const c of await ogImages(url, log)) {          // 3) 中継サービスで og:image
+    if (await probeImage(c)) { log("結果", "og:imageを採用"); return c; }
+  }
+  log("結果", "画像が見つかりませんでした");
   return "";
 }
 
@@ -1243,11 +1304,38 @@ function openCfg() {
   $("cRkAppId").value = cfg.rakutenAppId || "";
   $("cRkKey").value   = cfg.rakutenAccessKey || "";
   $("cProxy").value   = cfg.imgProxy || "";
-  $("cProxy").placeholder = DEFAULT_PROXY;
+  $("cProxy").placeholder = DEFAULT_PROXIES[0];
   $("cfgStatus").textContent = "";
   renderCfgUrl();
   $("cfgModal").hidden = false;
 }
+/* 画像取得テスト：どの段階で止まっているかを画面に出す */
+async function runImgTest() {
+  const url = $("cImgTest").value.trim();
+  if (!url) { toast("商品URLを入れてください", true); $("cImgTest").focus(); return; }
+  readCfgForm();                                   // 入力中の設定をそのまま使う
+
+  const box = $("imgTest"), logEl = $("imgTestLog"), prev = $("imgTestPrev");
+  box.hidden = false; logEl.innerHTML = ""; prev.innerHTML = "";
+  const add = (stage, msg, cls) => {
+    logEl.insertAdjacentHTML("beforeend",
+      `<li class="${cls || ""}"><b>${esc(stage)}</b><span>${esc(msg)}</span></li>`);
+  };
+  add("開始", url);
+
+  const btn = $("btnImgTest");
+  btn.disabled = true; btn.textContent = "実行中…";
+  const found = await guessImage(url, (stage, msg) => add(stage, msg));
+  btn.disabled = false; btn.textContent = "実行";
+
+  if (found) {
+    add("画像URL", found, "ok");
+    prev.innerHTML = `<img src="${esc(found)}" alt="" referrerpolicy="no-referrer">`;
+  } else {
+    add("画像URL", "取得できず", "ng");
+  }
+}
+
 /* 全角英数・記号を半角に。空白と不可視文字も落とす */
 function normId(s) {
   const punct = { "－": "-", "ー": "-", "―": "-", "‐": "-", "−": "-", "＿": "_", "．": ".", "／": "/", "：": ":" };
@@ -1396,6 +1484,8 @@ function bind() {
   $("cfgClose").onclick   = () => { $("cfgModal").hidden = true; };
   $("btnSaveCfg").onclick = () => { readCfgForm(); $("cfgModal").hidden = true; toast("設定を保存しました"); };
   $("btnTestGh").onclick  = testConnection;
+  $("btnImgTest").onclick = runImgTest;
+  $("cImgTest").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); runImgTest(); } };
   ["cOwner", "cRepo", "cBranch"].forEach((id) => {
     $(id).onblur = () => {
       const [o, r] = parseRepoInput($("cOwner").value, $("cRepo").value);
