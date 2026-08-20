@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:47:07.491Z",
+  "updatedAt": "2026-08-20T08:49:41.322Z",
   "labels": {
     "rival": [
       {
@@ -292,12 +292,12 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": "o_p14mmp",
+              "rival": "heavy",
               "quality": ""
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
-          "updatedAt": "2026-08-20T08:47:03.969Z"
+          "updatedAt": "2026-08-20T08:49:36.657Z"
         }
       ]
     },
