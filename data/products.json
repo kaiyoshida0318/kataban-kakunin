@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T09:33:04.420Z",
+  "updatedAt": "2026-08-20T09:33:10.795Z",
   "labels": {
     "rival": [
       {
@@ -154,7 +154,7 @@
               "imageAmazon": "https://images-fe.ssl-images-amazon.com/images/I/616cSzDOwqL._AC_UL600_SR600,400_.jpg",
               "imageRakuten": "",
               "title": "Garminケーブルナイロン",
-              "check": "before",
+              "check": "after",
               "buy": "before",
               "sales30": "1230",
               "rival": "o_9rscsw",
@@ -176,7 +176,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-20T08:43:43.718Z"
+          "updatedAt": "2026-08-20T09:33:06.317Z"
         },
         {
           "id": "itm_l7plowx4grx",
