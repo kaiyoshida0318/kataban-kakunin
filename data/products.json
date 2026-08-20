@@ -1,13 +1,13 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T05:30:32.620Z",
+  "updatedAt": "2026-08-20T05:30:49.488Z",
   "sections": {
     "amazon": {
       "items": [
         {
           "id": "itm_f8u59p96341",
           "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
-          "category": "未分類",
+          "category": "携帯電話・スマートフォンアクセサリ",
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71KN3-p0MqL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
@@ -35,12 +35,12 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-20T02:58:13.208Z"
+          "updatedAt": "2026-08-20T05:30:41.688Z"
         },
         {
           "id": "itm_l7plowx4grx",
           "name": "スマートウォッチ用スクリーンプロテクター・ホイルの売れ筋ランキング",
-          "category": "未分類",
+          "category": "携帯電話・スマートフォンアクセサリ",
           "image": "https://m.media-amazon.com/images/I/6133V6QaU3L._AC_SL1200_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616557051/ref=zg_bs_nav_electronics_4_14616555051",
@@ -49,12 +49,12 @@
           "checkedAt": "2026-08-19",
           "picks": [],
           "createdAt": "2026-08-19T02:57:53.133Z",
-          "updatedAt": "2026-08-20T02:58:52.433Z"
+          "updatedAt": "2026-08-20T05:30:42.429Z"
         },
         {
           "id": "itm_d19g7p56jye",
           "name": "スマートウォッチ交換ベルトの売れ筋ランキング",
-          "category": "未分類",
+          "category": "携帯電話・スマートフォンアクセサリ",
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71hHfQpD8EL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/18195127051/ref=zg_bs_nav_electronics_4_14616561051",
@@ -82,12 +82,12 @@
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
-          "updatedAt": "2026-08-20T05:03:46.923Z"
+          "updatedAt": "2026-08-20T05:30:43.307Z"
         },
         {
           "id": "itm_c0u7ctd2eau",
           "name": "スポーツ・アウトドア  >  登山・クライミング  >  カラビナ",
-          "category": "未分類",
+          "category": "携帯電話・スマートフォンアクセサリ",
           "image": "https://tshop.r10s.jp/soku/cabinet/ni/sb/lsbm/microlock_top2.jpg?fitin=128:128",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/sports/16397314051",
@@ -96,7 +96,7 @@
           "checkedAt": "2026-08-19",
           "picks": [],
           "createdAt": "2026-08-19T09:28:11.238Z",
-          "updatedAt": "2026-08-20T03:25:10.516Z"
+          "updatedAt": "2026-08-20T05:30:45.001Z"
         },
         {
           "id": "itm_ku2gtnx7no2",
