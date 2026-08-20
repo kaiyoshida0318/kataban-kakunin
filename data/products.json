@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:15:03.372Z",
+  "updatedAt": "2026-08-20T08:15:23.443Z",
   "labels": {
     "rival": [
       {
@@ -22,6 +22,21 @@
         "v": "heavy",
         "label": "激戦",
         "color": "red"
+      },
+      {
+        "v": "o_dn58o9",
+        "label": "新しい選択肢",
+        "color": "gray"
+      },
+      {
+        "v": "o_ww912j",
+        "label": "新しい選択肢",
+        "color": "gray"
+      },
+      {
+        "v": "o_9rscsw",
+        "label": "新しい選択肢",
+        "color": "gray"
       }
     ],
     "check": [
