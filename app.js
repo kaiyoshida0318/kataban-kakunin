@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.19.0";
+const VERSION   = "0.20.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -44,15 +44,28 @@ const pRowH = () => colW[PROW_H_KEY] || PROW_H_DEF;
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
+  { key: "irregular", icon: "🔀", label: "不規則分", nameLabel: "名称",
+    defSort: "checkedAt",
+    search: "名称・URLで検索…", add: "＋ URLを追加",
+    emptyTtl: "まだ登録がありません",
+    emptySub: "決まった周期ではなく、気付いたときに見るページを登録しておく場所です。" },
+  { key: "regular",  icon: "🔁", label: "定期分", nameLabel: "名称",
+    defSort: "checkedAt",
+    search: "名称・URLで検索…", add: "＋ URLを追加",
+    emptyTtl: "まだ登録がありません",
+    emptySub: "毎日・毎週など、決まった周期で確認するページを登録しておく場所です。" },
   { key: "amazon",   icon: "📊", label: "Amazonランキング", nameLabel: "ジャンル名",
+    defSort: "checkedAt",
     search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "よく見るAmazonの売れ筋ランキングページを登録しておくと、ここから一発で開けます。" },
   { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
+    defSort: "checkedAt",
     search: "ジャンル名・URLで検索…", add: "＋ ランキングURLを追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "よく見る楽天のランキングページを登録しておくと、ここから一発で開けます。" },
   { key: "products", icon: "📦", label: "型番商品",        nameLabel: "商品名",
+    defSort: "updatedAt",
     search: "商品名・型番・URLで検索…", add: "＋ 商品を追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "「＋ 商品を追加」から、監視したい商品のURLを登録してください。" },
@@ -89,11 +102,8 @@ let tableEdit = false;   // 表からの直接編集モード
 const editPicks = new Set();   // インライン編集中の商品行 "itemId|pickId"
 const openRows  = new Set();   // 商品欄を開いている行
 const addRows   = new Set();   // 入力行（新規追加）を出している行
-const filters = {
-  products: { q: "", cat: "*", sort: "updatedAt", dir: "desc" },
-  rakuten:  { q: "", cat: "*", sort: "checkedAt", dir: "desc" },
-  amazon:   { q: "", cat: "*", sort: "checkedAt", dir: "desc" },
-};
+const filters = Object.fromEntries(SECTIONS.map((s) =>
+  [s.key, { q: "", cat: "*", sort: s.defSort || "checkedAt", dir: "desc" }]));
 const F = () => filters[view];
 
 /* ---------- 小物 ---------- */
@@ -182,9 +192,13 @@ async function guessImage(url) {
    データ
    ========================================================= */
 function emptyData() {
-  return { version: 3, updatedAt: "", sections: { products: { items: [] }, rakuten: { items: [] }, amazon: { items: [] } } };
+  return {
+    version: 3,
+    updatedAt: "",
+    sections: Object.fromEntries(SECTIONS.map((s) => [s.key, { items: [] }])),
+  };
 }
-const itemsOf = (key) => data.sections[key].items;
+const itemsOf = (key) => (data.sections[key] ||= { items: [] }).items;
 
 function normRank(it) {
   return {
@@ -233,11 +247,14 @@ function normalize(d) {
   const s = d?.sections || {};
   // v1（items が直下）からの移行
   const legacy = Array.isArray(d?.items) ? d.items : null;
-  out.sections.products.items = (legacy || s.products?.items || [])
-    .map((it) => (isLegacyProduct(it) ? fromLegacyProduct(it) : normRank(it)))
-    .filter((x) => x.url || x.name);
-  out.sections.rakuten.items  = (s.rakuten?.items || []).map(normRank).filter((x) => x.url);
-  out.sections.amazon.items   = (s.amazon?.items  || []).map(normRank).filter((x) => x.url);
+  for (const sec of SECTIONS) {
+    const raw = sec.key === "products"
+      ? (legacy || s.products?.items || [])
+      : (s[sec.key]?.items || []);
+    out.sections[sec.key].items = raw
+      .map((it) => (isLegacyProduct(it) ? fromLegacyProduct(it) : normRank(it)))
+      .filter((x) => x.url || (sec.key === "products" && x.name));
+  }
   return out;
 }
 
