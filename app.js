@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.36.1";
+const VERSION   = "0.37.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -619,10 +619,14 @@ const colWidth = (c) => colW[c.key] || c.w;
 /* 表編集中は画像URL欄が入るので画像列を広げる */
 const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c), 170) : colWidth(c));
 
-function persistLocal() {
-  data.updatedAt = nowIso();
+/* stamp=false のときは updatedAt を触らない（GitHubから読んだ内容をそのまま控える用） */
+function persistLocal(stamp = true) {
+  if (stamp) data.updatedAt = nowIso();
   localStorage.setItem(LS_DATA, JSON.stringify(data));
 }
+/* 中身の総数。うっかり全消しを検知するための目安 */
+const totalCount = () =>
+  SECTIONS.reduce((t, s) => t + itemsOf(s.key).length, 0) + pickTotal();
 function loadLocal() {
   for (const key of [LS_DATA, "kata_data_v1"]) {          // 旧キーからも拾う
     try {
@@ -647,6 +651,8 @@ let saveAgain = false;  // 保存中にさらに変更された
 let savedAt = "";       // 最後に保存できた時刻 HH:MM
 let saveErr = "";       // 直近の保存エラー
 let saveFails = 0;      // 連続失敗回数（一時的な不調に備えて数回だけ再試行する）
+let booting = true;     // 起動中（GitHubと突き合わせるまで保存させない）
+let remoteCount = null; // 最後にGitHubから読んだときの件数（消し飛ばし防止の目安）
 const RETRY_WAIT = 30000;
 const RETRY_MAX  = 5;
 
@@ -666,7 +672,7 @@ function markDirty(v) {
 }
 
 function scheduleAutoSave() {
-  if (!cfg.autoSave || !canSave() || saving) return;
+  if (booting || !cfg.autoSave || !canSave() || saving) return;
   clearTimeout(autoTimer);
   const capLeft = dirtySince + AUTO_MAX - Date.now();
   autoTimer = setTimeout(() => saveToGitHub(true), Math.max(0, Math.min(AUTO_IDLE, capLeft)));
@@ -676,7 +682,10 @@ function renderSaveState() {
   const el = $("saveState");
   let cls = "dirty-badge", txt = "";
   if (saving)        { cls += " is-saving"; txt = "⟳ 保存中…"; }
-  else if (saveErr)  { cls += " is-err";    txt = "⚠ 保存できず（クリックで再試行）"; }
+  else if (saveErr)  {
+    cls += " is-err";
+    txt = saveErr.startsWith("件数が") ? "⚠ 保存を止めました（クリックで確認）" : "⚠ 保存できず（クリックで再試行）";
+  }
   else if (dirty)    { txt = cfg.autoSave && canSave() ? "● 未保存（まもなく保存）" : "● 未保存"; }
   else if (savedAt)  { cls += " is-saved";  txt = `✓ ${savedAt} 保存済み`; }
   el.className = cls;
@@ -1687,7 +1696,8 @@ async function pullFromGitHub(silent) {
     const json = await res.json();
     sha = json.sha;
     data = normalize(JSON.parse(b64decode(json.content)));
-    persistLocal(); markDirty(false); renderAll();
+    remoteCount = totalCount();
+    persistLocal(false); markDirty(false); renderAll();
     if (!silent) toast("GitHubから読み込みました");
     return true;
   } catch (e) {
@@ -1705,8 +1715,21 @@ async function saveToGitHub(auto = false) {
     if (auto) return;
     toast("設定でPersonal Access Tokenを入力してください", true); openCfg(); return;
   }
+  if (booting) return;                               // 起動時の突き合わせが終わるまでは保存しない
   if (saving) { saveAgain = true; return; }          // 保存中の変更は終わってからもう一度
   if (auto && !dirty) return;
+
+  /* GitHub側より極端に減っていたら、勝手に上書きしない */
+  const now = totalCount();
+  if (remoteCount !== null && remoteCount >= 5 && now < remoteCount / 2) {
+    if (auto) {
+      saveErr = `件数が ${remoteCount} → ${now} に減っています。自動保存は止めました`;
+      renderSaveState();
+      toast(saveErr + "（意図した削除なら「💾 保存」を押してください）", true);
+      return;
+    }
+    if (!confirm(`GitHub上は ${remoteCount} 件でしたが、いまは ${now} 件です。\nこの内容で上書きしますか？`)) return;
+  }
 
   clearTimeout(autoTimer); autoTimer = null;
   saving = true; renderSaveState();
@@ -1745,6 +1768,7 @@ async function saveToGitHub(auto = false) {
     if (!res.ok) throw new Error(`${res.status} ${out.message || res.statusText}`);
 
     sha = out.content.sha;
+    remoteCount = totalCount();
     saveErr = ""; saveFails = 0;
     savedAt = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
     dirty = false; dirtySince = 0;
@@ -1768,7 +1792,7 @@ async function saveToGitHub(auto = false) {
 
 /* 画面を離れる/裏に回すときに取りこぼさない */
 function flushSave() {
-  if (dirty && cfg.autoSave && canSave() && !saving) saveToGitHub(true);
+  if (!booting && dirty && cfg.autoSave && canSave() && !saving) saveToGitHub(true);
 }
 
 /* =========================================================
@@ -2023,6 +2047,16 @@ function bind() {
   });
 }
 
+/* GitHubの現物を取ってくる（画面には反映しない） */
+async function fetchRemote() {
+  try {
+    const res = await fetch(ghGetUrl(), { headers: ghHeaders(), cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return { data: normalize(JSON.parse(b64decode(json.content))), sha: json.sha };
+  } catch { return null; }
+}
+
 async function boot() {
   loadCfg();
   loadCols();
@@ -2031,17 +2065,46 @@ async function boot() {
   renderHeadBits();
 
   const local = loadLocal();
-  if (local) { data = local; markDirty(true); }
+  if (local) data = local;
   else {
     try {
       const res = await fetch(DATA_PATH + "?t=" + Date.now(), { cache: "no-store" });
       if (res.ok) data = normalize(await res.json());
     } catch { /* noop */ }
-    markDirty(false);
+  }
+  markDirty(false);
+  renderAll();
+
+  /* ここが肝心。GitHubの最新と突き合わせるまでは保存を解禁しない。
+     この端末のlocalStorageが古いまま自動保存されると、他端末の変更を消してしまうため。 */
+  if (cfgReady()) {
+    const remote = await fetchRemote();
+    if (remote) {
+      sha = remote.sha;
+      const localAt  = local?.updatedAt || "";
+      const remoteAt = remote.data.updatedAt || "";
+      if (!local || remoteAt >= localAt) {
+        data = remote.data;                       // GitHubのほうが新しい（か同じ）
+        remoteCount = totalCount();
+        persistLocal(false); markDirty(false);
+      } else {
+        remoteCount = SECTIONS.reduce((t, sec) =>
+          t + (remote.data.sections[sec.key]?.items.length || 0), 0) +
+          Object.values(remote.data.sections).reduce((t, sc) =>
+            t + sc.items.reduce((n, it) => n + it.picks.length, 0), 0);
+        markDirty(true);                          // この端末のほうが新しい → あとで保存
+        toast("この端末に未保存の変更があります。保存します");
+      }
+      renderAll();
+    } else if (local) {
+      markDirty(true);
+    }
+  } else if (local) {
+    markDirty(true);
   }
 
-  renderAll();
-  if (cfgReady() && !dirty) pullFromGitHub(true);
+  booting = false;
+  if (dirty) scheduleAutoSave();
 }
 
 document.addEventListener("DOMContentLoaded", boot);
