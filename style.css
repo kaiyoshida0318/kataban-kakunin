@@ -471,6 +471,8 @@ body.resizing *{cursor:col-resize !important}
   border-radius:999px;padding:2px 8px}
 .day-cnt{margin-left:8px;font-size:11px;color:var(--muted)}
 .added-tbl .td-src{font-size:11.5px;overflow:hidden}
+.added-tbl,.pick-tbl{table-layout:fixed}
+.pick-tbl .td-url a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .added-tbl .td-sales{text-align:center;padding:4px 6px}
 .added-tbl .td-rival{text-align:center;padding:4px 6px}
 .sales-in{

@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.41.0";
+const VERSION   = "0.42.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -19,16 +19,18 @@ const URL_COLS = {
 };
 /* ---------- 「追加した商品」ビューの列 ---------- */
 const ADDED_COLS = [
-  { key: "a_src",   label: "出所",           w: 210, cls: "td-src"   },
-  { key: "a_img",   label: "画像",           w: 64,  cls: "td-img"   },
-  { key: "a_title", label: "商品名",         w: 260, cls: "td-title" },
-  { key: "a_url",   label: "商品URL",        w: 0,   cls: "td-url"   },
-  { key: "a_sales", label: "30日販売数",     w: 112, cls: "td-sales" },
-  { key: "a_rival", label: "楽天ライバル状況", w: 136, cls: "td-rival" },
-  { key: "a_check", label: "確認",           w: 96,  cls: "td-st"    },
-  { key: "a_buy",   label: "買付",           w: 96,  cls: "td-st"    },
-  { key: "a_edit",  label: "編集",           w: 74,  cls: "td-edit"  },
-  { key: "a_act",   label: "操作",           w: 72,  cls: "td-acts"  },
+  { key: "a_src",   label: "出所",            w: 190, cls: "td-src"   },
+  { key: "p_aimg",  label: "amazon画像",      w: 74,  cls: "td-img"   },
+  { key: "p_rimg",  label: "楽天画像",        w: 74,  cls: "td-img"   },
+  { key: "a_title", label: "商品名",          w: 230, cls: "td-title" },
+  { key: "p_aurl",  label: "amazonURL",       w: 0,   cls: "td-url"   },
+  { key: "p_rurl",  label: "楽天URL",         w: 0,   cls: "td-url"   },
+  { key: "a_sales", label: "30日販売数",      w: 106, cls: "td-sales" },
+  { key: "a_rival", label: "楽天ライバル状況", w: 130, cls: "td-rival" },
+  { key: "a_check", label: "確認",            w: 92,  cls: "td-st"    },
+  { key: "a_buy",   label: "買付",            w: 92,  cls: "td-st"    },
+  { key: "a_edit",  label: "編集",            w: 70,  cls: "td-edit"  },
+  { key: "a_act",   label: "操作",            w: 68,  cls: "td-acts"  },
 ];
 const isAdded = (key) => SEC(key)?.kind === "added";
 
@@ -57,16 +59,29 @@ const urlFieldsOf = (key) => SEC(key)?.urlFields || ["url"];
 const mainUrl = (it, key) => urlFieldsOf(key).map((f) => it[f]).find(Boolean) || "";
 
 /* ---------- チェックした商品の表の列 ---------- */
-const PICK_COLS = [
-  { key: "p_date",  label: "追加日",  w: 104, cls: "td-date"  },
-  { key: "p_img",   label: "画像",    w: 64,  cls: "td-img"   },
-  { key: "p_title", label: "商品名",  w: 280, cls: "td-title" },
-  { key: "p_url",   label: "商品URL", w: 0,   cls: "td-url"   },   // 0 = 自動
-  { key: "p_edit",  label: "編集",    w: 78,  cls: "td-edit"  },
-  { key: "p_check", label: "確認",    w: 98,  cls: "td-st"    },
-  { key: "p_buy",   label: "買付",    w: 98,  cls: "td-st"    },
-  { key: "p_act",   label: "操作",    w: 76,  cls: "td-acts"  },
+/* 商品の Amazon側 / 楽天側 */
+const PICK_SIDES = [
+  { k: "amazon",  url: "urlAmazon",  img: "imageAmazon",  label: "amazon", imgCol: "p_aimg", urlCol: "p_aurl" },
+  { k: "rakuten", url: "urlRakuten", img: "imageRakuten", label: "楽天",   imgCol: "p_rimg", urlCol: "p_rurl" },
 ];
+const PSIDE = (k) => PICK_SIDES.find((x) => x.k === k) || PICK_SIDES[0];
+/* そのタブが扱うモール。型番商品など基準が無いタブは Amazon 側を使う */
+const sideKeyOf = (sectionKey) => (SEC(sectionKey)?.side === "defense" ? "rakuten" : "amazon");
+
+/* チェックした商品の列。開いているタブのモールだけを出す */
+function pickColsOf(sectionKey) {
+  const sd = PSIDE(sideKeyOf(sectionKey));
+  return [
+    { key: "p_date",  label: "追加日",              w: 104, cls: "td-date"  },
+    { key: "p_title", label: "商品名",              w: 260, cls: "td-title" },
+    { key: sd.imgCol, label: `${sd.label}画像`,     w: 76,  cls: "td-img"   },
+    { key: sd.urlCol, label: `${sd.label}URL`,      w: 0,   cls: "td-url"   },   // 0 = 自動
+    { key: "p_edit",  label: "編集",                w: 74,  cls: "td-edit"  },
+    { key: "p_check", label: "確認",                w: 96,  cls: "td-st"    },
+    { key: "p_buy",   label: "買付",                w: 96,  cls: "td-st"    },
+    { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
+  ];
+}
 
 let colW = {};
 const ROW_H_KEY  = "_rowH";
@@ -211,6 +226,21 @@ function canonicalUrl(url) {
   try { host = new URL(url).hostname; } catch { /* noop */ }
   return `https://${host}/dp/${asin}`;
 }
+
+const isRakutenUrl = (url) => {
+  try { return /(^|\.)rakuten\.co\.jp$/i.test(new URL(url).hostname); } catch { return false; }
+};
+/* URLがどちら側のものか。判別できなければタブの基準側に寄せる */
+function urlSideOf(url, sectionKey) {
+  if (isAmazonUrl(url)) return "amazon";
+  if (isRakutenUrl(url)) return "rakuten";
+  return SEC(sectionKey)?.side === "defense" ? "rakuten" : "amazon";
+}
+/* その行から見た代表のURL・画像（基準側を先に見る） */
+const pickUrl = (p, sec) => SEC(sec)?.side === "defense"
+  ? (p.urlRakuten || p.urlAmazon) : (p.urlAmazon || p.urlRakuten);
+const pickImg = (p, sec) => SEC(sec)?.side === "defense"
+  ? (p.imageRakuten || p.imageAmazon) : (p.imageAmazon || p.imageRakuten);
 
 function imageCandidates(url) {
   const asin = asinOf(url);
@@ -544,15 +574,18 @@ function normRank(it) {
       .map((p) => ({
         id:      p.id || uid(),
         addedAt: ymd(p.addedAt) || today(),        // 追加日
-        image:   p.image || "",                    // メイン画像URL
-        url:     p.url || "",
+        urlAmazon:    p.urlAmazon || "",
+        urlRakuten:   p.urlRakuten || "",
+        imageAmazon:  p.imageAmazon || "",
+        imageRakuten: p.imageRakuten || "",
+        image:   p.image || "",                    // 旧形式（移行に使う）
+        url:     p.url || "",                      // 同上
         title:   p.title || p.note || p.name || "", // 商品名（旧 note / name から移行）
         check:   PICK_CHECK.some((o) => o.v === p.check) ? p.check : "before",
         buy:     PICK_BUY.some((o) => o.v === p.buy)     ? p.buy   : "before",
         sales30: p.sales30 == null ? "" : String(p.sales30),      // 30日販売数（自由入力）
         rival:   PICK_RIVAL.some((o) => o.v === p.rival) ? p.rival : "",
-      }))
-      .filter((p) => p.url),
+      })),
     createdAt: it.createdAt || nowIso(),
     updatedAt: it.updatedAt || it.createdAt || nowIso(),
   };
@@ -575,6 +608,20 @@ function fromLegacyProduct(it) {
 const isLegacyProduct = (it) => it && (it.model !== undefined || Array.isArray(it.links));
 
 /* 旧形式の単一 url を、そのタブの1本目のURL項目へ移す */
+/* 旧形式の商品（url / image が1本）を Amazon側・楽天側へ振り分ける */
+function migratePicks(item, sectionKey) {
+  item.picks = item.picks.map((p) => {
+    if (p.url) {
+      const s = PSIDE(urlSideOf(p.url, sectionKey));
+      if (!p[s.url]) p[s.url] = p.url;
+      if (p.image && !p[s.img]) p[s.img] = p.image;
+    }
+    delete p.url; delete p.image;
+    return p;
+  }).filter((p) => p.urlAmazon || p.urlRakuten);
+  return item;
+}
+
 function migrateUrl(x, fields) {
   if (x.url && !fields.includes("url") && !fields.some((f) => x[f])) {
     x[fields[0]] = x.url;
@@ -597,6 +644,7 @@ function normalize(d) {
     out.sections[sec.key].items = raw
       .map((it) => (isLegacyProduct(it) ? fromLegacyProduct(it) : normRank(it)))
       .map((x) => migrateUrl(x, fields))
+      .map((x) => migratePicks(x, sec.key))
       .filter((x) => fields.some((f) => x[f]) || (sec.key === "products" && x.name));
   }
   return out;
@@ -767,33 +815,38 @@ function renderToolbar() {
 }
 
 /* 画像は裏で取りにいく。取れたらその行だけ差し替える */
-async function fetchPickImage(sectionKey, itemId, pickId, url) {
-  const key = `${itemId}|${pickId}`;
+async function fetchPickImage(sectionKey, itemId, pickId, side) {
+  const sd = PSIDE(side);
+  const key = `${itemId}|${pickId}|${sd.k}`;
   if (imgBusy.has(key)) return;
+  const at0 = locatePick(`${itemId}|${pickId}`);
+  const url = at0?.p[sd.url];
+  if (!url) return;
+
   imgBusy.add(key);
-  paintPickThumb(sectionKey, key);
+  paintPickThumb(key);
 
   let found = "";
   try { found = await guessImage(url); } catch { /* noop */ }
   imgBusy.delete(key);
 
-  const it = itemsOf(sectionKey).find((i) => i.id === itemId);
-  const p  = it?.picks.find((x) => x.id === pickId);
-  if (!p) return;                       // 取得中に消された
-  if (found && !p.image) {
-    p.image = found;
-    it.updatedAt = nowIso();
+  const at = locatePick(`${itemId}|${pickId}`);
+  if (!at) return;                      // 取得中に消された
+  if (found && !at.p[sd.img]) {
+    at.p[sd.img] = found;
+    at.it.updatedAt = nowIso();
     persistLocal(); markDirty(true);
   }
-  paintPickThumb(sectionKey, key);
+  paintPickThumb(key);
 }
 
 /* 画像セルだけを描き直す（入力中のフォーカスを飛ばさないため） */
-function paintPickThumb(sectionKey, key) {
+function paintPickThumb(key) {
   const cell = $("list").querySelector(`[data-pickimg="${CSS.escape(key)}"]`);
   if (!cell) return;
-  const at = locatePick(key);
-  if (at) cell.innerHTML = pickThumb(at.it.id, at.p);
+  const [itemId, pickId, side] = key.split("|");
+  const at = locatePick(`${itemId}|${pickId}`);
+  if (at) cell.innerHTML = pickThumb(at.it.id, at.p, side);
 }
 
 /* =========================================================
@@ -806,7 +859,7 @@ function visibleItems() {
       if (F().cat !== "*" && (it.category || "未分類") !== F().cat) return false;
       if (!q) return true;
       const hay = [it.name, it.category, it.url, it.urlAmazon, it.urlRakuten, it.checkNote,
-                   it.picks.map((p) => p.title + " " + p.url).join(" ")].join(" ");
+                   it.picks.map((p) => [p.title, p.urlAmazon, p.urlRakuten].join(" ")).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     });
   const sorted = F().sort === "manual" ? list : list.sort(comparator());
@@ -824,7 +877,8 @@ function visiblePicks() {
     .filter((r) => {
       if (F().cat !== "*" && r.sec !== F().cat) return false;
       if (!q) return true;
-      const hay = [r.p.title, r.p.url, r.p.sales30, r.item.name, r.item.category, SEC(r.sec).label].join(" ");
+      const hay = [r.p.title, r.p.urlAmazon, r.p.urlRakuten, r.p.sales30,
+                   r.item.name, r.item.category, SEC(r.sec).label].join(" ");
       return hay.toLowerCase().includes(q);
     })
     .sort((a, b) => (b.p.addedAt || "").localeCompare(a.p.addedAt || ""));
@@ -939,8 +993,9 @@ function renderBody() {
   // 画像なしのサムネ：押すともう一度取りにいく
   root.querySelectorAll("[data-pickretry]").forEach((b) => {
     b.onclick = () => {
-      const at = locatePick(b.dataset.pickretry);
-      if (at) fetchPickImage(at.sec, at.it.id, at.p.id, at.p.url);
+      const [itemId, pickId, side] = b.dataset.pickretry.split("|");
+      const at = locatePick(`${itemId}|${pickId}`);
+      if (at) fetchPickImage(at.sec, at.it.id, at.p.id, side);
     };
   });
   // 並び：↑↓ で1つずつ動かす
@@ -1026,14 +1081,17 @@ function renderBody() {
       const url = row.querySelector(".pick-url").value.trim();
       if (!url) { toast("商品URLを入力してください", true); row.querySelector(".pick-url").focus(); return; }
       const it = itemsOf(view).find((i) => i.id === id);
+      const sd = PSIDE(sideKeyOf(view));                 // このタブのモール側に入れる
       const image = row.querySelector(".pick-image").value.trim();
       const pickId = uid();
       it.picks.unshift({
         id:      pickId,
         addedAt: row.querySelector(".pick-added").value || today(),
-        image,
         title:   row.querySelector(".pick-title").value.trim(),
-        url,
+        urlAmazon: "", urlRakuten: "", imageAmazon: "", imageRakuten: "",
+        [sd.url]: url,
+        [sd.img]: image,
+        sales30: "", rival: "",
         check:   "before",
         buy:     "before",
       });
@@ -1041,7 +1099,7 @@ function renderBody() {
       const sec = view;
       upsert(sec, it);                                   // 追加はここで完了。待たせない
       toast(image ? "商品を追加しました" : "商品を追加しました（画像は裏で取得します）");
-      if (!image) fetchPickImage(sec, id, pickId, url);  // 画像は裏で取りにいく
+      if (!image) fetchPickImage(sec, id, pickId, sd.k); // 画像は裏で取りにいく
       setTimeout(() => {
         const next = $("list").querySelector(`tr.pick-new[data-for="${id}"] .pick-url`);
         if (next) next.focus();
@@ -1096,25 +1154,33 @@ function renderBody() {
     const key = b.dataset.picksave;
     const row = root.querySelector(`.pick-editing[data-row="${key}"]`);
     const save = async () => {
-      const url = row.querySelector(".pe-url").value.trim();
-      if (!url) { toast("URLを空にはできません", true); return; }
       const at = locatePick(key);
       if (!at) return;
-      const { it, p } = at;
-      const id = it.id, pid = p.id;
-      p.addedAt = row.querySelector(".pe-date").value || p.addedAt;
-      p.image   = row.querySelector(".pe-image").value.trim();
-      p.url     = url;
-      p.title   = row.querySelector(".pe-title").value.trim();
-      const sIn = row.querySelector(".pe-sales");
-      if (sIn) p.sales30 = sIn.value.trim();
+      const { it, p, sec } = at;
+      const val = (sel) => { const el = row.querySelector(sel); return el ? el.value.trim() : null; };
+      const both = Boolean(row.querySelector(".pe-url2"));       // 追加した商品ビューは両モール
+      const sd = PSIDE(sideKeyOf(sec));
+
+      const next = both
+        ? { urlAmazon: val(".pe-url"), urlRakuten: val(".pe-url2"),
+            imageAmazon: val(".pe-image"), imageRakuten: val(".pe-image2") }
+        : { [sd.url]: val(".pe-url"), [sd.img]: val(".pe-image") };
+
+      const after = { ...p, ...next };
+      if (!after.urlAmazon && !after.urlRakuten) { toast("URLを空にはできません", true); return; }
+
+      Object.assign(p, next);
+      p.addedAt = val(".pe-date") || p.addedAt;
+      const t = val(".pe-title"); if (t !== null) p.title = t;
+      const sIn = val(".pe-sales"); if (sIn !== null) p.sales30 = sIn;
       it.updatedAt = nowIso();
       editPicks.delete(key);
-      const sec = at.sec;
-      const needImg = !p.image;
+
+      /* URLがあって画像が空のモールは、裏で取りにいく */
+      const need = PICK_SIDES.filter((x) => p[x.url] && !p[x.img]);
       upsert(sec, it);
-      toast(needImg ? "商品を更新しました（画像は裏で取得します）" : "商品を更新しました");
-      if (needImg) fetchPickImage(sec, id, pid, url);
+      toast(need.length ? "商品を更新しました（画像は裏で取得します）" : "商品を更新しました");
+      need.forEach((x) => fetchPickImage(sec, it.id, p.id, x.k));
     };
     b.onclick = save;
     row.querySelectorAll("input").forEach((inp) => {
@@ -1204,23 +1270,35 @@ function addedRow(r) {
          title="${esc(it.name)}">${esc(it.name)}</a>
     </td>`;
 
+  const imgCell = (sd) =>
+    `<td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>`;
+  const urlCell = (sd) => {
+    const v = p[sd.url];
+    return `<td class="td-url">${v
+      ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 52))}</a>`
+      : '<span class="dash">—</span>'}</td>`;
+  };
+
   const salesCell = `<td class="td-sales">
       <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
              data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
     </td>`;
-
   const rivalCell = `<td class="td-rival">
       <select class="st-sel rv-sel ${stCls(PICK_RIVAL, p.rival)}" data-pickstatus="${esc(it.id)}|${esc(p.id)}|rival">
         ${stOptions(PICK_RIVAL, p.rival)}
       </select>
     </td>`;
 
+  const [AMZ, RAK] = PICK_SIDES;
+
   if (editPicks.has(key)) return `
     <tr class="pick-editing" data-row="${esc(key)}">
       <td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>
-      <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
+      <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>
+      <td class="td-img"><input class="input-sm pe-image2" type="url" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>
       <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
-      <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
+      <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>
+      <td class="td-url"><input class="input-sm pe-url2" type="url" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>
       <td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>
       ${rivalCell}
       ${statusCells(it.id, p)}
@@ -1231,9 +1309,11 @@ function addedRow(r) {
   return `
     <tr>
       ${srcCell}
-      <td class="td-img" data-pickimg="${esc(key)}">${pickThumb(it.id, p)}</td>
+      ${imgCell(AMZ)}
+      ${imgCell(RAK)}
       <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
-      <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
+      ${urlCell(AMZ)}
+      ${urlCell(RAK)}
       ${salesCell}
       ${rivalCell}
       ${statusCells(it.id, p)}
@@ -1471,19 +1551,26 @@ function statusCells(itemId, p) {
          `<td class="td-st">${sel("buy", PICK_BUY, p.buy)}</td>`;
 }
 
-function pickThumb(itemId, p) {
-  if (imgBusy.has(`${itemId}|${p.id}`))
+/* サムネ1枚。side は "amazon" / "rakuten" */
+function pickThumb(itemId, p, side) {
+  const sd = PSIDE(side);
+  const key = `${itemId}|${p.id}|${sd.k}`;
+  if (imgBusy.has(key))
     return `<span class="pick-thumb busy" title="画像を取得しています">取得中</span>`;
-  return p.image
-    ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
-           title="${esc(p.image)}"
-           onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
-    : `<button class="pick-thumb none" data-pickretry="${esc(itemId)}|${esc(p.id)}"
-              title="クリックすると画像をもう一度取りにいきます"></button>`;
+  const src = p[sd.img];
+  if (src)
+    return `<img class="pick-thumb" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer"
+           title="${esc(src)}"
+           onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`;
+  if (!p[sd.url])
+    return `<span class="pick-thumb none" title="${esc(sd.label)}のURLがありません"></span>`;
+  return `<button class="pick-thumb none" data-pickretry="${esc(key)}"
+              title="クリックすると${esc(sd.label)}の画像をもう一度取りにいきます"></button>`;
 }
 
 function pickPanel(it) {
-  const thumb = (p) => pickThumb(it.id, p);
+  const cols = pickColsOf(view);
+  const sd = PSIDE(sideKeyOf(view));
 
   const picks = it.picks
     .slice()
@@ -1493,21 +1580,24 @@ function pickPanel(it) {
       if (editPicks.has(key)) return `
       <tr class="pick-editing" data-row="${esc(key)}">
         <td class="td-date"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>
-        <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.image)}" placeholder="画像URL"></td>
         <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
-        <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.url)}" placeholder="https://…"></td>
+        <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p[sd.img])}" placeholder="画像URL"></td>
+        <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p[sd.url])}" placeholder="https://…"></td>
         <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
         ${statusCells(it.id, p)}
         <td class="td-acts">
           <button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button>
         </td>
       </tr>`;
+      const url = p[sd.url];
       return `
       <tr>
         <td class="td-date">${esc(p.addedAt || "—")}</td>
-        <td class="td-img" data-pickimg="${esc(key)}">${thumb(p)}</td>
         <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
-        <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 62))}</a></td>
+        <td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>
+        <td class="td-url">${url
+          ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">${esc(prettyUrl(url, 62))}</a>`
+          : '<span class="dash">—</span>'}</td>
         <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
         ${statusCells(it.id, p)}
         <td class="td-acts">
@@ -1524,22 +1614,22 @@ function pickPanel(it) {
     </div>
 
     <div class="pick-tbl-wrap"><table class="pick-tbl" style="--pick-row-h:${pRowH()}px">
-      <colgroup>${PICK_COLS.map((c) => {
+      <colgroup>${cols.map((c) => {
         const w = colW[c.key] || c.w;
         return `<col${w ? ` style="width:${w}px"` : ""}>`;
       }).join("")}</colgroup>
-      <thead><tr>${PICK_COLS.map((c) => `<th class="${c.cls}">${esc(c.label)}</th>`).join("")}</tr></thead>
+      <thead><tr>${cols.map((c) => `<th class="${c.cls}">${esc(c.label)}</th>`).join("")}</tr></thead>
       <tbody>
         ${addRows.has(it.id) ? `<tr class="pick-new" data-for="${esc(it.id)}">
           <td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>
-          <td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>
           <td class="td-title"><input class="input-sm pick-title" type="text" placeholder="商品名"></td>
-          <td class="td-url"><input class="input-sm pick-url" type="url" placeholder="商品URL  https://…"></td>
+          <td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>
+          <td class="td-url"><input class="input-sm pick-url" type="url" placeholder="${esc(sd.label)}の商品URL  https://…"></td>
           <td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>
           <td class="td-st"></td><td class="td-st"></td><td class="td-acts"></td>
         </tr>` : ""}
         ${picks}
-        ${!it.picks.length && !addRows.has(it.id) ? `<tr><td class="pick-empty" colspan="8">まだありません。右の「＋ 商品」から追加できます。</td></tr>` : ""}
+        ${!it.picks.length && !addRows.has(it.id) ? `<tr><td class="pick-empty" colspan="${cols.length}">まだありません。右の「＋ 商品」から追加できます。</td></tr>` : ""}
       </tbody>
     </table></div>
   </section>`;
@@ -1619,21 +1709,28 @@ function renderRankPicks() {
     $("rPickList").innerHTML = `<p class="pick-none">まだありません。一覧の「商品」列を開くと追加できます。</p>`;
     return;
   }
+  const thumb = (src) => src
+    ? `<img class="pick-thumb" src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer"
+           onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
+    : `<span class="pick-thumb none"></span>`;
+  const link = (u) => u
+    ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="${esc(u)}">${esc(prettyUrl(u, 44))}</a>`
+    : '<span class="dash">—</span>';
+
   $("rPickList").innerHTML = `<div class="pick-tbl-wrap"><table class="pick-tbl pick-tbl-view">
-    <colgroup><col style="width:104px"><col style="width:64px"><col style="width:280px"><col></colgroup>
+    <colgroup><col style="width:104px"><col style="width:64px"><col style="width:64px"><col style="width:220px"><col><col></colgroup>
     <thead><tr>
-      <th class="td-date">追加日</th><th class="td-img">画像</th>
-      <th class="td-title">商品名</th><th class="td-url">商品URL</th>
+      <th class="td-date">追加日</th><th class="td-img">amazon画像</th><th class="td-img">楽天画像</th>
+      <th class="td-title">商品名</th><th class="td-url">amazonURL</th><th class="td-url">楽天URL</th>
     </tr></thead>
     <tbody>${picks.map((p) => `
       <tr>
         <td class="td-date">${esc(p.addedAt || "—")}</td>
-        <td class="td-img">${p.image
-          ? `<img class="pick-thumb" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer"
-                 onerror="this.onerror=null;this.classList.add('broken');this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`
-          : `<span class="pick-thumb none"></span>`}</td>
+        <td class="td-img">${thumb(p.imageAmazon)}</td>
+        <td class="td-img">${thumb(p.imageRakuten)}</td>
         <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
-        <td class="td-url"><a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer" title="${esc(p.url)}">${esc(prettyUrl(p.url, 56))}</a></td>
+        <td class="td-url">${link(p.urlAmazon)}</td>
+        <td class="td-url">${link(p.urlRakuten)}</td>
       </tr>`).join("")}</tbody>
   </table></div>`;
 }
@@ -1884,14 +1981,25 @@ function mergeVersions(versions) {
       for (const it of v.sections[sec.key].items) {
         const bag = picksOf.get(it.id) || new Map();
         for (const p of it.picks) {
-          const key = p.url || p.id;
+          const key = p.urlAmazon || p.urlRakuten || p.id;
           const old = bag.get(key);
+          const fix = (q) => ({
+            ...q,
+            imageAmazon:  cleanImage(q.imageAmazon),
+            imageRakuten: cleanImage(q.imageRakuten),
+          });
+          const cur = fix(p);
           bag.set(key, old
-            ? { ...old, ...p,
-                image: cleanImage(p.image) || cleanImage(old.image),
-                title: p.title || old.title,
-                addedAt: old.addedAt || p.addedAt }   // 追加日は最初に見た日を残す
-            : { ...p, image: cleanImage(p.image) });
+            ? { ...old, ...cur,
+                urlAmazon:    cur.urlAmazon    || old.urlAmazon,
+                urlRakuten:   cur.urlRakuten   || old.urlRakuten,
+                imageAmazon:  cur.imageAmazon  || old.imageAmazon,
+                imageRakuten: cur.imageRakuten || old.imageRakuten,
+                sales30: cur.sales30 || old.sales30,
+                rival:   cur.rival   || old.rival,
+                title:   cur.title   || old.title,
+                addedAt: old.addedAt || cur.addedAt }   // 追加日は最初に見た日を残す
+            : cur);
         }
         picksOf.set(it.id, bag);
         const prev = items.get(it.id);
@@ -1911,7 +2019,7 @@ function mergeVersions(versions) {
     (order.has(a.item.id) ? order.get(a.item.id) : 1e9) - (order.has(b.item.id) ? order.get(b.item.id) : 1e9));
   for (const { sec, item } of list) {
     const picks = [...(picksOf.get(item.id) || new Map()).values()]
-      .filter((p) => p.url)
+      .filter((p) => p.urlAmazon || p.urlRakuten)
       .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
     out.sections[sec].items.push({ ...item, picks });
   }
