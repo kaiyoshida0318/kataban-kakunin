@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:44:01.490Z",
+  "updatedAt": "2026-08-20T08:45:58.707Z",
   "labels": {
     "rival": [
       {
@@ -339,8 +339,8 @@
               "check": "before",
               "buy": "before",
               "sales30": "",
-              "rival": "o_p14mmp",
-              "quality": ""
+              "rival": "o_dn58o9",
+              "quality": "high"
             },
             {
               "id": "itm_v6fgtxmr1ny",
@@ -358,7 +358,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-20T08:20:23.317Z"
+          "updatedAt": "2026-08-20T08:45:54.123Z"
         }
       ]
     },
