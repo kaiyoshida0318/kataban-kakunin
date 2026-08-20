@@ -209,6 +209,12 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 .sort-mark{margin-left:4px;font-size:9px}
 .grid-tbl tbody tr.r-main:hover td{background:#f4f8ff}
 .grid-tbl tbody tr.r-main.open td{background:#eef4fd}
+/* 登録したばかりの行 */
+.grid-tbl tbody tr.r-main.is-new td{box-shadow:inset 0 1px 0 #cfe0f7, inset 0 -1px 0 #cfe0f7}
+.grid-tbl tbody tr.r-main.is-new td:first-child{box-shadow:inset 3px 0 0 var(--accent), inset 0 1px 0 #cfe0f7, inset 0 -1px 0 #cfe0f7}
+.grid-tbl tbody tr.r-main.is-new td{animation:newRow 1.6s ease-out 1}
+@keyframes newRow{0%{background:#dceafb}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.grid-tbl tbody tr.r-main.is-new td{animation:none}}
 
 
 

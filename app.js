@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.35.1";
+const VERSION   = "0.36.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -136,6 +136,8 @@ const editPicks = new Set();   // インライン編集中の商品行 "itemId|p
 const openRows  = new Set();   // 商品欄を開いている行
 const addRows   = new Set();   // 入力行（新規追加）を出している行
 const imgBusy   = new Set();   // 画像を裏で取得中の商品行 "itemId|pickId"
+const pinned    = new Map();   // このセッションで新しく登録した行 id → 連番（大きいほど新しい）
+let   pinSeq    = 0;
 const filters = Object.fromEntries(SECTIONS.map((s) =>
   [s.key, { q: "", cat: "*", sort: s.defSort || "checkedAt", dir: "desc" }]));
 const F = () => filters[view];
@@ -336,6 +338,23 @@ async function rakutenImages(url, log = () => {}) {
   return [];
 }
 
+/* 商品画像ではないもの（サービス側の既定ロゴ、no image、アイコン類）を弾く。
+   メタ情報サービスはページが読めないと汎用ロゴを返してくることがあるため。 */
+const JUNK_IMG = new RegExp([
+  "d3frv9g52qce38\\.cloudfront\\.net",   // microlink の既定ロゴ置き場
+  "/amazondefault/",
+  "no[-_]?image", "noimage", "placeholder", "dummy",
+  "default[-_]?(image|thumb|logo)",
+  "[-_./]logo[-_.]", "_logo\\.", "/logo\\.",
+  "sprite", "/favicon",
+].join("|"), "i");
+function isJunkImage(u) {
+  const s = String(u || "");
+  if (!s) return true;
+  if (/\.svg(\?|$)/i.test(s)) return true;             // 商品写真がSVGで来ることはない
+  return JUNK_IMG.test(s);
+}
+
 /* AmazonのHTMLやテキストから、商品画像の候補を大きい順に集める。
    中継サービスによってはmarkdown化されて返るので、画像IDだけ拾って自前で大きいURLを組み立てる。 */
 function amazonImagesFromHtml(html) {
@@ -378,9 +397,13 @@ async function unfurlImages(url, log = () => {}) {
       clearTimeout(timer);
       if (!res.ok) { log("メタ情報", `${via} → HTTP ${res.status}`); continue; }
       const j = await res.json();
-      const cand = [j?.data?.image?.url, j?.data?.screenshot?.url, j?.data?.logo?.url]
+      const raw = [j?.data?.image?.url]
         .filter((x) => typeof x === "string" && /^https?:\/\//i.test(x));
-      if (!cand.length) { log("メタ情報", `${via} → 画像なし`); continue; }
+      const cand = raw.filter((x) => !isJunkImage(x));
+      if (!cand.length) {
+        log("メタ情報", raw.length ? `${via} → 返ってきたのは商品画像ではない（ロゴなど）` : `${via} → 画像なし`);
+        continue;
+      }
       log("メタ情報", `${via} → 画像URLあり`);
       return cand;
     } catch (e) {
@@ -419,9 +442,9 @@ async function ogImages(url, log = () => {}) {
         if (src.startsWith("//")) return "https:" + src;
         if (src.startsWith("/")) { try { return new URL(src, url).href; } catch { return ""; } }
         return src;
-      }).filter((x) => /^https?:\/\//i.test(x));
+      }).filter((x) => /^https?:\/\//i.test(x) && !isJunkImage(x));
 
-      if (!found.length) { log("ページ", `${via} → 取れたが画像が見つからない`); continue; }
+      if (!found.length) { log("ページ", `${via} → 取れたが商品画像が見つからない`); continue; }
       log("ページ", `${via} → 画像候補 ${new Set(found).size} 件`);
       return [...new Set(found)];
     } catch (e) {
@@ -459,15 +482,26 @@ async function guessImage(url, log = () => {}) {
     if (await probeImage(c)) { log("結果", "楽天APIの画像を採用"); return c; }
   }
 
-  for (const c of await unfurlImages(target, log)) {   // 3) メタ情報サービス
-    if (await probeImage(c)) { log("結果", "メタ情報サービスの画像を採用"); return c; }
+  /* Amazonは中継でページを読むほうが当たるので先に。それ以外はメタ情報サービスを先に。 */
+  const fromPage = async () => {
+    const cand = await ogImages(target, log);
+    for (const c of cand) {
+      if (await probeImage(c)) { log("結果", "ページから拾った画像を採用"); return c; }
+    }
+    if (cand.length) log("ページ", `候補 ${cand.length} 件すべて画像として読めず`);
+    return "";
+  };
+  const fromMeta = async () => {
+    for (const c of await unfurlImages(target, log)) {
+      if (await probeImage(c)) { log("結果", "メタ情報サービスの画像を採用"); return c; }
+    }
+    return "";
+  };
+  const steps = isAmazonUrl(url) ? [fromPage, fromMeta] : [fromMeta, fromPage];
+  for (const step of steps) {
+    const hit = await step();
+    if (hit) return hit;
   }
-
-  const pageCand = await ogImages(target, log);         // 4) 中継してページを読む
-  for (const c of pageCand) {
-    if (await probeImage(c)) { log("結果", "ページから拾った画像を採用"); return c; }
-  }
-  if (pageCand.length) log("ページ", `候補 ${pageCand.length} 件すべて画像として読めず`);
   log("結果", "画像が見つかりませんでした");
   return "";
 }
@@ -753,7 +787,12 @@ function visibleItems() {
                    it.picks.map((p) => p.title + " " + p.url).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     });
-  return F().sort === "manual" ? list : list.sort(comparator());
+  const sorted = F().sort === "manual" ? list : list.sort(comparator());
+  if (!pinned.size) return sorted;
+  const pin = [], rest = [];                      // 新しく登録した行はどの並びでも一番上
+  for (const x of sorted) (pinned.has(x.id) ? pin : rest).push(x);
+  pin.sort((a, b) => pinned.get(b.id) - pinned.get(a.id));
+  return [...pin, ...rest];
 }
 
 /* 「追加した商品」ビュー：絞り込み後、追加日の新しい順 */
@@ -766,9 +805,7 @@ function visiblePicks() {
       const hay = [r.p.title, r.p.url, r.item.name, r.item.category, SEC(r.sec).label].join(" ");
       return hay.toLowerCase().includes(q);
     })
-    .sort((a, b) =>
-      (b.p.addedAt || "").localeCompare(a.p.addedAt || "") ||
-      (b.p.id || "").localeCompare(a.p.id || ""));
+    .sort((a, b) => (b.p.addedAt || "").localeCompare(a.p.addedAt || ""));
 }
 
 /* 並べ替え。列見出しクリックで key/dir が切り替わる */
@@ -790,6 +827,7 @@ function comparator() {
 }
 
 function setSort(key) {
+  pinned.clear();                                 // 自分で並べ替えたら新着の固定は解除
   const f = F();
   if (key === "manual") {
     if (f.sort === "manual") { f.sort = SEC(view).defSort || "checkedAt"; f.dir = "desc"; }
@@ -804,6 +842,7 @@ function setSort(key) {
 
 /* ↑↓ で行を1つ動かす。自動並べ替え中なら、今見えている順を確定してから手動並びに切り替える */
 function moveRow(id, delta) {
+  pinned.clear();                                 // 手で動かし始めたら新着の固定は解除
   const vis = visibleItems();
   const i = vis.findIndex((x) => x.id === id);
   const j = i + delta;
@@ -967,7 +1006,7 @@ function renderBody() {
       const it = itemsOf(view).find((i) => i.id === id);
       const image = row.querySelector(".pick-image").value.trim();
       const pickId = uid();
-      it.picks.push({
+      it.picks.unshift({
         id:      pickId,
         addedAt: row.querySelector(".pick-added").value || today(),
         image,
@@ -1340,7 +1379,7 @@ function rankRow(it, idx = 0, all = []) {
     }
   };
 
-  return `<tr class="r-main${open ? " open" : ""}">${cols.map(cell).join("")}</tr>
+  return `<tr class="r-main${open ? " open" : ""}${pinned.has(it.id) ? " is-new" : ""}">${cols.map(cell).join("")}</tr>
   ${open ? `<tr class="r-sub"><td colspan="${cols.length}">${pickPanel(it)}</td></tr>` : ""}`;
 }
 
@@ -1375,7 +1414,7 @@ function pickPanel(it) {
 
   const picks = it.picks
     .slice()
-    .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""))
+    .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""))   // 同じ日なら追加が新しい順
     .map((p) => {
       const key = `${it.id}|${p.id}`;
       if (editPicks.has(key)) return `
@@ -1553,8 +1592,14 @@ function saveRank() {
   const moved  = target !== view;
   if (moved && !isNew) removeById(view, entry.id);
   upsert(target, entry);
+  if (isNew) pinned.set(entry.id, ++pinSeq);      // 新規はこのあと一番上に出す
   if (moved) { view = target; renderAll(); }
   closeRank();
+  if (isNew) renderBody();
+  if (isNew) setTimeout(() => {
+    const row = $("list").querySelector("tr.r-main.is-new");
+    if (row) row.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, 40);
   toast(moved ? `${SEC(target).label} に${isNew ? "追加" : "移動"}しました`
               : (isNew ? "追加しました" : "保存しました"));
 }
@@ -1604,7 +1649,7 @@ function moveItem(item, from, to) {
 function upsert(key, item) {
   const arr = itemsOf(key);
   const i = arr.findIndex((x) => x.id === item.id);
-  if (i >= 0) arr[i] = item; else arr.push(item);
+  if (i >= 0) arr[i] = item; else arr.unshift(item);     // 新規は先頭に積む
   persistLocal(); markDirty(true); renderAll();
 }
 
