@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T07:28:43.822Z",
+  "updatedAt": "2026-08-20T07:31:05.925Z",
   "sections": {
     "amazon": {
       "items": [
@@ -145,7 +145,7 @@
             {
               "id": "itm_zzjbkdtckbd",
               "addedAt": "2026-08-20",
-              "image": "",
+              "image": "https://m.media-amazon.com/images/I/61il31UO0vL._AC_SL1500_.jpg",
               "url": "https://www.amazon.co.jp/Airtag-%E3%82%A6%E3%82%A9%E3%83%AC%E3%83%83%E3%83%88%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC-2%E5%80%8B%E3%83%91%E3%83%83%E3%82%AF-%E3%83%91%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88%E3%80%81%E3%83%8F%E3%83%B3%E3%83%89%E3%83%90%E3%83%83%E3%82%B0%E3%80%81%E3%83%90%E3%83%83%E3%82%AF%E3%83%91%E3%83%83%E3%82%AF%E8%B2%A1%E5%B8%83%E3%80%81%E3%82%AF%E3%83%A9%E3%83%83%E3%83%81%E3%80%81%E3%83%9D%E3%82%B1%E3%83%83%E3%83%88%E7%94%A8-%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%81Airtag%E3%81%AF%E5%90%AB%E3%81%BE%E3%82%8C%E3%81%A6%E3%81%84%E3%81%BE%E3%81%9B%E3%82%93/dp/B0D925HGJM/ref=sr_1_9?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-9&th=1",
               "title": "首輪用ホルダー",
               "check": "before",
@@ -162,7 +162,7 @@
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
-          "updatedAt": "2026-08-20T06:49:52.146Z"
+          "updatedAt": "2026-08-20T07:31:01.276Z"
         }
       ]
     },
