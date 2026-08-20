@@ -318,6 +318,7 @@ body.resizing *{cursor:col-resize !important}
 /* ===== ランキングモーダル ===== */
 .modal-wide{max-width:900px}
 .rank-grid{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}
+.rank-grid.no-img{grid-template-columns:1fr}
 .rank-col-img > label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
 .rank-col-img input{margin-top:8px}
 .img-fetch{width:100%;margin-top:6px}
