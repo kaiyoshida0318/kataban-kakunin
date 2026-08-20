@@ -1,8 +1,13 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T08:17:05.759Z",
+  "updatedAt": "2026-08-20T08:19:18.619Z",
   "labels": {
     "rival": [
+      {
+        "v": "o_p14mmp",
+        "label": "か",
+        "color": "gray"
+      },
       {
         "v": "o_9rscsw",
         "label": "ライバル0-amaは良い",
