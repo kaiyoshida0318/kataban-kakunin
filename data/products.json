@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T06:12:10.077Z",
+  "updatedAt": "2026-08-20T06:12:22.092Z",
   "sections": {
     "amazon": {
       "items": [
@@ -77,26 +77,17 @@
           "checkedAt": "2026-08-19",
           "picks": [
             {
-              "id": "itm_tjvs0ll9v3r",
-              "addedAt": "2026-08-19",
-              "image": "https://m.media-amazon.com/images/I/71YKVKfZx3L._AC_SL1500_.jpg",
-              "url": "https://x.gd/96Mjr",
-              "title": "",
-              "check": "before",
-              "buy": "before"
-            },
-            {
               "id": "itm_u66ago127zf",
               "addedAt": "2026-08-20",
               "image": "https://m.media-amazon.com/images/I/61BCdw3T2aL._AC_SL1500_.jpg",
               "url": "https://www.amazon.co.jp/Dikeshgu-Xiaomi-10%E4%BA%A4%E6%8F%9B%E3%83%90%E3%83%B3%E3%83%89-%E3%82%B7%E3%83%A3%E3%82%AA%E3%83%9F%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%90%E3%83%B3%E3%83%8910-8%E6%9B%BF%E3%81%88%E3%83%90%E3%83%B3%E3%83%89/dp/B0GT4P3GN2/ref=zg_bs_g_18195127051_d_sccl_19/355-8190517-1304632?th=1",
-              "title": "Xiaomi Smart Band 10/9/8",
+              "title": "Xiaomi Smart Band 10/9/8 ベルト",
               "check": "before",
               "buy": "before"
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
-          "updatedAt": "2026-08-20T06:12:05.529Z"
+          "updatedAt": "2026-08-20T06:12:17.276Z"
         },
         {
           "id": "itm_c0u7ctd2eau",
