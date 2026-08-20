@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T07:24:57.261Z",
+  "updatedAt": "2026-08-20T07:25:26.778Z",
   "sections": {
     "amazon": {
       "items": [
@@ -228,34 +228,6 @@
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
           "updatedAt": "2026-08-20T07:24:55.604Z"
-        },
-        {
-          "id": "rk_sample01",
-          "name": "家電 > 扇風機・サーキュレーター",
-          "category": "家電",
-          "image": "",
-          "url": "",
-          "urlAmazon": "",
-          "urlRakuten": "https://ranking.rakuten.co.jp/daily/562637/",
-          "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
-          "checkedAt": "2026-08-19",
-          "picks": [],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-20T07:23:45.487Z"
-        },
-        {
-          "id": "rk_sample02",
-          "name": "総合ランキング",
-          "category": "総合",
-          "image": "",
-          "url": "",
-          "urlAmazon": "",
-          "urlRakuten": "https://ranking.rakuten.co.jp/realtime/",
-          "checkNote": "",
-          "checkedAt": "",
-          "picks": [],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z"
         }
       ]
     },
