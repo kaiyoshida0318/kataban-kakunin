@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.47.0";
+const VERSION   = "0.47.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1396,20 +1396,33 @@ function rankTable(list) {
 
   /* 行の高さに収まる行数だけ、ジャンル名を折り返して見せる */
   const nameLines = Math.max(1, Math.floor((rowH() - 16) / 19));
-  return `${alignStyle(COLS, "table.rank-tbl")}<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
+  return `${alignStyle(COLS, "table.rank-tbl", "tbody tr.r-main")}<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
   </table></div>`;
 }
 
-/* 列ごとの揃えを nth-child で流し込む（セルの生成箇所を触らずに済む） */
-function alignStyle(cols, rowSel) {
+/* 列ごとの揃えを nth-child で流し込む（セルの生成箇所を触らずに済む）。
+   セルの中身は文字だけでなく、入力欄・画像・flexの塊もあるのでまとめて寄せる。 */
+function alignStyle(cols, tableSel, rowSel = "tbody tr") {
+  const FLEX = { left: "flex-start", center: "center", right: "flex-end" };
   const rules = cols.map((c, i) => {
     const a = colAlign(c);
     if (!a) return "";
     const n = i + 1;
-    return `#list ${rowSel} th:nth-child(${n}),#list ${rowSel} td:nth-child(${n}){text-align:${a}}`;
+    const S = `#list ${tableSel}`;
+    const cell = `${S} ${rowSel} > td:nth-child(${n})`;
+    const ml = a === "left"  ? "0" : "auto";
+    const mr = a === "right" ? "0" : "auto";
+    return [
+      `${S} th:nth-child(${n}),${cell}{text-align:${a}}`,
+      `${cell} input,${cell} textarea{text-align:${a}}`,
+      `${cell} img,${cell} .thumb,${cell} .pick-thumb{margin-left:${ml};margin-right:${mr}}`,
+      `${cell} .check-cell,${cell} .ord-cell,${cell} .st-sel{justify-content:${FLEX[a]}}`,
+      `${cell}.c-img{justify-content:${FLEX[a]}}`,
+      `${cell} .src-name,${cell} .r-name{text-align:${a}}`,
+    ].join("");
   }).filter(Boolean).join("");
   return rules ? `<style>${rules}</style>` : "";
 }
@@ -1443,7 +1456,7 @@ function addedTable(rows) {
       </td></tr>` + g.list.map(addedRow).join("");
   }).join("");
 
-  return `${alignStyle(ADDED_COLS, "table.added-tbl")}<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
+  return `${alignStyle(ADDED_COLS, "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${body}</tbody>
