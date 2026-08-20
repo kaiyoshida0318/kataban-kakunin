@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-20T07:18:51.497Z",
+  "updatedAt": "2026-08-20T07:19:19.521Z",
   "sections": {
     "amazon": {
       "items": [
@@ -61,7 +61,26 @@
           "urlRakuten": "",
           "checkNote": "",
           "checkedAt": "2026-08-20",
-          "picks": [],
+          "picks": [
+            {
+              "id": "itm_gz93e9c9zyo",
+              "addedAt": "2026-08-20",
+              "image": "https://m.media-amazon.com/images/I/61wEzhIpBiL._AC_SL1500_.jpg",
+              "url": "https://www.amazon.co.jp/YealRed-Garmin-Vivoactive-vivoactive-%E4%BF%9D%E8%AD%B7%E3%82%B1%E3%83%BC%E3%82%B9%EF%BC%88%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%EF%BC%89/dp/B0DL5PQB3Y/ref=zg_bs_g_14616561051_d_sccl_21/355-0893691-4316449?th=1",
+              "title": "vivoactive5 ケース",
+              "check": "before",
+              "buy": "before"
+            },
+            {
+              "id": "itm_z26p7jnab5u",
+              "addedAt": "2026-08-20",
+              "image": "https://m.media-amazon.com/images/I/61rHzyh301L._AC_SL1500_.jpg",
+              "url": "https://www.amazon.co.jp/TEMEDO-%E3%83%94%E3%82%AF%E3%82%BB%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%83%E3%83%814-Google-%E3%82%B0%E3%83%BC%E3%82%B0%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81-pixel%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81/dp/B0FRM5YFLF/ref=zg_bs_g_14616561051_d_sccl_22/355-0893691-4316449?th=1",
+              "title": "pixel watch ケース",
+              "check": "before",
+              "buy": "before"
+            }
+          ],
           "createdAt": "2026-08-20T05:08:00.530Z",
           "updatedAt": "2026-08-20T05:31:33.550Z"
         },
@@ -84,6 +103,15 @@
               "title": "Xiaomi Smart Band 10/9/8 ベルト",
               "check": "before",
               "buy": "before"
+            },
+            {
+              "id": "itm_tjvs0ll9v3r",
+              "addedAt": "2026-08-19",
+              "image": "https://m.media-amazon.com/images/I/71YKVKfZx3L._AC_SL1500_.jpg",
+              "url": "https://x.gd/96Mjr",
+              "title": "",
+              "check": "before",
+              "buy": "before"
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
@@ -102,6 +130,81 @@
           "picks": [],
           "createdAt": "2026-08-19T09:28:11.238Z",
           "updatedAt": "2026-08-20T05:31:38.606Z"
+        },
+        {
+          "id": "am_sample01",
+          "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
+          "category": "家電",
+          "image": "",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
+          "urlRakuten": "",
+          "checkNote": "Garmin等の新商品を確認実施。上位に食い込む型番と、対応機種の広さを見る。",
+          "checkedAt": "2026-08-19",
+          "picks": [
+            {
+              "id": "pk_a01",
+              "addedAt": "2026-08-19",
+              "image": "",
+              "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB/dp/B0EXAMPLE9",
+              "title": "Garmin充電ケーブル",
+              "check": "after",
+              "buy": "before"
+            },
+            {
+              "id": "pk_a02",
+              "addedAt": "2026-08-05",
+              "image": "",
+              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
+              "title": "",
+              "check": "skip",
+              "buy": "skip"
+            }
+          ],
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-19T00:00:00.000Z"
+        },
+        {
+          "id": "itm_5t0ipbd3tqv",
+          "name": "猫用首輪の売れ筋ランキング",
+          "category": "首輪・リード",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71XNdNQ6YeL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/pet-supplies/2155362051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/215391/",
+          "checkNote": "",
+          "checkedAt": "2026-08-20",
+          "picks": [
+            {
+              "id": "itm_cqg0js68e6n",
+              "addedAt": "2026-08-20",
+              "image": "https://m.media-amazon.com/images/I/71XNdNQ6YeL._AC_SL1500_.jpg",
+              "url": "https://www.amazon.co.jp/BINGPET-airtag-Airtag%E5%AF%BE%E5%BF%9C-%E3%82%BB%E3%83%BC%E3%83%95%E3%83%86%E3%82%A3%E3%83%90%E3%83%83%E3%82%AF%E3%83%AB-%E5%8F%AF%E6%84%9B%E3%81%84%E9%A6%96%E9%A3%BE%E3%82%8A/dp/B0C5R5M23J/ref=sr_1_1_sspa?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1",
+              "title": "猫用首輪　airtag",
+              "check": "before",
+              "buy": "before"
+            },
+            {
+              "id": "itm_zzjbkdtckbd",
+              "addedAt": "2026-08-20",
+              "image": "",
+              "url": "https://www.amazon.co.jp/Airtag-%E3%82%A6%E3%82%A9%E3%83%AC%E3%83%83%E3%83%88%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC-2%E5%80%8B%E3%83%91%E3%83%83%E3%82%AF-%E3%83%91%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88%E3%80%81%E3%83%8F%E3%83%B3%E3%83%89%E3%83%90%E3%83%83%E3%82%B0%E3%80%81%E3%83%90%E3%83%83%E3%82%AF%E3%83%91%E3%83%83%E3%82%AF%E8%B2%A1%E5%B8%83%E3%80%81%E3%82%AF%E3%83%A9%E3%83%83%E3%83%81%E3%80%81%E3%83%9D%E3%82%B1%E3%83%83%E3%83%88%E7%94%A8-%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%81Airtag%E3%81%AF%E5%90%AB%E3%81%BE%E3%82%8C%E3%81%A6%E3%81%84%E3%81%BE%E3%81%9B%E3%82%93/dp/B0D925HGJM/ref=sr_1_9?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-9&th=1",
+              "title": "首輪用ホルダー",
+              "check": "before",
+              "buy": "before"
+            },
+            {
+              "id": "itm_udzcz52ke67",
+              "addedAt": "2026-08-20",
+              "image": "https://m.media-amazon.com/images/I/71LpeHSk79L._AC_SL1500_.jpg",
+              "url": "https://www.amazon.co.jp/JEDirect-AirTag-%E3%82%AD%E3%83%BC%E3%83%81%E3%82%A7%E3%83%BC%E3%83%B3%E4%BB%98%E3%81%8D-%E5%85%A8%E9%9D%A2%E3%81%AB%E5%82%B7%E3%81%A4%E3%81%91%E9%98%B2%E6%AD%A2-Tag%E3%82%AD%E3%83%BC%E3%83%AA%E3%83%B3%E3%82%B0%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC%E3%82%AB%E3%83%90%E3%83%BC/dp/B0CFXKMLJZ/ref=sr_1_12_sspa?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-12-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9tdGY&th=1",
+              "title": "AirTag  防水ケースカバー",
+              "check": "before",
+              "buy": "before"
+            }
+          ],
+          "createdAt": "2026-08-20T06:29:00.631Z",
+          "updatedAt": "2026-08-20T06:49:52.146Z"
         }
       ]
     },
@@ -153,11 +256,92 @@
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
           "updatedAt": "2026-08-20T04:55:05.518Z"
+        },
+        {
+          "id": "rk_sample01",
+          "name": "家電 > 扇風機・サーキュレーター",
+          "category": "家電",
+          "image": "",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/562637/",
+          "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
+          "checkedAt": "2026-08-19",
+          "picks": [
+            {
+              "id": "pk_r02",
+              "addedAt": "2026-08-19",
+              "image": "",
+              "url": "https://item.rakuten.co.jp/example/slim-fan/",
+              "title": "スリムファン 新型",
+              "check": "before",
+              "buy": "before"
+            },
+            {
+              "id": "pk_r01",
+              "addedAt": "2026-08-12",
+              "image": "",
+              "url": "https://item.rakuten.co.jp/example/dc-fan/",
+              "title": "静音DCサーキュレーター",
+              "check": "after",
+              "buy": "done"
+            }
+          ],
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-19T00:00:00.000Z"
+        },
+        {
+          "id": "rk_sample02",
+          "name": "総合ランキング",
+          "category": "総合",
+          "image": "",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://ranking.rakuten.co.jp/realtime/",
+          "checkNote": "",
+          "checkedAt": "",
+          "picks": [],
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-18T00:00:00.000Z"
         }
       ]
     },
     "products": {
-      "items": []
+      "items": [
+        {
+          "id": "itm_sample01",
+          "name": "SD-1200X  折りたたみ電動キックボード（サンプル）",
+          "category": "モビリティ",
+          "image": "",
+          "url": "https://item.rakuten.co.jp/example/sd1200x/",
+          "urlAmazon": "",
+          "urlRakuten": "",
+          "checkNote": "競合の価格とレビュー数を見る。",
+          "checkedAt": "2026-08-19",
+          "picks": [
+            {
+              "id": "pk_p01",
+              "addedAt": "2026-08-18",
+              "image": "",
+              "url": "https://ranking.rakuten.co.jp/daily/101070/",
+              "title": "デイリーランキング",
+              "check": "before",
+              "buy": "before"
+            },
+            {
+              "id": "pk_p02",
+              "addedAt": "2026-08-18",
+              "image": "",
+              "url": "https://detail.1688.com/offer/000000000000.html",
+              "title": "1688 仕入元",
+              "check": "before",
+              "buy": "before"
+            }
+          ],
+          "createdAt": "2026-08-18T00:00:00.000Z",
+          "updatedAt": "2026-08-19T00:00:00.000Z"
+        }
+      ]
     }
   }
 }
