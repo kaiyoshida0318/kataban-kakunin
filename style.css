@@ -491,6 +491,12 @@ body.resizing *{cursor:col-resize !important}
 .pick-none{margin:0;padding:14px 16px;font-size:12px;color:var(--muted);background:var(--surface)}
 
 .pick-tbl-wrap{background:var(--surface);overflow:hidden}
+/* 一覧の行を開いた「チェックした商品」は、一覧表（.grid-tbl）の中に入れ子で置く表。
+   .grid-tbl thead th の見出し固定がここまで効いてしまうと、.pick-tbl-wrap が
+   overflow:hidden でスクロール枠になっているせいで見出しが --head-h ぶん下へずれ、
+   商品の行に重なる（見出しの場所だけ空っぽの帯が残る）。入れ子の見出しは固定しない。 */
+.pick-tbl-wrap .pick-tbl thead th{position:static;z-index:auto;box-shadow:none}
+.pick-tbl-wrap .pick-tbl thead tr{position:static;z-index:auto}
 .pick-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
 .pick-tbl th,.pick-tbl td{overflow:hidden}
 .pick-tbl th,.pick-tbl td{
