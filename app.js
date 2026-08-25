@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.53.0";
+const VERSION   = "0.54.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -106,8 +106,9 @@ const pRowH = () => ensureCols().pickRowH || PROW_H_DEF;
 /* 項目名・幅・揃え。未設定なら既定値 */
 /* 同じ状態フィールドを出す列（隙あり/なし・買付）は項目名を共有する */
 function colLabelOf(key) {
-  for (const ck of colGroup(key)) {
-    const l = colSet(ck).label;
+  const g = colGroup(key);
+  for (let i = g.length - 1; i >= 0; i--) {   // 「チェックした商品」側（p_*）を優先
+    const l = colSet(g[i]).label;
     if (l) return l;
   }
   return "";
@@ -133,16 +134,20 @@ function normCols(raw) {
   return out;
 }
 
-/* 状態列は表ごとに別々の項目名を持てたので、食い違っていたら既定に戻して共通化する。
-   （「追加した商品」の a_check だけ別名になっていた等） */
+/* 状態列は表ごとに別々の項目名を持てたので、食い違っていたら片方に合わせて共通化する。
+   合わせる先は「チェックした商品」側（p_*）。ここは元から正しい名前が入っている場所なので、
+   X件表示で開いた表の見た目は変えずに、「追加した商品」側の別名（最強配送 等）だけが消える。
+   p_* に名前が無ければ両方消して既定（隙あり/なし・買付）に戻す。 */
 function unifyStCols(items) {
   for (const f of ST_FIELDS) {
     const cols = f.cols || [];
     if (cols.length < 2) continue;
-    const labs = cols.map((c) => items[c]?.label).filter(Boolean);
-    if (!labs.length) continue;
-    if (labs.length !== cols.length || labs.some((l) => l !== labs[0])) {
-      for (const c of cols) delete items[c]?.label;
+    const labs = cols.map((c) => items[c]?.label || "");
+    if (labs.every((l) => l === labs[0])) continue;          // 既に揃っている
+    const win = labs[labs.length - 1];                        // p_* を正とする
+    for (const c of cols) {
+      if (win) (items[c] ||= {}).label = win;
+      else delete items[c]?.label;
     }
   }
   return items;

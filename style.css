@@ -23,9 +23,18 @@
 *{box-sizing:border-box}
 [hidden]{display:none !important}
 html,body{margin:0;padding:0}
-/* 縦スクロールバーは常に出しておく。行が増減したときに出たり消えたりすると
-   そのぶん表の幅が変わり、商品を追加した直後に列がずれて見えるため。 */
-html{overflow-y:scroll;scrollbar-gutter:stable}
+/* 縦スクロールバーは常に右側に出しておく。行が増減したときに出たり消えたりすると
+   そのぶん表の幅が変わり、商品を追加した直後に列がずれて見えるため。
+   ::-webkit-scrollbar を書くとブラウザの「重ねて出すスクロールバー」ではなく
+   場所を取る実体のあるスクロールバーになるので、画面が短くても消えない。 */
+html{overflow-y:scroll;scrollbar-gutter:stable;scrollbar-width:auto;scrollbar-color:#a9b4c6 #e2e7ef}
+html::-webkit-scrollbar{width:14px;background:#e2e7ef}
+html::-webkit-scrollbar-track{background:#e2e7ef;border-left:1px solid #cfd6e0}
+html::-webkit-scrollbar-thumb{
+  background:#a9b4c6;border-radius:8px;
+  border:3px solid #e2e7ef;min-height:40px;
+}
+html::-webkit-scrollbar-thumb:hover{background:#8d99ae}
 body{
   background:var(--bg);color:var(--text);
   font-family:"Noto Sans JP",sans-serif;
