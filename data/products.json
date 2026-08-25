@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T07:35:23.624Z",
+  "updatedAt": "2026-08-25T07:35:29.910Z",
   "labels": {
     "rival": [
       {
@@ -90,14 +90,14 @@
         "color": "green"
       },
       {
-        "v": "skip",
-        "label": "スキップ",
-        "color": "purple"
-      },
-      {
         "v": "o_2zv9gp",
         "label": "買付不可",
         "color": "pink"
+      },
+      {
+        "v": "skip",
+        "label": "スキップ",
+        "color": "purple"
       }
     ]
   },
@@ -160,7 +160,7 @@
               "imageRakuten": "",
               "title": "Garminケーブルナイロン",
               "check": "after",
-              "buy": "before",
+              "buy": "o_2zv9gp",
               "sales30": "1230",
               "rival": "o_9rscsw",
               "quality": "high"
@@ -181,7 +181,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-20T09:33:06.317Z"
+          "updatedAt": "2026-08-25T07:35:29.433Z"
         },
         {
           "id": "itm_l7plowx4grx",
