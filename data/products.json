@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T08:54:22.250Z",
+  "updatedAt": "2026-08-25T08:54:32.354Z",
   "labels": {
     "rival": [
       {
@@ -364,7 +364,7 @@
           "urlAmazon": "",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/402786/",
           "checkNote": "",
-          "checkedAt": "2026-08-20",
+          "checkedAt": "2026-08-25",
           "picks": [
             {
               "id": "itm_aghajz0h105",
@@ -410,7 +410,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-25T08:54:17.796Z"
+          "updatedAt": "2026-08-25T08:54:27.793Z"
         }
       ]
     },
