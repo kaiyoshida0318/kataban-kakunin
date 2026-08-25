@@ -389,6 +389,11 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
   font-size:11px;font-weight:500;color:var(--muted);
   overflow:hidden;text-overflow:ellipsis;min-width:0;
 }
+.col-grp-now{
+  font-size:10px;font-weight:700;color:#fff;background:var(--accent);
+  border-radius:999px;padding:1px 8px;
+}
+.col-grp.now .col-grp-ttl{color:var(--accent)}
 .col-grp-cnt{
   font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);
   border-radius:999px;padding:1px 9px;

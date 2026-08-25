@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.57.0";
+const VERSION   = "0.58.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -55,7 +55,7 @@ function rankDefs(key) {
 }
 
 /* ---------- 列管理（並び順と表示/非表示） ----------
-   並び順は data.cols.order[グループ]、非表示は data.cols.items[列].off に入る。
+   並び順は data.cols.order[グループ]、非表示は data.cols.hide[グループ] に入る。
    グループは3つ。amazon基準と楽天基準は列キーが同じなので、そのまま共通の設定になる。
      rank  … amazon基準 / 楽天基準の一覧表（共通）
      added … 追加した商品の表
@@ -82,12 +82,16 @@ function arrangeCols(defs, group, secKey) {
   }
   return out;
 }
-const colOff = (key) => Boolean(colSet(key).off);
+/* 非表示はグループごとに持つ。同じ列キーが「追加した商品」と「チェックした商品」の
+   両方に出る（p_aimg 等）ので、キーだけで持つと片方を隠すともう片方も消えてしまう。
+   項目名と幅はキー単位のまま（どの表でも同じ名前・同じ幅にしたいので）。 */
+const hideSet = (grp) => (ensureCols().hide[grp] ||= []);
+const colOff = (key, grp) => hideSet(grp).includes(key);
 /* 表示する列だけ。全部消すことはできない（最後の1列は残す） */
-const shownCols = (list) => { const v = list.filter((c) => !colOff(c.key)); return v.length ? v : list; };
-/* 非表示も含む全部（列管理パネル用） */
+const shownCols = (list, grp) => { const v = list.filter((c) => !colOff(c.key, grp)); return v.length ? v : list; };
+/* 非表示も含む全部（列管理モーダル用） */
 const allColsOf = (key) => (isAdded(key) ? arrangeCols(ADDED_COLS, "added") : arrangeCols(rankDefs(key), "rank", key));
-const colsOf    = (key) => shownCols(allColsOf(key));
+const colsOf    = (key) => shownCols(allColsOf(key), colGroupOf(key));
 /* そのタブで使うURL項目と並び順 */
 const urlFieldsOf = (key) => SEC(key)?.urlFields || ["url"];
 /* 行の代表URL（名称のリンク先） */
@@ -118,7 +122,7 @@ function pickDefs(sectionKey) {
   ];
 }
 const allPickColsOf = (key) => arrangeCols(pickDefs(key), "pick");
-const pickColsOf    = (key) => shownCols(allPickColsOf(key));
+const pickColsOf    = (key) => shownCols(allPickColsOf(key), "pick");
 
 let colW = {};                 // 旧localStorage（移行にだけ使う）
 const ROW_H_DEF  = 96;
@@ -132,9 +136,11 @@ const ALIGNS = [
 function ensureCols() {
   const c = data.cols;
   if (!c || typeof c !== "object" || typeof c.items !== "object" || !c.items) {
-    data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF, items: (c && c.items) || {}, order: (c && c.order) || {} };
+    data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF, items: (c && c.items) || {},
+                  order: (c && c.order) || {}, hide: (c && c.hide) || {} };
   }
   if (!data.cols.order || typeof data.cols.order !== "object") data.cols.order = {};
+  if (!data.cols.hide  || typeof data.cols.hide  !== "object") data.cols.hide  = {};
   return data.cols;
 }
 const colSet = (key) => ensureCols().items[key] || {};
@@ -164,15 +170,24 @@ function normCols(raw) {
     if (v.label) o.label = String(v.label).slice(0, 24);
     if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
     if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
-    if (v.off) o.off = true;
     if (Object.keys(o).length) out.items[k] = o;
   }
   out.order = {};
+  out.hide  = {};
   for (const g of COL_GROUPS) {
     const arr = raw?.order?.[g];
-    if (!Array.isArray(arr)) continue;
-    const keys = arr.filter((k) => typeof k === "string" && k).slice(0, 80);
-    if (keys.length) out.order[g] = [...new Set(keys)];
+    if (Array.isArray(arr)) {
+      const keys = arr.filter((k) => typeof k === "string" && k).slice(0, 80);
+      if (keys.length) out.order[g] = [...new Set(keys)];
+    }
+    const hid = raw?.hide?.[g];
+    out.hide[g] = Array.isArray(hid)
+      ? [...new Set(hid.filter((k) => typeof k === "string" && k).slice(0, 80))] : [];
+  }
+  /* v0.57.0以前は items[列].off にキー単位で持っていた。グループごとの hide へ移す */
+  for (const [k, v] of Object.entries(raw?.items || {})) {
+    if (!v || !v.off) continue;
+    for (const g of COL_GROUPS) if (!out.hide[g].includes(k)) out.hide[g].push(k);
   }
   unifyStCols(out.items);
   for (const [k, v] of Object.entries(out.items)) if (!Object.keys(v).length) delete out.items[k];
@@ -1712,27 +1727,29 @@ function fitColumns() {
 
 /* 列管理モーダル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
 function renderColModal() {
-  /* 「追加した商品」タブの表は商品用の行の高さを使う。
-     グループ＝設定のまとまり。amazon基準/楽天基準は列キーが同じなので自動的に共通、
+  /* グループ＝設定のまとまり。3つとも常に出す（どのタブからでも設定できるように）。
+     amazon基準/楽天基準は列キーが同じなので自動的に共通、
      追加した商品（added）とチェックした商品（pick）はそれぞれ別に持つ。 */
   const added = isAdded(view);
-  const groups = [
-    added
-      ? { grp: "added", ttl: SEC(view).label, note: "この表だけの設定",
-          which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allColsOf(view) }
-      : { grp: "rank", ttl: SEC(view).label, note: "amazon基準・楽天基準で共通",
-          which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf(view) },
+  const rankKey = added ? "amazon" : view;        // 一覧表の見本にするタブ
+  const all = [
+    { grp: "rank",  ttl: "amazon基準 / 楽天基準（一覧表）", note: "2つのタブで共通",
+      which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf(rankKey) },
+    { grp: "pick",  ttl: "チェックした商品", note: "一覧の行を「N件表示」で開いた表",
+      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(rankKey) },
+    { grp: "added", ttl: "追加した商品", note: "「追加した商品」タブの表",
+      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allColsOf("products") },
   ];
-  if (!added) {
-    groups.push({ grp: "pick", ttl: "チェックした商品", note: "行を開いたときの表",
-      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(view) });
-  }
+  /* いま開いているタブの表を先頭に */
+  const mine = added ? "added" : "rank";
+  const groups = [...all].sort((x, y) => (y.grp === mine) - (x.grp === mine));
+  for (const g of groups) if (g.grp === mine) g.now = true;
 
   /* 1列＝1行。左から 番号 / 表示 / 項目名 / 幅 / 揃え / 上下 */
   const row = (c, i, list, grp) => {
     const st = colSet(c.key);
     const al = colAlign(c);
-    const off = colOff(c.key);
+    const off = colOff(c.key, grp);
     return `<div class="col-row${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}">
       <input class="col-no" type="number" min="1" max="${list.length}" value="${i + 1}"
              data-no title="この番号の位置へ動かします">
@@ -1755,10 +1772,11 @@ function renderColModal() {
   };
 
   $("colModalBody").innerHTML = groups.map((g) => {
-    const on = g.cols.filter((c) => !colOff(c.key)).length;
+    const on = g.cols.filter((c) => !colOff(c.key, g.grp)).length;
     return `
-    <section class="col-grp" data-grp="${esc(g.grp)}">
+    <section class="col-grp${g.now ? " now" : ""}" data-grp="${esc(g.grp)}">
       <h3 class="col-grp-ttl">${esc(g.ttl)}
+        ${g.now ? '<span class="col-grp-now">いま開いている表</span>' : ""}
         <span class="col-grp-note">${esc(g.note)}</span>
         <span class="col-grp-cnt">表示 ${on} / ${g.cols.length}</span>
         <span class="grow"></span>
@@ -1788,15 +1806,19 @@ function renderColModal() {
 
   $("colModalBody").querySelectorAll("[data-allon]").forEach((b) => {
     b.onclick = () => {
-      for (const c of groupCols(b.dataset.allon)) delete ensureCols().items[c.key]?.off;
+      const g = b.dataset.allon;
+      ensureCols().hide[g] = hideSet(g).filter((k) => !groupCols(g).some((c) => c.key === k));
       redraw();
     };
   });
 
   $("colModalBody").querySelectorAll("[data-rowh]").forEach((inp) => {
     inp.oninput = () => {
+      const which = inp.dataset.rowh;
       const v = parseInt(inp.value, 10);
-      ensureCols()[inp.dataset.rowh] = Number.isFinite(v) && v >= 30 ? v : (inp.dataset.rowh === "rowH" ? ROW_H_DEF : PROW_H_DEF);
+      ensureCols()[which] = Number.isFinite(v) && v >= 30 ? v : (which === "rowH" ? ROW_H_DEF : PROW_H_DEF);
+      /* pickRowH は「追加した商品」と「チェックした商品」で共通なので、もう片方の欄も合わせる */
+      $("colModalBody").querySelectorAll(`[data-rowh="${which}"]`).forEach((o) => { if (o !== inp) o.value = inp.value; });
       saveCols(); renderBody();
     };
   });
@@ -1809,10 +1831,11 @@ function renderColModal() {
 
     /* 表示 / 非表示 */
     cd.querySelector("[data-eye]").onchange = (e) => {
-      if (!e.target.checked && groupCols(grp).filter((c) => !colOff(c.key)).length <= 1) {
+      if (!e.target.checked && groupCols(grp).filter((c) => !colOff(c.key, grp)).length <= 1) {
         toast("最後の1列は隠せません", true); e.target.checked = true; return;
       }
-      if (e.target.checked) delete ensureCols().items[key]?.off; else box().off = true;
+      if (e.target.checked) ensureCols().hide[grp] = hideSet(grp).filter((k) => k !== key);
+      else if (!colOff(key, grp)) hideSet(grp).push(key);
       redraw();
     };
 
