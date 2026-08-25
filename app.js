@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.48.0";
+const VERSION   = "0.49.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -126,16 +126,22 @@ function normCols(raw) {
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
   { key: "amazon",   icon: "📊", label: "amazon基準（オフェンス）", nameLabel: "ジャンル名",
+    accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
+    desc: "Amazon側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"], side: "offense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "Amazon基準で見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
   { key: "rakuten",  icon: "🏆", label: "楽天基準（ディフェンス）",   nameLabel: "ジャンル名",
+    accent: "#1e8a5f", tint: "#eaf6f0", role: "巡回リスト",
+    desc: "楽天側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
   { key: "products", icon: "📦", label: "追加した商品", nameLabel: "商品名",
+    accent: "#6b4bd6", tint: "#f1eefc", role: "作業リスト",
+    desc: "拾った商品を追加日ごとに並べて、上から順に確認・買付まで処理していく場所。",
     kind: "added", defSort: "addedAt", urlFields: ["url"],
     search: "商品名・URL・出所で検索…", add: "＋ 商品を追加",
     emptyTtl: "まだ1件もありません",
@@ -949,6 +955,44 @@ function renderNav() {
   });
 }
 
+/* タブごとに色を差し替えて、役割の違いを見た目でも分ける */
+function applySecTheme() {
+  const s = SEC(view);
+  const r = document.documentElement.style;
+  r.setProperty("--sec", s.accent || "var(--accent)");
+  r.setProperty("--sec-soft", s.tint || "var(--row-alt)");
+  document.body.dataset.view = view;
+  document.body.dataset.kind = s.kind || "list";
+}
+
+/* タブの下の帯。巡回リストは役割の説明、作業リストは進み具合を出す */
+function renderSecBand() {
+  const s = SEC(view);
+  const band = $("secBand");
+  const pill = `<span class="sec-role">${s.icon} ${esc(s.role || "")}</span>`;
+
+  if (s.kind === "added") {
+    const rows = allPicks();
+    const chip = (field, o) => {
+      const n = rows.filter((r) => r.p[field] === o.v).length;
+      return n ? `<span class="sec-chip ${o.cls}">${esc(o.label)} <b>${n}</b></span>` : "";
+    };
+    const today0 = rows.filter((r) => r.p.addedAt === today()).length;
+    band.innerHTML = pill +
+      `<span class="sec-stat">今日 <b>${today0}</b> 件 / 全 <b>${rows.length}</b> 件</span>` +
+      `<span class="sec-chips">${stList("check").map((o) => chip("check", o)).join("")}</span>` +
+      `<span class="sec-chips">${stList("buy").map((o) => chip("buy", o)).join("")}</span>`;
+    return;
+  }
+  const n = itemsOf(view).length;
+  const picks = itemsOf(view).reduce((t, it) => t + it.picks.length, 0);
+  const stale = itemsOf(view).filter((it) => { const d = daysSince(it.checkedAt); return d == null || d > STALE_DAYS; }).length;
+  band.innerHTML = pill +
+    `<span class="sec-stat">ジャンル <b>${n}</b> / 拾った商品 <b>${picks}</b>` +
+    (stale ? ` / <span class="sec-stale">${STALE_DAYS}日以上みてない <b>${stale}</b></span>` : "") + `</span>` +
+    `<span class="sec-desc">${esc(s.desc || "")}</span>`;
+}
+
 function renderHeadBits() {
   $("repoBadge").textContent = cfg.owner && cfg.repo ? `${cfg.owner}/${cfg.repo}` : "未設定";
   $("repoBadge").classList.toggle("unset", !(cfg.owner && cfg.repo));
@@ -1138,6 +1182,7 @@ function renderBody() {
     ? (added ? "検索語や出所の絞り込みを外してみてください。" : "検索語やカテゴリの絞り込みを外してみてください。")
     : s.emptySub;
 
+  renderSecBand();
   $("list").innerHTML = added ? addedTable(list) : rankTable(list);
 
   const root = $("list");
@@ -1521,8 +1566,10 @@ function addedRow(r) {
       <td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>
     </tr>`;
 
+  const chkColor = (stList("check").find((o) => o.v === p.check) || {}).color || "gray";
+  const done = p.buy !== stFirst("buy");        // 買付の判断が済んだ行は落ち着かせる
   return `
-    <tr>
+    <tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}">
       ${srcCell}
       ${imgCell(AMZ)}
       ${imgCell(RAK)}
@@ -1901,7 +1948,8 @@ function pickPanel(it) {
 }
 
 function renderAll() {
-  renderNav(); renderToolbar(); renderBody();
+  applySecTheme();
+  renderNav(); renderSecBand(); renderToolbar(); renderBody();
   if (!$("colPanel").hidden) renderColPanel();     // タブで項目が変わるので追従させる
 }
 
