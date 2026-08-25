@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T08:56:18.656Z",
+  "updatedAt": "2026-08-25T08:59:08.198Z",
   "labels": {
     "rival": [
       {
@@ -131,8 +131,12 @@
       },
       "a_qual": {
         "w": 120
+      },
+      "p_check": {
+        "off": true
       }
-    }
+    },
+    "order": {}
   },
   "sections": {
     "amazon": {
@@ -369,16 +373,16 @@
             {
               "id": "itm_aghajz0h105",
               "addedAt": "2026-08-25",
-              "title": "サイズ調整インソール",
               "urlAmazon": "",
               "urlRakuten": "https://item.rakuten.co.jp/inso-ru/sizeadjustment_2and3/",
               "imageAmazon": "",
               "imageRakuten": "https://shop.r10s.jp/inso-ru/cabinet/shohin/moxibustion/size23set_08.jpg",
+              "title": "サイズ調整インソール",
+              "check": "after",
+              "buy": "before",
               "sales30": "",
               "rival": "o_p14mmp",
-              "quality": "",
-              "check": "after",
-              "buy": "before"
+              "quality": ""
             },
             {
               "id": "itm_jy5lrepk98v",
