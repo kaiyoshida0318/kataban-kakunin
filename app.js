@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.58.0";
+const VERSION   = "0.59.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -107,16 +107,23 @@ const PSIDE = (k) => PICK_SIDES.find((x) => x.k === k) || PICK_SIDES[0];
 /* そのタブが扱うモール。型番商品など基準が無いタブは Amazon 側を使う */
 const sideKeyOf = (sectionKey) => (SEC(sectionKey)?.side === "defense" ? "rakuten" : "amazon");
 
-/* チェックした商品の列。開いているタブのモールだけを出す */
+/* チェックした商品の列。「追加した商品」と同じ項目を一通り持つ（出所だけはその行そのものなので無い）。
+   画像とURLは、そのタブの基準側のモールを先に置く。要らない列は ▦列管理 で隠す。 */
 function pickDefs(sectionKey) {
   const sd = PSIDE(sideKeyOf(sectionKey));
+  const od = PSIDE(sd.k === "amazon" ? "rakuten" : "amazon");
   return [
     { key: "p_date",  label: "追加日",              w: 104, cls: "td-date"  },
     { key: "p_title", label: "商品名",              w: 260, cls: "td-title" },
     { key: sd.imgCol, label: `${sd.label}画像`,     w: 76,  cls: "td-img"   },
     { key: sd.urlCol, label: `${sd.label}URL`,      w: 0,   cls: "td-url"   },   // 0 = 自動
+    { key: od.imgCol, label: `${od.label}画像`,     w: 76,  cls: "td-img"   },
+    { key: od.urlCol, label: `${od.label}URL`,      w: 0,   cls: "td-url"   },
+    { key: "a_sales", label: "30日販売数",          w: 106, cls: "td-sales" },
     { key: "p_edit",  label: "編集",                w: 74,  cls: "td-edit"  },
     { key: "p_check", label: "隙あり/なし",        w: 108, cls: "td-st"    },
+    { key: "a_rival", label: "楽天ライバル状況",    w: 130, cls: "td-rival" },
+    { key: "a_qual",  label: "商品品質",            w: 104, cls: "td-rival" },
     { key: "p_buy",   label: "買付",                w: 96,  cls: "td-st"    },
     { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
   ];
@@ -1417,7 +1424,9 @@ function renderBody() {
       if (!url) { toast("商品URLを入力してください", true); inp(".pick-url").focus(); return; }
       const it = itemsOf(view).find((i) => i.id === id);
       const sd = PSIDE(sideKeyOf(view));                 // このタブのモール側に入れる
+      const od = PSIDE(sd.k === "amazon" ? "rakuten" : "amazon");
       const image = val(".pick-image");
+      const url2  = val(".pick-url2");                   // もう片方のモール（任意）
       const pickId = uid();
       it.picks.unshift({
         id:      pickId,
@@ -1426,7 +1435,9 @@ function renderBody() {
         urlAmazon: "", urlRakuten: "", imageAmazon: "", imageRakuten: "",
         [sd.url]: url,
         [sd.img]: image,
-        sales30: "", rival: stFirst("rival"), quality: stFirst("quality"),
+        [od.url]: url2,
+        [od.img]: val(".pick-image2"),
+        sales30: val(".pick-sales"), rival: stFirst("rival"), quality: stFirst("quality"),
         check:   stFirst("check"),
         buy:     stFirst("buy"),
       });
@@ -1435,6 +1446,7 @@ function renderBody() {
       upsert(sec, it);                                   // 追加はここで完了。待たせない
       toast(image ? "商品を追加しました" : "商品を追加しました（画像は裏で取得します）");
       if (!image) fetchPickImage(sec, id, pickId, sd.k); // 画像は裏で取りにいく
+      if (url2 && !val(".pick-image2")) fetchPickImage(sec, id, pickId, od.k);
       setTimeout(() => {
         const next = $("list").querySelector(`tr.pick-new[data-for="${id}"] .pick-url`);
         if (next) next.focus();
@@ -1499,27 +1511,16 @@ function renderBody() {
       const at = locatePick(key);
       if (!at) return;
       const { it, p, sec } = at;
-      const val = (sel) => { const el = row.querySelector(sel); return el ? el.value.trim() : null; };
-      const both = row.dataset.both === "1";       // 追加した商品ビューは両モール
-      const sd = PSIDE(sideKeyOf(sec));
-
-      /* 列を非表示にしていると入力欄自体が無い。その項目は今の値のままにする */
+      /* 入力欄は data-pf に書き込み先の項目名を持たせている。
+         列を非表示にしていると欄自体が無いので、その項目は今の値のままになる */
       const next = {};
-      const put = (sel, field) => { const v = val(sel); if (v !== null) next[field] = v; };
-      if (both) {
-        put(".pe-url", "urlAmazon");   put(".pe-url2", "urlRakuten");
-        put(".pe-image", "imageAmazon"); put(".pe-image2", "imageRakuten");
-      } else {
-        put(".pe-url", sd.url);        put(".pe-image", sd.img);
-      }
+      row.querySelectorAll("[data-pf]").forEach((el) => { next[el.dataset.pf] = el.value.trim(); });
+      if (!next.addedAt) delete next.addedAt;                 // 空の日付は今の値を残す
 
       const after = { ...p, ...next };
       if (!after.urlAmazon && !after.urlRakuten) { toast("URLを空にはできません", true); return; }
 
       Object.assign(p, next);
-      p.addedAt = val(".pe-date") || p.addedAt;
-      const t = val(".pe-title"); if (t !== null) p.title = t;
-      const sIn = val(".pe-sales"); if (sIn !== null) p.sales30 = sIn;
       it.updatedAt = nowIso();
       editPicks.delete(key);
 
@@ -1659,13 +1660,13 @@ function addedRow(r) {
 
   /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
   const cells = editing ? {
-    a_src:   `<td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>`,
-    p_aimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>`,
-    p_rimg:  `<td class="td-img"><input class="input-sm pe-image2" type="url" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>`,
-    a_title: `<td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>`,
-    p_aurl:  `<td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>`,
-    p_rurl:  `<td class="td-url"><input class="input-sm pe-url2" type="url" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>`,
-    a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
+    a_src:   `<td class="td-src"><input class="input-sm pe-date" type="date" data-pf="addedAt" value="${esc(p.addedAt)}" title="追加日"></td>`,
+    p_aimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="imageAmazon" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>`,
+    p_rimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="imageRakuten" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>`,
+    a_title: `<td class="td-title"><input class="input-sm pe-title" type="text" data-pf="title" value="${esc(p.title)}" placeholder="商品名"></td>`,
+    p_aurl:  `<td class="td-url"><input class="input-sm pe-url" type="url" data-pf="urlAmazon" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>`,
+    p_rurl:  `<td class="td-url"><input class="input-sm pe-url" type="url" data-pf="urlRakuten" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>`,
+    a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
     a_check: stCell("check", "td-st"),
     a_rival: stCell("rival", "td-rival"),
     a_qual:  stCell("quality", "td-rival"),
@@ -1693,7 +1694,7 @@ function addedRow(r) {
   const tds = colsOf("products")
     .map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
 
-  if (editing) return `<tr class="pick-editing" data-row="${esc(key)}" data-both="1">${tds}</tr>`;
+  if (editing) return `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`;
 
   const chkColor = (stList("check").find((o) => o.v === p.check) || {}).color || "gray";
   const done = p.buy !== stFirst("buy");        // 買付の判断が済んだ行は落ち着かせる
@@ -2064,7 +2065,8 @@ function pickThumb(itemId, p, side) {
 
 function pickPanel(it) {
   const cols = pickColsOf(view);
-  const sd = PSIDE(sideKeyOf(view));
+  const sd = PSIDE(sideKeyOf(view));                                  // このタブの基準側
+  const od = PSIDE(sd.k === "amazon" ? "rakuten" : "amazon");         // もう片方
 
   const picks = it.picks
     .slice()
@@ -2072,29 +2074,51 @@ function pickPanel(it) {
     .map((p) => {
       const key = `${it.id}|${p.id}`;
       const editing = editPicks.has(key);
-      const url = p[sd.url];
-      const stCell = (field) =>
-        `<td class="td-st">${stButton(stList(field), p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
+      const stCell = (field, cls = "td-st") =>
+        `<td class="${cls}">${stButton(stList(field), p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
+      const imgCell = (x) =>
+        `<td class="td-img" data-pickimg="${esc(key)}|${x.k}">${pickThumb(it.id, p, x.k)}</td>`;
+      const urlCell = (x) => {
+        const v = p[x.url];
+        return `<td class="td-url">${v
+          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 62))}</a>`
+          : '<span class="dash">—</span>'}</td>`;
+      };
+      const imgEdit = (x) =>
+        `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="${x.img}" value="${esc(p[x.img])}" placeholder="${esc(x.label)}画像"></td>`;
+      const urlEdit = (x) =>
+        `<td class="td-url"><input class="input-sm pe-url" type="url" data-pf="${x.url}" value="${esc(p[x.url])}" placeholder="${esc(x.label)}のURL  https://…"></td>`;
 
       /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
       const cells = editing ? {
-        p_date:  `<td class="td-date"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>`,
-        p_title: `<td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>`,
-        [sd.imgCol]: `<td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p[sd.img])}" placeholder="画像URL"></td>`,
-        [sd.urlCol]: `<td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p[sd.url])}" placeholder="https://…"></td>`,
+        p_date:  `<td class="td-date"><input class="input-sm pe-date" type="date" data-pf="addedAt" value="${esc(p.addedAt)}"></td>`,
+        p_title: `<td class="td-title"><input class="input-sm pe-title" type="text" data-pf="title" value="${esc(p.title)}" placeholder="商品名"></td>`,
+        [sd.imgCol]: imgEdit(sd),
+        [sd.urlCol]: urlEdit(sd),
+        [od.imgCol]: imgEdit(od),
+        [od.urlCol]: urlEdit(od),
+        a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
         p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
         p_check: stCell("check"),
+        a_rival: stCell("rival", "td-rival"),
+        a_qual:  stCell("quality", "td-rival"),
         p_buy:   stCell("buy"),
         p_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
       } : {
         p_date:  `<td class="td-date">${esc(p.addedAt || "—")}</td>`,
         p_title: `<td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>`,
-        [sd.imgCol]: `<td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>`,
-        [sd.urlCol]: `<td class="td-url">${url
-          ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">${esc(prettyUrl(url, 62))}</a>`
-          : '<span class="dash">—</span>'}</td>`,
+        [sd.imgCol]: imgCell(sd),
+        [sd.urlCol]: urlCell(sd),
+        [od.imgCol]: imgCell(od),
+        [od.urlCol]: urlCell(od),
+        a_sales: `<td class="td-sales">
+          <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
+                 data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
+        </td>`,
         p_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
         p_check: stCell("check"),
+        a_rival: stCell("rival", "td-rival"),
+        a_qual:  stCell("quality", "td-rival"),
         p_buy:   stCell("buy"),
         p_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
       };
@@ -2110,6 +2134,9 @@ function pickPanel(it) {
     p_title: `<td class="td-title"><input class="input-sm pick-title" type="text" placeholder="商品名"></td>`,
     [sd.imgCol]: `<td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>`,
     [sd.urlCol]: `<td class="td-url"><input class="input-sm pick-url" type="url" placeholder="${esc(sd.label)}の商品URL  https://…"></td>`,
+    [od.imgCol]: `<td class="td-img"><input class="input-sm pick-image2" type="url" placeholder="画像URL"></td>`,
+    [od.urlCol]: `<td class="td-url"><input class="input-sm pick-url2" type="url" placeholder="${esc(od.label)}の商品URL（任意）"></td>`,
+    a_sales: `<td class="td-sales"><input class="input-sm pick-sales" type="text" inputmode="numeric" placeholder="30日販売数"></td>`,
     p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>`,
   };
   let newRow = "";
