@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.51.0";
+const VERSION   = "0.52.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1710,6 +1710,7 @@ function toggleColPanel(force) {
   el.hidden = !show;
   $("btnCols").classList.toggle("on", show);
   if (show) renderColPanel();
+  syncHeadH();
 }
 
 /* 列幅ドラッグ */
@@ -1959,10 +1960,26 @@ function pickPanel(it) {
   </section>`;
 }
 
+/* ヘッダーの実高さをCSS変数へ（表の見出しをこの下に貼り付けるため） */
+let headRO = null;
+function syncHeadH() {
+  const h = document.querySelector(".app-header");
+  if (!h) return;
+  document.documentElement.style.setProperty("--head-h", Math.round(h.getBoundingClientRect().height) + "px");
+}
+function watchHeadH() {
+  syncHeadH();
+  const h = document.querySelector(".app-header");
+  if (!h || headRO || typeof ResizeObserver === "undefined") return;
+  headRO = new ResizeObserver(() => syncHeadH());
+  headRO.observe(h);
+}
+
 function renderAll() {
   applySecTheme();
   renderNav(); renderSecBand(); renderToolbar(); renderBody();
   if (!$("colPanel").hidden) renderColPanel();     // タブで項目が変わるので追従させる
+  syncHeadH();
 }
 
 /* =========================================================
@@ -2814,9 +2831,18 @@ function bind() {
   });
   let fitTimer = null;
   window.addEventListener("resize", () => {
+    syncHeadH();
     clearTimeout(fitTimer);
     fitTimer = setTimeout(fitColumns, 120);
   });
+  watchHeadH();
+  /* スクロール量でヘッダーを薄く（行ったり来たりしないよう閾値に幅を持たせる） */
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY || 0;
+    const on = document.body.classList.contains("scrolled");
+    if (!on && y > 130) document.body.classList.add("scrolled");
+    else if (on && y < 60) document.body.classList.remove("scrolled");
+  }, { passive: true });
 }
 
 /* GitHubの現物を取ってくる（画面には反映しない） */

@@ -150,6 +150,15 @@ body[data-kind="added"] .list .tbl-wrap{border-radius:var(--radius)}
 
 /* --- 3段目: ツールバー --- */
 .head-tools{padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+
+/* --- スクロール中はヘッダーを薄くして表を広く見せる --- */
+body.scrolled .head-brand{padding-top:5px;padding-bottom:3px}
+body.scrolled .brand-icon{width:28px;height:28px;border-radius:8px}
+body.scrolled .brand-logo{height:23px}
+body.scrolled .head-tools{padding-top:6px;padding-bottom:6px}
+body.scrolled .sec-band{padding-top:4px;padding-bottom:4px}
+body.scrolled .sec-desc{display:none}
+body.scrolled .app-header{box-shadow:0 2px 10px rgba(16,24,40,.08)}
 .search-wrap{position:relative;flex:0 1 300px;min-width:180px}
 .head-tools input.search{padding:7px 26px 7px 32px;font-size:12.5px}
 .search-wrap::before{content:"🔍";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;opacity:.45;pointer-events:none}
@@ -237,14 +246,24 @@ textarea{resize:vertical;line-height:1.6;font-size:13px}
 /* ===== ランキング一覧（表） ===== */
 .tbl-wrap{
   background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+  border-radius:var(--radius);box-shadow:var(--shadow);
+  /* clip は hidden と違ってスクロール枠を作らないので、中の見出しの sticky が効く */
+  overflow:clip;
 }
+@supports not (overflow:clip){ .tbl-wrap{overflow:visible} }
 .grid-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
 .grid-tbl th,.grid-tbl td{border:1px solid var(--border);padding:9px 11px;vertical-align:middle;overflow:hidden}
 .grid-tbl thead th{
   height:44px;background:var(--sec-soft,#eef1f6);font-size:11.5px;font-weight:700;color:#4b5563;
-  text-align:center;white-space:nowrap;position:sticky;top:0;z-index:1;
+  text-align:center;white-space:nowrap;
+  /* スクロールしてもヘッダーのすぐ下に貼り付く */
+  position:sticky;top:var(--head-h,0px);z-index:30;
+  /* border-collapse だと固定中に枠線が消えるので影で描く */
+  box-shadow:inset 0 1px 0 var(--border),inset 0 -1px 0 var(--border);
 }
+.grid-tbl thead tr{position:relative;z-index:30}
+/* 追加した商品の「日付」帯も見出しの下に潜り込ませる */
+.added-tbl .day-row td{position:relative;z-index:1}
 .grid-tbl th{position:relative}
 .rank-tbl tbody td{height:var(--row-h,96px)}
 .grid-tbl th.sortable{cursor:pointer;user-select:none}
