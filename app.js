@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.49.0";
+const VERSION   = "0.50.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -26,9 +26,9 @@ const ADDED_COLS = [
   { key: "p_aurl",  label: "amazonURL",       w: 0,   cls: "td-url"   },
   { key: "p_rurl",  label: "楽天URL",         w: 0,   cls: "td-url"   },
   { key: "a_sales", label: "30日販売数",      w: 106, cls: "td-sales" },
+  { key: "a_check", label: "隙あり/なし",      w: 108, cls: "td-st"    },
   { key: "a_rival", label: "楽天ライバル状況", w: 130, cls: "td-rival" },
   { key: "a_qual",  label: "商品品質",         w: 104, cls: "td-rival" },
-  { key: "a_check", label: "確認",            w: 92,  cls: "td-st"    },
   { key: "a_buy",   label: "買付",            w: 92,  cls: "td-st"    },
   { key: "a_edit",  label: "編集",            w: 70,  cls: "td-edit"  },
   { key: "a_act",   label: "操作",            w: 68,  cls: "td-acts"  },
@@ -78,7 +78,7 @@ function pickColsOf(sectionKey) {
     { key: sd.imgCol, label: `${sd.label}画像`,     w: 76,  cls: "td-img"   },
     { key: sd.urlCol, label: `${sd.label}URL`,      w: 0,   cls: "td-url"   },   // 0 = 自動
     { key: "p_edit",  label: "編集",                w: 74,  cls: "td-edit"  },
-    { key: "p_check", label: "確認",                w: 96,  cls: "td-st"    },
+    { key: "p_check", label: "隙あり/なし",        w: 108, cls: "td-st"    },
     { key: "p_buy",   label: "買付",                w: 96,  cls: "td-st"    },
     { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
   ];
@@ -133,14 +133,14 @@ const SECTIONS = [
     emptyTtl: "まだ登録がありません",
     emptySub: "Amazon基準で見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
   { key: "rakuten",  icon: "🏆", label: "楽天基準（ディフェンス）",   nameLabel: "ジャンル名",
-    accent: "#1e8a5f", tint: "#eaf6f0", role: "巡回リスト",
+    accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "楽天側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
   { key: "products", icon: "📦", label: "追加した商品", nameLabel: "商品名",
-    accent: "#6b4bd6", tint: "#f1eefc", role: "作業リスト",
+    accent: "#c0392b", tint: "#fdeeec", role: "作業リスト",
     desc: "拾った商品を追加日ごとに並べて、上から順に確認・買付まで処理していく場所。",
     kind: "added", defSort: "addedAt", urlFields: ["url"],
     search: "商品名・URL・出所で検索…", add: "＋ 商品を追加",
@@ -185,10 +185,10 @@ const ST_FIELDS = [
     { v: "low",  label: "4.0以下", color: "amber" },
     { v: "high", label: "4.0以上", color: "green" },
   ] },
-  { key: "check", title: "確認", cols: ["a_check", "p_check"], opts: [
-    { v: "before", label: "確認前",   color: "gray"   },
-    { v: "after",  label: "確認後",   color: "green"  },
-    { v: "skip",   label: "スキップ", color: "purple" },
+  { key: "check", title: "隙あり/なし", cols: ["a_check", "p_check"], opts: [
+    { v: "before", label: "未判定", color: "gray"  },
+    { v: "after",  label: "隙あり", color: "green" },
+    { v: "skip",   label: "隙なし", color: "red"   },
   ] },
   { key: "buy", title: "買付", cols: ["a_buy", "p_buy"], opts: [
     { v: "before", label: "買付前",   color: "gray"   },
@@ -223,6 +223,16 @@ const stCls = (list, v) => (list.find((o) => o.v === v) || list[0]).cls;
 const stOptions = (list, v) =>
   list.map((o) => `<option value="${esc(o.v)}"${o.v === v ? " selected" : ""}>${esc(o.label)}</option>`).join("");
 const stFirst = (key) => stList(key)[0].v;
+
+/* 旧「確認」のまま保存されている場合だけ、新しい既定（隙あり/なし）へ差し替える */
+const LEGACY_CHECK = ["確認前", "確認後", "スキップ"];
+function upgradeLabels(labels) {
+  const c = labels.check;
+  if (Array.isArray(c) && c.length === 3 && c.every((o, i) => o.label === LEGACY_CHECK[i])) {
+    labels.check = ST_DEF("check").opts.map((o) => ({ ...o }));
+  }
+  return labels;
+}
 
 /* 既にきちんとした形なら作り直さない（同じ配列を返し続ける） */
 function ensureLabels() {
@@ -791,7 +801,7 @@ function migrateUrl(x, fields) {
 function normalize(d) {
   const out = emptyData();
   out.updatedAt = d?.updatedAt || "";
-  out.labels = normLabels(d?.labels);
+  out.labels = upgradeLabels(normLabels(d?.labels));
   out.cols   = normCols(d?.cols);
   const s = d?.sections || {};
   // v1（items が直下）からの移行
@@ -1559,9 +1569,10 @@ function addedRow(r) {
       <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>
       <td class="td-url"><input class="input-sm pe-url2" type="url" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>
       <td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>
+      ${stCell("check", "td-st")}
       ${rivalCell}
       ${qualCell}
-      ${statusCells(it.id, p)}
+      ${stCell("buy", "td-st")}
       <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
       <td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>
     </tr>`;
@@ -1577,9 +1588,10 @@ function addedRow(r) {
       ${urlCell(AMZ)}
       ${urlCell(RAK)}
       ${salesCell}
+      ${stCell("check", "td-st")}
       ${rivalCell}
       ${qualCell}
-      ${statusCells(it.id, p)}
+      ${stCell("buy", "td-st")}
       <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
       <td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>
     </tr>`;
