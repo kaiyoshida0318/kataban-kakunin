@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T08:53:49.030Z",
+  "updatedAt": "2026-08-25T08:53:56.900Z",
   "labels": {
     "rival": [
       {
@@ -377,7 +377,7 @@
               "sales30": "",
               "rival": "o_p14mmp",
               "quality": "",
-              "check": "before",
+              "check": "after",
               "buy": "before"
             },
             {
@@ -402,7 +402,7 @@
               "imageAmazon": "",
               "imageRakuten": "https://shop.r10s.jp/tujya666/cabinet/12291642/0722-080302_4.jpg",
               "title": "インソール サンダル 中敷き",
-              "check": "before",
+              "check": "after",
               "buy": "before",
               "sales30": "",
               "rival": "o_dn58o9",
@@ -410,7 +410,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-25T08:53:44.557Z"
+          "updatedAt": "2026-08-25T08:53:56.373Z"
         }
       ]
     },
