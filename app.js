@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.50.0";
+const VERSION   = "0.51.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2679,6 +2679,25 @@ function bind() {
     renderBody();
   };
   $("btnSettings").onclick = openCfg;
+  $("btnNewWin").onclick = () => {
+    const w = window.open(location.href, "_blank",
+      `noopener,width=${Math.min(1600, screen.availWidth - 60)},height=${Math.min(1000, screen.availHeight - 60)}`);
+    if (!w) toast("ポップアップがブロックされました。ブラウザで許可してください", true);
+  };
+
+  /* 同じブラウザの別ウィンドウで変更されたら、こちらにも取り込む */
+  window.addEventListener("storage", (e) => {
+    if (e.key !== LS_DATA || !e.newValue) return;
+    const busy = !$("rankModal").hidden || !$("cfgModal").hidden || editPicks.size || addRows.size;
+    if (busy) return;                       // 編集中は邪魔しない
+    try {
+      const next = normalize(JSON.parse(e.newValue));
+      if ((next.updatedAt || "") <= (data.updatedAt || "")) return;
+      data = next;
+      renderAll();
+      toast("別のウィンドウの変更を取り込みました");
+    } catch { /* noop */ }
+  });
   $("btnCols").onclick     = () => toggleColPanel();
   $("btnColsReset").onclick = () => {
     if (!confirm("項目名・幅・揃え・行の高さを既定に戻します。よろしいですか？")) return;
