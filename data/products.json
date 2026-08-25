@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T08:37:29.549Z",
+  "updatedAt": "2026-08-25T08:38:27.671Z",
   "labels": {
     "rival": [
       {
@@ -213,7 +213,7 @@
               "imageAmazon": "https://m.media-amazon.com/images/I/61wEzhIpBiL._AC_SL1500_.jpg",
               "imageRakuten": "",
               "title": "vivoactive5 ケース",
-              "check": "before",
+              "check": "skip",
               "buy": "before",
               "sales30": "",
               "rival": "o_ww912j",
@@ -227,7 +227,7 @@
               "imageAmazon": "https://m.media-amazon.com/images/I/61rHzyh301L._AC_SL1500_.jpg",
               "imageRakuten": "",
               "title": "pixel watch ケース",
-              "check": "before",
+              "check": "after",
               "buy": "before",
               "sales30": "",
               "rival": "o_dn58o9",
@@ -235,7 +235,7 @@
             }
           ],
           "createdAt": "2026-08-20T05:08:00.530Z",
-          "updatedAt": "2026-08-20T09:29:19.130Z"
+          "updatedAt": "2026-08-25T08:38:23.146Z"
         },
         {
           "id": "itm_d19g7p56jye",
