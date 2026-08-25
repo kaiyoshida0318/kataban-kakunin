@@ -1,89 +1,422 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-19T00:00:00.000Z",
+  "updatedAt": "2026-08-25T09:27:26.487Z",
+  "labels": {
+    "rival": [
+      {
+        "v": "o_p14mmp",
+        "label": "確認前",
+        "color": "gray"
+      },
+      {
+        "v": "o_9rscsw",
+        "label": "ライバル0-amaは良い",
+        "color": "blue"
+      },
+      {
+        "v": "o_dn58o9",
+        "label": "倒せそう",
+        "color": "blue"
+      },
+      {
+        "v": "o_ww912j",
+        "label": "売れそうにない",
+        "color": "pink"
+      },
+      {
+        "v": "few",
+        "label": "少数",
+        "color": "blue"
+      },
+      {
+        "v": "some",
+        "label": "そこそこいる",
+        "color": "amber"
+      },
+      {
+        "v": "heavy",
+        "label": "激戦",
+        "color": "red"
+      }
+    ],
+    "quality": [
+      {
+        "v": "",
+        "label": "未調査",
+        "color": "gray"
+      },
+      {
+        "v": "low",
+        "label": "評価低すぎかも",
+        "color": "pink"
+      },
+      {
+        "v": "o_mk4n54",
+        "label": "場所取りすぎ",
+        "color": "pink"
+      },
+      {
+        "v": "high",
+        "label": "まあOK",
+        "color": "blue"
+      }
+    ],
+    "check": [
+      {
+        "v": "before",
+        "label": "確認前",
+        "color": "gray"
+      },
+      {
+        "v": "after",
+        "label": "隙あり",
+        "color": "blue"
+      },
+      {
+        "v": "skip",
+        "label": "隙なし",
+        "color": "pink"
+      }
+    ],
+    "buy": [
+      {
+        "v": "before",
+        "label": "買付前",
+        "color": "gray"
+      },
+      {
+        "v": "done",
+        "label": "買付済",
+        "color": "green"
+      },
+      {
+        "v": "o_2zv9gp",
+        "label": "買付不可",
+        "color": "pink"
+      },
+      {
+        "v": "skip",
+        "label": "スキップ",
+        "color": "purple"
+      }
+    ]
+  },
+  "cols": {
+    "rowH": 96,
+    "pickRowH": 66,
+    "items": {
+      "img": {
+        "w": 103
+      },
+      "note": {
+        "w": 204
+      },
+      "cnt": {
+        "w": 96
+      },
+      "check": {
+        "w": 226
+      },
+      "addp": {
+        "w": 82
+      },
+      "a_rival": {
+        "align": "center"
+      },
+      "a_sales": {
+        "align": "center"
+      },
+      "a_title": {
+        "label": "検索KW"
+      },
+      "a_qual": {
+        "w": 120
+      }
+    },
+    "order": {},
+    "hide": {
+      "rank": [],
+      "added": [],
+      "pick": []
+    }
+  },
   "sections": {
     "amazon": {
       "items": [
         {
-          "id": "am_sample01",
+          "id": "itm_f8u59p96341",
           "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
-          "category": "家電",
-          "checkNote": "Garmin等の新商品を確認実施。上位に食い込む型番と、対応機種の広さを見る。",
+          "category": "スマートウォッチアクセサリ",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71KN3-p0MqL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/568380/",
+          "checkNote": "",
           "checkedAt": "2026-08-19",
           "picks": [
             {
-              "id": "pk_a01",
+              "id": "itm_o7c1yr9ubys",
               "addedAt": "2026-08-19",
-              "url": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB/dp/B0EXAMPLE9",
-              "image": "https://via.placeholder.com/120x120.png?text=CABLE",
+              "urlAmazon": "https://www.amazon.co.jp/%E3%82%AC%E3%83%BC%E3%83%9F%E3%83%B3%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB-GARMIN%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81%E5%85%85%E9%9B%BB%E5%99%A8-%E3%83%81%E3%83%A3%E3%83%BC%E3%82%B8%E3%83%B3%E3%82%B0%E3%82%B1%E3%83%BC%E3%83%96-Forerunner-Vivoactive/dp/B0FJ23374F/ref=zg_bs_g_14616559051_d_sccl_4/355-8190517-1304632?th=1",
+              "urlRakuten": "",
+              "imageAmazon": "https://images-fe.ssl-images-amazon.com/images/I/616cSzDOwqL._AC_UL600_SR600,400_.jpg",
+              "imageRakuten": "",
+              "title": "Garminケーブルナイロン",
               "check": "after",
-              "buy": "before",
-              "title": "Garmin充電ケーブル"
+              "buy": "o_2zv9gp",
+              "sales30": "1230",
+              "rival": "o_9rscsw",
+              "quality": "high"
             },
             {
-              "id": "pk_a02",
-              "addedAt": "2026-08-05",
-              "url": "https://www.amazon.co.jp/dp/B0EXAMPLE1",
-              "image": "",
+              "id": "itm_x9st70mqew8",
+              "addedAt": "2026-08-19",
+              "urlAmazon": "https://www.amazon.co.jp/UrbanPulse-Google-%E3%83%9E%E3%82%B0%E3%83%8D%E3%83%83%E3%83%88%E5%85%85%E9%9B%BB%E3%82%B1%E3%83%BC%E3%83%96%E3%83%AB-%E6%8C%81%E3%81%A1%E9%81%8B%E3%81%B3%E3%81%AB%E4%BE%BF%E5%88%A9-Type-C/dp/B0DK4HCR2K/ref=zg_bs_g_14616559051_d_sccl_10/355-0893691-4316449?th=1",
+              "urlRakuten": "https://item.rakuten.co.jp/nnbay/pixelwatch2-cable/",
+              "imageAmazon": "https://m.media-amazon.com/images/I/513eXe95hcL._AC_SL1200_.jpg",
+              "imageRakuten": "https://shop.r10s.jp/nnbay/cabinet/sumaho-sonota/sonota/pw2c_new1.jpg",
+              "title": "Google Pixel ケーブル",
               "check": "skip",
-              "buy": "skip",
-              "title": ""
+              "buy": "before",
+              "sales30": "413",
+              "rival": "o_ww912j",
+              "quality": ""
             }
           ],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z",
-          "image": "https://via.placeholder.com/120x120.png?text=CABLE",
-          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
-          "urlRakuten": ""
+          "createdAt": "2026-08-19T02:03:09.505Z",
+          "updatedAt": "2026-08-25T08:59:11.900Z"
+        },
+        {
+          "id": "itm_l7plowx4grx",
+          "name": "スマートウォッチ用スクリーンプロテクター・ホイルの売れ筋ランキング",
+          "category": "スマートウォッチアクセサリ",
+          "image": "https://m.media-amazon.com/images/I/6133V6QaU3L._AC_SL1200_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616557051/ref=zg_bs_nav_electronics_4_14616555051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/568380/",
+          "checkNote": "",
+          "checkedAt": "2026-08-19",
+          "picks": [],
+          "createdAt": "2026-08-19T02:57:53.133Z",
+          "updatedAt": "2026-08-20T05:31:35.044Z"
+        },
+        {
+          "id": "itm_ku2gtnx7no2",
+          "name": "スマートウォッチケースの売れ筋ランキング",
+          "category": "スマートウォッチアクセサリ",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/812-hewlOzL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616561051/ref=zg_bs_nav_electronics_4_14616557051",
+          "urlRakuten": "",
+          "checkNote": "",
+          "checkedAt": "2026-08-20",
+          "picks": [
+            {
+              "id": "itm_gz93e9c9zyo",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "https://www.amazon.co.jp/YealRed-Garmin-Vivoactive-vivoactive-%E4%BF%9D%E8%AD%B7%E3%82%B1%E3%83%BC%E3%82%B9%EF%BC%88%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%EF%BC%89/dp/B0DL5PQB3Y/ref=zg_bs_g_14616561051_d_sccl_21/355-0893691-4316449?th=1",
+              "urlRakuten": "",
+              "imageAmazon": "https://m.media-amazon.com/images/I/61wEzhIpBiL._AC_SL1500_.jpg",
+              "imageRakuten": "",
+              "title": "vivoactive5 ケース",
+              "check": "skip",
+              "buy": "before",
+              "sales30": "",
+              "rival": "o_ww912j",
+              "quality": ""
+            },
+            {
+              "id": "itm_z26p7jnab5u",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "https://www.amazon.co.jp/TEMEDO-%E3%83%94%E3%82%AF%E3%82%BB%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%83%E3%83%814-Google-%E3%82%B0%E3%83%BC%E3%82%B0%E3%83%AB%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81-pixel%E3%82%A6%E3%82%A9%E3%83%83%E3%83%81/dp/B0FRM5YFLF/ref=zg_bs_g_14616561051_d_sccl_22/355-0893691-4316449?th=1",
+              "urlRakuten": "",
+              "imageAmazon": "https://m.media-amazon.com/images/I/61rHzyh301L._AC_SL1500_.jpg",
+              "imageRakuten": "",
+              "title": "pixel watch ケース",
+              "check": "after",
+              "buy": "before",
+              "sales30": "",
+              "rival": "o_dn58o9",
+              "quality": "o_mk4n54"
+            }
+          ],
+          "createdAt": "2026-08-20T05:08:00.530Z",
+          "updatedAt": "2026-08-25T08:38:23.146Z"
+        },
+        {
+          "id": "itm_d19g7p56jye",
+          "name": "スマートウォッチ交換ベルトの売れ筋ランキング",
+          "category": "スマートウォッチアクセサリ",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71hHfQpD8EL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/18195127051/ref=zg_bs_nav_electronics_4_14616561051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/568380/",
+          "checkNote": "",
+          "checkedAt": "2026-08-19",
+          "picks": [
+            {
+              "id": "itm_u66ago127zf",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "https://www.amazon.co.jp/Dikeshgu-Xiaomi-10%E4%BA%A4%E6%8F%9B%E3%83%90%E3%83%B3%E3%83%89-%E3%82%B7%E3%83%A3%E3%82%AA%E3%83%9F%E3%82%B9%E3%83%9E%E3%83%BC%E3%83%88%E3%83%90%E3%83%B3%E3%83%8910-8%E6%9B%BF%E3%81%88%E3%83%90%E3%83%B3%E3%83%89/dp/B0GT4P3GN2/ref=zg_bs_g_18195127051_d_sccl_19/355-8190517-1304632?th=1",
+              "urlRakuten": "",
+              "imageAmazon": "https://m.media-amazon.com/images/I/61BCdw3T2aL._AC_SL1500_.jpg",
+              "imageRakuten": "",
+              "title": "Xiaomi Smart Band 10/9/8 ベルト",
+              "check": "before",
+              "buy": "before",
+              "sales30": "",
+              "rival": "heavy",
+              "quality": ""
+            }
+          ],
+          "createdAt": "2026-08-19T02:59:30.566Z",
+          "updatedAt": "2026-08-20T09:25:38.492Z"
+        },
+        {
+          "id": "itm_c0u7ctd2eau",
+          "name": "スポーツ・アウトドア  >  登山・クライミング  >  カラビナ",
+          "category": "スマートウォッチアクセサリ",
+          "image": "https://tshop.r10s.jp/soku/cabinet/ni/sb/lsbm/microlock_top2.jpg?fitin=128:128",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/sports/16397314051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/402234/",
+          "checkNote": "",
+          "checkedAt": "2026-08-19",
+          "picks": [],
+          "createdAt": "2026-08-19T09:28:11.238Z",
+          "updatedAt": "2026-08-20T05:31:38.606Z"
+        },
+        {
+          "id": "itm_5t0ipbd3tqv",
+          "name": "猫用首輪の売れ筋ランキング",
+          "category": "首輪・リード",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71XNdNQ6YeL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/pet-supplies/2155362051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/215391/",
+          "checkNote": "",
+          "checkedAt": "2026-08-20",
+          "picks": [
+            {
+              "id": "itm_cqg0js68e6n",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "https://www.amazon.co.jp/BINGPET-airtag-Airtag%E5%AF%BE%E5%BF%9C-%E3%82%BB%E3%83%BC%E3%83%95%E3%83%86%E3%82%A3%E3%83%90%E3%83%83%E3%82%AF%E3%83%AB-%E5%8F%AF%E6%84%9B%E3%81%84%E9%A6%96%E9%A3%BE%E3%82%8A/dp/B0C5R5M23J/ref=sr_1_1_sspa?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1",
+              "urlRakuten": "",
+              "imageAmazon": "https://m.media-amazon.com/images/I/71XNdNQ6YeL._AC_SL1500_.jpg",
+              "imageRakuten": "",
+              "title": "猫用首輪　airtag",
+              "check": "before",
+              "buy": "before",
+              "sales30": "",
+              "rival": "heavy",
+              "quality": ""
+            },
+            {
+              "id": "itm_zzjbkdtckbd",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "https://www.amazon.co.jp/Airtag-%E3%82%A6%E3%82%A9%E3%83%AC%E3%83%83%E3%83%88%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC-2%E5%80%8B%E3%83%91%E3%83%83%E3%82%AF-%E3%83%91%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%88%E3%80%81%E3%83%8F%E3%83%B3%E3%83%89%E3%83%90%E3%83%83%E3%82%B0%E3%80%81%E3%83%90%E3%83%83%E3%82%AF%E3%83%91%E3%83%83%E3%82%AF%E8%B2%A1%E5%B8%83%E3%80%81%E3%82%AF%E3%83%A9%E3%83%83%E3%83%81%E3%80%81%E3%83%9D%E3%82%B1%E3%83%83%E3%83%88%E7%94%A8-%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF%E3%80%81Airtag%E3%81%AF%E5%90%AB%E3%81%BE%E3%82%8C%E3%81%A6%E3%81%84%E3%81%BE%E3%81%9B%E3%82%93/dp/B0D925HGJM/ref=sr_1_9?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-9&th=1",
+              "urlRakuten": "",
+              "imageAmazon": "https://m.media-amazon.com/images/I/61il31UO0vL._AC_SL1500_.jpg",
+              "imageRakuten": "",
+              "title": "首輪用ホルダー",
+              "check": "before",
+              "buy": "before",
+              "sales30": "220",
+              "rival": "o_ww912j",
+              "quality": ""
+            },
+            {
+              "id": "itm_udzcz52ke67",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "https://www.amazon.co.jp/JEDirect-AirTag-%E3%82%AD%E3%83%BC%E3%83%81%E3%82%A7%E3%83%BC%E3%83%B3%E4%BB%98%E3%81%8D-%E5%85%A8%E9%9D%A2%E3%81%AB%E5%82%B7%E3%81%A4%E3%81%91%E9%98%B2%E6%AD%A2-Tag%E3%82%AD%E3%83%BC%E3%83%AA%E3%83%B3%E3%82%B0%E3%83%9B%E3%83%AB%E3%83%80%E3%83%BC%E3%82%AB%E3%83%90%E3%83%BC/dp/B0CFXKMLJZ/ref=sr_1_12_sspa?dib=eyJ2IjoiMSJ9.9f7bxHMncc7DTqr9ITwtGlfx5j21oQ5oIwxThhfFid7qQWCBMoKts20217VV5k6RYVWfh5ZkX9ziohKhGgWgl_jwD09OLv96_xLRLhtHtbArgQBNT7TuoEMIO3fbkFC-d6w3B6O48hnJgLqbAhcaht-rITtxttE4XrnEorPzbvSE3yN-b299IVd20AJuiwxy93T31GBdQOLz2SmfzgD04hSG1TrWcxLRO4sasNFTStVUbgc6N3iATCnteq2uMRXwPRWUG0Xe8sQO949g2GugMtWT3w8fmdlySGNp7baow9U.F_hBC8fjMqO9H22yGEEExtYlcbT9UO_CHpMHkycJeqI&dib_tag=se&keywords=airtag%E3%83%9A%E3%83%83%E3%83%88%E7%94%A8%E9%A6%96%E8%BC%AA&qid=1787207200&sr=8-12-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9tdGY&th=1",
+              "urlRakuten": "https://ranking.rakuten.co.jp/keyword/airtag_case/",
+              "imageAmazon": "https://m.media-amazon.com/images/I/71LpeHSk79L._AC_SL1500_.jpg",
+              "imageRakuten": "https://r.r10s.jp/com/img/home/logo/ogp.png",
+              "title": "AirTag  防水ケースカバー",
+              "check": "before",
+              "buy": "before",
+              "sales30": "",
+              "rival": "heavy",
+              "quality": ""
+            }
+          ],
+          "createdAt": "2026-08-20T06:29:00.631Z",
+          "updatedAt": "2026-08-25T07:48:29.429Z"
         }
       ]
     },
     "rakuten": {
       "items": [
         {
-          "id": "rk_sample01",
-          "name": "家電 > 扇風機・サーキュレーター",
-          "category": "家電",
-          "checkNote": "上位10商品の価格帯とレビュー数をチェック。DCモーター機の比率を見る。",
+          "id": "itm_se7mgyhsmi8",
+          "name": "楽天市場トップ  >  ランキングトップ  >  キッズ・ベビー・マタニティ  >  ベビーファッション  >  ファッション雑貨・小物  >  手袋",
+          "category": "未分類",
+          "image": "https://tshop.r10s.jp/yukaiya/cabinet/baby/baby-23-01-b-01b.jpg?fitin=128:128",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/fashion/346103011",
+          "urlRakuten": "https://ranking.rakuten.co.jp/weekly/205176/",
+          "checkNote": "",
           "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_r01",
-              "addedAt": "2026-08-12",
-              "url": "https://item.rakuten.co.jp/example/dc-fan/",
-              "image": "https://via.placeholder.com/120x120.png?text=FAN",
-              "check": "after",
-              "buy": "done",
-              "title": "静音DCサーキュレーター"
-            },
-            {
-              "id": "pk_r02",
-              "addedAt": "2026-08-19",
-              "url": "https://item.rakuten.co.jp/example/slim-fan/",
-              "image": "",
-              "check": "before",
-              "buy": "before",
-              "title": "スリムファン 新型"
-            }
-          ],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z",
-          "image": "https://via.placeholder.com/120x120.png?text=FAN",
-          "urlRakuten": "https://ranking.rakuten.co.jp/daily/562637/",
-          "urlAmazon": ""
+          "picks": [],
+          "createdAt": "2026-08-19T07:56:36.464Z",
+          "updatedAt": "2026-08-20T03:03:45.190Z"
         },
         {
-          "id": "rk_sample02",
-          "name": "総合ランキング",
-          "category": "総合",
+          "id": "itm_iynsrce6nrc",
+          "name": "靴  >  靴ケア用品・アクセサリー  >  靴ずれ防止",
+          "category": "未分類",
+          "image": "https://tshop.r10s.jp/yukaiya/cabinet/foot/foot-23-03b-01a.jpg?fitin=128:128",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://ranking.rakuten.co.jp/weekly/402786/",
           "checkNote": "",
-          "checkedAt": "",
-          "picks": [],
-          "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-18T00:00:00.000Z",
-          "image": "",
-          "urlRakuten": "https://ranking.rakuten.co.jp/realtime/",
-          "urlAmazon": ""
+          "checkedAt": "2026-08-25",
+          "picks": [
+            {
+              "id": "itm_aghajz0h105",
+              "addedAt": "2026-08-25",
+              "urlAmazon": "",
+              "urlRakuten": "https://item.rakuten.co.jp/inso-ru/sizeadjustment_2and3/",
+              "imageAmazon": "",
+              "imageRakuten": "https://shop.r10s.jp/inso-ru/cabinet/shohin/moxibustion/size23set_08.jpg",
+              "title": "サイズ調整インソール",
+              "check": "after",
+              "buy": "before",
+              "sales30": "",
+              "rival": "o_p14mmp",
+              "quality": ""
+            },
+            {
+              "id": "itm_jy5lrepk98v",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "",
+              "urlRakuten": "https://item.rakuten.co.jp/insole-phoenix/ys00028/",
+              "imageAmazon": "",
+              "imageRakuten": "https://shop.r10s.jp/insole-phoenix/cabinet/10095176/1-ys00028.jpg",
+              "title": "サンダル用 インソール",
+              "check": "after",
+              "buy": "before",
+              "sales30": "",
+              "rival": "o_dn58o9",
+              "quality": "high"
+            },
+            {
+              "id": "itm_v6fgtxmr1ny",
+              "addedAt": "2026-08-20",
+              "urlAmazon": "",
+              "urlRakuten": "https://item.rakuten.co.jp/tujya666/p241203091253299/",
+              "imageAmazon": "",
+              "imageRakuten": "https://shop.r10s.jp/tujya666/cabinet/12291642/0722-080302_4.jpg",
+              "title": "インソール サンダル 中敷き",
+              "check": "after",
+              "buy": "before",
+              "sales30": "",
+              "rival": "o_dn58o9",
+              "quality": "o_mk4n54"
+            }
+          ],
+          "createdAt": "2026-08-20T03:15:15.528Z",
+          "updatedAt": "2026-08-25T08:56:14.128Z"
         }
       ]
     },
@@ -93,28 +426,15 @@
           "id": "itm_sample01",
           "name": "SD-1200X  折りたたみ電動キックボード（サンプル）",
           "category": "モビリティ",
-          "image": "https://via.placeholder.com/120x120.png?text=KB",
+          "image": "",
           "url": "https://item.rakuten.co.jp/example/sd1200x/",
+          "urlAmazon": "",
+          "urlRakuten": "",
           "checkNote": "競合の価格とレビュー数を見る。",
           "checkedAt": "2026-08-19",
-          "picks": [
-            {
-              "id": "pk_p01",
-              "addedAt": "2026-08-18",
-              "image": "",
-              "url": "https://ranking.rakuten.co.jp/daily/101070/",
-              "title": "デイリーランキング"
-            },
-            {
-              "id": "pk_p02",
-              "addedAt": "2026-08-18",
-              "image": "",
-              "url": "https://detail.1688.com/offer/000000000000.html",
-              "title": "1688 仕入元"
-            }
-          ],
+          "picks": [],
           "createdAt": "2026-08-18T00:00:00.000Z",
-          "updatedAt": "2026-08-19T00:00:00.000Z"
+          "updatedAt": "2026-08-20T07:23:44.222Z"
         }
       ]
     }
