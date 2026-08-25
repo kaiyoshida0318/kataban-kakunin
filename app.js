@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.56.0";
+const VERSION   = "0.57.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1710,40 +1710,8 @@ function fitColumns() {
   fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(effWidth(c) * factor))));
 }
 
-/* 列管理パネル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
-function renderColPanel() {
-  const rowInput = (which, val, def) => `
-    <div class="col-card row-h">
-      <span class="col-card-ttl">行の高さ</span>
-      <div class="col-card-row">
-        <input class="col-w" type="number" min="30" max="600" step="4" data-rowh="${which}" value="${val}" placeholder="${def}">
-        <span class="col-unit">px</span>
-      </div>
-    </div>`;
-
-  const card = (c, i, list, grp) => {
-    const st = colSet(c.key);
-    const al = colAlign(c);
-    const off = colOff(c.key);
-    return `<div class="col-card${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}">
-      <div class="col-card-top">
-        <button type="button" class="col-eye${off ? "" : " on"}" data-eye
-                title="${off ? "この列を表示する" : "この列を隠す"}">${off ? "☐" : "☑"}</button>
-        <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名">
-        <span class="col-mv">
-          <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ左へ">↑</button>
-          <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ右へ">↓</button>
-        </span>
-      </div>
-      <div class="col-card-row">
-        <input class="col-w" type="number" min="40" max="1600" step="4" value="${st.w ?? (c.w || "")}" placeholder="${c.w || "自動"}">
-        <span class="col-unit">px</span>
-        <span class="col-al">${ALIGNS.map((a) =>
-          `<button type="button" class="${a.v === al ? "on" : ""}" data-al="${a.v}" title="${a.label}揃え">${a.mark}</button>`).join("")}</span>
-      </div>
-    </div>`;
-  };
-
+/* 列管理モーダル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
+function renderColModal() {
   /* 「追加した商品」タブの表は商品用の行の高さを使う。
      グループ＝設定のまとまり。amazon基準/楽天基準は列キーが同じなので自動的に共通、
      追加した商品（added）とチェックした商品（pick）はそれぞれ別に持つ。 */
@@ -1760,67 +1728,108 @@ function renderColPanel() {
       which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(view) });
   }
 
-  $("colPanelBody").innerHTML = groups.map((g) => {
+  /* 1列＝1行。左から 番号 / 表示 / 項目名 / 幅 / 揃え / 上下 */
+  const row = (c, i, list, grp) => {
+    const st = colSet(c.key);
+    const al = colAlign(c);
+    const off = colOff(c.key);
+    return `<div class="col-row${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}">
+      <input class="col-no" type="number" min="1" max="${list.length}" value="${i + 1}"
+             data-no title="この番号の位置へ動かします">
+      <label class="col-chk" title="${off ? "この列を表示する" : "この列を隠す"}">
+        <input type="checkbox" data-eye${off ? "" : " checked"}>
+        <span></span>
+      </label>
+      <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名">
+      <span class="col-w-box">
+        <input class="col-w" type="number" min="40" max="1600" step="4" value="${st.w ?? (c.w || "")}" placeholder="${c.w || "自動"}">
+        <span class="col-unit">px</span>
+      </span>
+      <span class="col-al">${ALIGNS.map((a) =>
+        `<button type="button" class="${a.v === al ? "on" : ""}" data-al="${a.v}" title="${a.label}揃え">${a.mark}</button>`).join("")}</span>
+      <span class="col-mv">
+        <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ上へ">↑</button>
+        <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ下へ">↓</button>
+      </span>
+    </div>`;
+  };
+
+  $("colModalBody").innerHTML = groups.map((g) => {
     const on = g.cols.filter((c) => !colOff(c.key)).length;
     return `
-    <div class="col-grp" data-grp="${esc(g.grp)}">
-      <span class="col-grp-ttl">${esc(g.ttl)}
+    <section class="col-grp" data-grp="${esc(g.grp)}">
+      <h3 class="col-grp-ttl">${esc(g.ttl)}
         <span class="col-grp-note">${esc(g.note)}</span>
         <span class="col-grp-cnt">表示 ${on} / ${g.cols.length}</span>
-        <button type="button" class="btn btn-ghost btn-xs col-allon" data-allon="${esc(g.grp)}">全部表示</button>
-      </span>
-      <div class="col-grp-items">
-        ${rowInput(g.which, g.val, g.def)}
-        ${g.cols.map((c, i) => card(c, i, g.cols, g.grp)).join("")}
+        <span class="grow"></span>
+        <span class="col-rowh">行の高さ
+          <input class="col-w" type="number" min="30" max="600" step="4" data-rowh="${g.which}" value="${g.val}" placeholder="${g.def}">
+          <span class="col-unit">px</span>
+        </span>
+        <button type="button" class="btn btn-ghost btn-xs" data-allon="${esc(g.grp)}">全部表示</button>
+      </h3>
+      <div class="col-rows-head">
+        <span>順番</span><span>表示</span><span>項目名</span><span>幅</span><span>揃え</span><span>移動</span>
       </div>
-    </div>`;
+      <div class="col-rows">${g.cols.map((c, i) => row(c, i, g.cols, g.grp)).join("")}</div>
+    </section>`;
   }).join("");
 
   /* グループの今の並び（非表示も含む全部）を返す */
   const groupCols = (grp) => (groups.find((g) => g.grp === grp) || { cols: [] }).cols;
+  const reorder = (grp, from, to) => {
+    const list = groupCols(grp).map((c) => c.key);
+    if (from < 0 || to < 0 || to >= list.length || from === to) return false;
+    list.splice(to, 0, list.splice(from, 1)[0]);
+    ensureCols().order[grp] = list;
+    return true;
+  };
+  const redraw = () => { saveCols(); renderBody(); renderColModal(); };
 
-  $("colPanelBody").querySelectorAll("[data-allon]").forEach((b) => {
+  $("colModalBody").querySelectorAll("[data-allon]").forEach((b) => {
     b.onclick = () => {
       for (const c of groupCols(b.dataset.allon)) delete ensureCols().items[c.key]?.off;
-      saveCols(); renderBody(); renderColPanel();
+      redraw();
     };
   });
 
-  const apply = () => { saveCols(); renderBody(); };
-
-  $("colPanelBody").querySelectorAll("[data-rowh]").forEach((inp) => {
+  $("colModalBody").querySelectorAll("[data-rowh]").forEach((inp) => {
     inp.oninput = () => {
       const v = parseInt(inp.value, 10);
       ensureCols()[inp.dataset.rowh] = Number.isFinite(v) && v >= 30 ? v : (inp.dataset.rowh === "rowH" ? ROW_H_DEF : PROW_H_DEF);
-      apply();
+      saveCols(); renderBody();
     };
   });
 
-  $("colPanelBody").querySelectorAll(".col-card[data-col]").forEach((cd) => {
+  $("colModalBody").querySelectorAll(".col-row[data-col]").forEach((cd) => {
     const key = cd.dataset.col;
     const grp = cd.dataset.grp;
     const box = () => (ensureCols().items[key] ||= {});
+    const idx = () => groupCols(grp).findIndex((c) => c.key === key);
 
     /* 表示 / 非表示 */
-    cd.querySelector("[data-eye]").onclick = () => {
-      const list = groupCols(grp);
-      if (!colOff(key) && list.filter((c) => !colOff(c.key)).length <= 1) {
-        toast("最後の1列は隠せません", true); return;
+    cd.querySelector("[data-eye]").onchange = (e) => {
+      if (!e.target.checked && groupCols(grp).filter((c) => !colOff(c.key)).length <= 1) {
+        toast("最後の1列は隠せません", true); e.target.checked = true; return;
       }
-      if (colOff(key)) delete ensureCols().items[key]?.off; else box().off = true;
-      saveCols(); renderBody(); renderColPanel();
+      if (e.target.checked) delete ensureCols().items[key]?.off; else box().off = true;
+      redraw();
     };
 
-    /* 並べ替え（この列を1つ前／後ろへ） */
+    /* 番号を打ち替えて並べ替え */
+    cd.querySelector("[data-no]").onchange = (e) => {
+      const to = parseInt(e.target.value, 10) - 1;
+      if (!Number.isFinite(to) || !reorder(grp, idx(), Math.max(0, Math.min(groupCols(grp).length - 1, to)))) {
+        renderColModal(); return;
+      }
+      redraw();
+    };
+
+    /* ↑↓ でも動かせる */
     cd.querySelectorAll("[data-mv]").forEach((b) => {
       b.onclick = () => {
-        const list = groupCols(grp).map((c) => c.key);
-        const i = list.indexOf(key);
-        const j = b.dataset.mv === "up" ? i - 1 : i + 1;
-        if (i < 0 || j < 0 || j >= list.length) return;
-        [list[i], list[j]] = [list[j], list[i]];
-        ensureCols().order[grp] = list;
-        saveCols(); renderBody(); renderColPanel();
+        const i = idx();
+        if (reorder(grp, i, b.dataset.mv === "up" ? i - 1 : i + 1)) redraw();
       };
     });
 
@@ -1831,12 +1840,12 @@ function renderColPanel() {
         if (v) (ensureCols().items[ck] ||= {}).label = v;
         else delete ensureCols().items[ck]?.label;
       }
-      apply();
+      saveCols(); renderBody();
     };
     cd.querySelector(".col-w").oninput = (e) => {
       const v = parseInt(e.target.value, 10);
       if (Number.isFinite(v) && v >= 40) box().w = v; else delete ensureCols().items[key]?.w;
-      apply();
+      saveCols(); renderBody();
     };
     cd.querySelectorAll("[data-al]").forEach((b) => {
       b.onclick = () => {
@@ -1845,20 +1854,18 @@ function renderColPanel() {
         else box().align = b.dataset.al;
         cd.querySelectorAll("[data-al]").forEach((x) =>
           x.classList.toggle("on", x.dataset.al === colAlign({ key })));
-        apply();
+        saveCols(); renderBody();
       };
     });
   });
 }
 
-function toggleColPanel(force) {
-  const el = $("colPanel");
-  const show = force !== undefined ? force : el.hidden;
-  el.hidden = !show;
+function openColModal(show = true) {
+  $("colModal").hidden = !show;
   $("btnCols").classList.toggle("on", show);
-  if (show) renderColPanel();
-  syncHeadH();
+  if (show) renderColModal();
 }
+const colModalOpen = () => !$("colModal").hidden;
 
 /* 列幅ドラッグ */
 function bindResizers(root) {
@@ -1895,7 +1902,7 @@ function bindResizers(root) {
     rz.ondblclick = (e) => {
       e.stopPropagation();
       delete ensureCols().items[rz.dataset.col];
-      saveCols(); renderBody(); if (!$("colPanel").hidden) renderColPanel();
+      saveCols(); renderBody(); if (colModalOpen()) renderColModal();
     };
   });
 }
@@ -2133,7 +2140,7 @@ function watchHeadH() {
 function renderAll() {
   applySecTheme();
   renderNav(); renderSecBand(); renderToolbar(); renderBody();
-  if (!$("colPanel").hidden) renderColPanel();     // タブで項目が変わるので追従させる
+  if (colModalOpen()) renderColModal();            // タブで項目が変わるので追従させる
   syncHeadH();
 }
 
@@ -2870,11 +2877,13 @@ function bind() {
       toast("別のウィンドウの変更を取り込みました");
     } catch { /* noop */ }
   });
-  $("btnCols").onclick     = () => toggleColPanel();
+  $("btnCols").onclick     = () => openColModal(!colModalOpen());
+  $("colClose").onclick    = () => openColModal(false);
+  $("btnColsDone").onclick = () => openColModal(false);
   $("btnColsReset").onclick = () => {
     if (!confirm("表示する列・並び順・項目名・幅・揃え・行の高さを既定に戻します。よろしいですか？")) return;
     data.cols = normCols(null);
-    saveCols(); renderBody(); renderColPanel();
+    saveCols(); renderBody(); renderColModal();
     toast("列の設定を既定に戻しました");
   };
   $("btnSaveGh").onclick   = () => saveToGitHub(false);
@@ -2977,9 +2986,11 @@ function bind() {
   ["rankModal", "cfgModal"].forEach((id) => {
     $(id).onclick = (e) => { if (e.target.id === id) $(id).hidden = true; };
   });
+  $("colModal").onclick = (e) => { if (e.target.id === "colModal") openColModal(false); };
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       if (!$("lightbox").hidden) { closeLightbox(); return; }
+      if (colModalOpen()) { openColModal(false); return; }
       ["rankModal", "cfgModal"].forEach((id) => ($(id).hidden = true));
     }
     if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveToGitHub(false); }
