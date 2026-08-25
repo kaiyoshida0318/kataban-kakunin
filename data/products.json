@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T08:53:56.900Z",
+  "updatedAt": "2026-08-25T08:54:22.250Z",
   "labels": {
     "rival": [
       {
@@ -369,7 +369,7 @@
             {
               "id": "itm_aghajz0h105",
               "addedAt": "2026-08-25",
-              "title": "",
+              "title": "サイズ調整インソール",
               "urlAmazon": "",
               "urlRakuten": "https://item.rakuten.co.jp/inso-ru/sizeadjustment_2and3/",
               "imageAmazon": "",
@@ -410,7 +410,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-25T08:53:56.373Z"
+          "updatedAt": "2026-08-25T08:54:17.796Z"
         }
       ]
     },
