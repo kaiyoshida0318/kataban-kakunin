@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.55.0";
+const VERSION   = "0.56.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -36,8 +36,7 @@ const ADDED_COLS = [
 const isAdded = (key) => SEC(key)?.kind === "added";
 
 /* ---------- 一覧表の列（そのタブのURL列を挟み込む） ---------- */
-function colsOf(key) {
-  if (isAdded(key)) return ADDED_COLS;
+function rankDefs(key) {
   const urls = urlFieldsOf(key).map((f) => URL_COLS[f]);
   const sided = Boolean(SEC(key)?.side);
   return [
@@ -54,6 +53,41 @@ function colsOf(key) {
     { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
   ];
 }
+
+/* ---------- 列管理（並び順と表示/非表示） ----------
+   並び順は data.cols.order[グループ]、非表示は data.cols.items[列].off に入る。
+   グループは3つ。amazon基準と楽天基準は列キーが同じなので、そのまま共通の設定になる。
+     rank  … amazon基準 / 楽天基準の一覧表（共通）
+     added … 追加した商品の表
+     pick  … 一覧の行を開いた「チェックした商品」の表 */
+const COL_GROUPS = ["rank", "added", "pick"];
+const colGroupOf = (key) => (isAdded(key) ? "added" : "rank");
+function arrangeCols(defs, group, secKey) {
+  const ord = ensureCols().order?.[group];
+  let out = defs.slice();
+  if (Array.isArray(ord) && ord.length) {
+    const r = new Map(ord.map((k, i) => [k, i]));
+    out = out
+      .map((c, i) => ({ c, n: r.has(c.key) ? r.get(c.key) : 900 + i }))   // 知らない列は末尾へ
+      .sort((a, b) => a.n - b.n)
+      .map((x) => x.c);
+  }
+  /* URL列だけは、そのタブの基準側を必ず先に置く（並びは2タブ共通なので、ここで入れ替える） */
+  if (group === "rank" && secKey) {
+    const want = urlFieldsOf(secKey).map((f) => URL_COLS[f]?.key).filter(Boolean);
+    const at = out.map((c, i) => (want.includes(c.key) ? i : -1)).filter((i) => i >= 0);
+    if (at.length === 2 && out[at[0]].key !== want[0]) {
+      const t = out[at[0]]; out[at[0]] = out[at[1]]; out[at[1]] = t;
+    }
+  }
+  return out;
+}
+const colOff = (key) => Boolean(colSet(key).off);
+/* 表示する列だけ。全部消すことはできない（最後の1列は残す） */
+const shownCols = (list) => { const v = list.filter((c) => !colOff(c.key)); return v.length ? v : list; };
+/* 非表示も含む全部（列管理パネル用） */
+const allColsOf = (key) => (isAdded(key) ? arrangeCols(ADDED_COLS, "added") : arrangeCols(rankDefs(key), "rank", key));
+const colsOf    = (key) => shownCols(allColsOf(key));
 /* そのタブで使うURL項目と並び順 */
 const urlFieldsOf = (key) => SEC(key)?.urlFields || ["url"];
 /* 行の代表URL（名称のリンク先） */
@@ -70,7 +104,7 @@ const PSIDE = (k) => PICK_SIDES.find((x) => x.k === k) || PICK_SIDES[0];
 const sideKeyOf = (sectionKey) => (SEC(sectionKey)?.side === "defense" ? "rakuten" : "amazon");
 
 /* チェックした商品の列。開いているタブのモールだけを出す */
-function pickColsOf(sectionKey) {
+function pickDefs(sectionKey) {
   const sd = PSIDE(sideKeyOf(sectionKey));
   return [
     { key: "p_date",  label: "追加日",              w: 104, cls: "td-date"  },
@@ -83,6 +117,8 @@ function pickColsOf(sectionKey) {
     { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
   ];
 }
+const allPickColsOf = (key) => arrangeCols(pickDefs(key), "pick");
+const pickColsOf    = (key) => shownCols(allPickColsOf(key));
 
 let colW = {};                 // 旧localStorage（移行にだけ使う）
 const ROW_H_DEF  = 96;
@@ -96,8 +132,9 @@ const ALIGNS = [
 function ensureCols() {
   const c = data.cols;
   if (!c || typeof c !== "object" || typeof c.items !== "object" || !c.items) {
-    data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF, items: (c && c.items) || {} };
+    data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF, items: (c && c.items) || {}, order: (c && c.order) || {} };
   }
+  if (!data.cols.order || typeof data.cols.order !== "object") data.cols.order = {};
   return data.cols;
 }
 const colSet = (key) => ensureCols().items[key] || {};
@@ -127,7 +164,15 @@ function normCols(raw) {
     if (v.label) o.label = String(v.label).slice(0, 24);
     if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
     if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
+    if (v.off) o.off = true;
     if (Object.keys(o).length) out.items[k] = o;
+  }
+  out.order = {};
+  for (const g of COL_GROUPS) {
+    const arr = raw?.order?.[g];
+    if (!Array.isArray(arr)) continue;
+    const keys = arr.filter((k) => typeof k === "string" && k).slice(0, 80);
+    if (keys.length) out.order[g] = [...new Set(keys)];
   }
   unifyStCols(out.items);
   for (const [k, v] of Object.entries(out.items)) if (!Object.keys(v).length) delete out.items[k];
@@ -1303,7 +1348,7 @@ function renderBody() {
       setTimeout(() => {
         const row = $("list").querySelector(`tr.pick-new[data-for="${id}"]`);
         if (row) {
-          row.querySelector(".pick-url").focus();
+          row.querySelector(".pick-url")?.focus();
           row.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       }, 30);
@@ -1348,17 +1393,21 @@ function renderBody() {
   /* 常設の入力行（表の1行目）から追加 */
   root.querySelectorAll("tr.pick-new").forEach((row) => {
     const id  = row.dataset.for;
+    /* 列を非表示にしていると入力欄が無いことがある */
+    const inp = (sel) => row.querySelector(sel);
+    const val = (sel) => { const el = inp(sel); return el ? el.value.trim() : ""; };
     const add = async () => {
-      const url = row.querySelector(".pick-url").value.trim();
-      if (!url) { toast("商品URLを入力してください", true); row.querySelector(".pick-url").focus(); return; }
+      if (!inp(".pick-url")) { toast("URLの列が非表示です。▦ 列管理 で表示してください", true); return; }
+      const url = val(".pick-url");
+      if (!url) { toast("商品URLを入力してください", true); inp(".pick-url").focus(); return; }
       const it = itemsOf(view).find((i) => i.id === id);
       const sd = PSIDE(sideKeyOf(view));                 // このタブのモール側に入れる
-      const image = row.querySelector(".pick-image").value.trim();
+      const image = val(".pick-image");
       const pickId = uid();
       it.picks.unshift({
         id:      pickId,
-        addedAt: row.querySelector(".pick-added").value || today(),
-        title:   row.querySelector(".pick-title").value.trim(),
+        addedAt: val(".pick-added") || today(),
+        title:   val(".pick-title"),
         urlAmazon: "", urlRakuten: "", imageAmazon: "", imageRakuten: "",
         [sd.url]: url,
         [sd.img]: image,
@@ -1376,7 +1425,8 @@ function renderBody() {
         if (next) next.focus();
       }, 30);
     };
-    row.querySelector(".pick-add").onclick = add;
+    const addBtn = row.querySelector(".pick-add");
+    if (addBtn) addBtn.onclick = add;
     row.querySelectorAll("input").forEach((inp) => {
       inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
     });
@@ -1435,13 +1485,18 @@ function renderBody() {
       if (!at) return;
       const { it, p, sec } = at;
       const val = (sel) => { const el = row.querySelector(sel); return el ? el.value.trim() : null; };
-      const both = Boolean(row.querySelector(".pe-url2"));       // 追加した商品ビューは両モール
+      const both = row.dataset.both === "1";       // 追加した商品ビューは両モール
       const sd = PSIDE(sideKeyOf(sec));
 
-      const next = both
-        ? { urlAmazon: val(".pe-url"), urlRakuten: val(".pe-url2"),
-            imageAmazon: val(".pe-image"), imageRakuten: val(".pe-image2") }
-        : { [sd.url]: val(".pe-url"), [sd.img]: val(".pe-image") };
+      /* 列を非表示にしていると入力欄自体が無い。その項目は今の値のままにする */
+      const next = {};
+      const put = (sel, field) => { const v = val(sel); if (v !== null) next[field] = v; };
+      if (both) {
+        put(".pe-url", "urlAmazon");   put(".pe-url2", "urlRakuten");
+        put(".pe-image", "imageAmazon"); put(".pe-image2", "imageRakuten");
+      } else {
+        put(".pe-url", sd.url);        put(".pe-image", sd.img);
+      }
 
       const after = { ...p, ...next };
       if (!after.urlAmazon && !after.urlRakuten) { toast("URLを空にはできません", true); return; }
@@ -1528,11 +1583,12 @@ function alignStyle(cols, tableSel, rowSel = "tbody tr") {
 function addedTable(rows) {
   if (!rows.length) return "";
 
-  const cols = ADDED_COLS.map((c) => {
+  const COLS = colsOf("products");
+  const cols = COLS.map((c) => {
     const w = colWidth(c);
     return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
   }).join("");
-  const heads = ADDED_COLS.map((c) =>
+  const heads = COLS.map((c) =>
     `<th class="${c.cls}">${esc(colLabel(c))}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("");
 
   /* 追加日ごとにまとめる */
@@ -1546,14 +1602,14 @@ function addedTable(rows) {
   const body = groups.map((g) => {
     const d = daysSince(g.day);
     const rel = d === 0 ? "今日" : d === 1 ? "昨日" : d > 1 ? `${d}日前` : "";
-    return `<tr class="day-row"><td class="day-cell" colspan="${ADDED_COLS.length}">
+    return `<tr class="day-row"><td class="day-cell" colspan="${COLS.length}">
         <span class="day-date">${esc(g.day)}</span>
         ${rel ? `<span class="day-rel">${esc(rel)}</span>` : ""}
         <span class="day-cnt">${g.list.length} 件</span>
       </td></tr>` + g.list.map(addedRow).join("");
   }).join("");
 
-  return `${alignStyle(ADDED_COLS, "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
+  return `${alignStyle(COLS, "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${body}</tbody>
@@ -1564,6 +1620,8 @@ function addedRow(r) {
   const { sec, item: it, p } = r;
   const key = `${it.id}|${p.id}`;
   const side = SEC(sec).side;
+  const [AMZ, RAK] = PICK_SIDES;
+  const editing = editPicks.has(key);
 
   const srcCell = `<td class="td-src">
       ${side ? `<span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label)}</span>` : ""}
@@ -1579,55 +1637,52 @@ function addedRow(r) {
       ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 52))}</a>`
       : '<span class="dash">—</span>'}</td>`;
   };
-
-  const salesCell = `<td class="td-sales">
-      <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
-             data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
-    </td>`;
   const stCell = (field, cls) => {
     const list = stList(field);
     return `<td class="${cls}">${stButton(list, p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
   };
-  const rivalCell = stCell("rival", "td-rival");
-  const qualCell  = stCell("quality", "td-rival");
 
-  const [AMZ, RAK] = PICK_SIDES;
+  /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
+  const cells = editing ? {
+    a_src:   `<td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>`,
+    p_aimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>`,
+    p_rimg:  `<td class="td-img"><input class="input-sm pe-image2" type="url" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>`,
+    a_title: `<td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>`,
+    p_aurl:  `<td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>`,
+    p_rurl:  `<td class="td-url"><input class="input-sm pe-url2" type="url" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>`,
+    a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
+    a_check: stCell("check", "td-st"),
+    a_rival: stCell("rival", "td-rival"),
+    a_qual:  stCell("quality", "td-rival"),
+    a_buy:   stCell("buy", "td-st"),
+    a_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
+    a_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
+  } : {
+    a_src:   srcCell,
+    p_aimg:  imgCell(AMZ),
+    p_rimg:  imgCell(RAK),
+    a_title: `<td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>`,
+    p_aurl:  urlCell(AMZ),
+    p_rurl:  urlCell(RAK),
+    a_sales: `<td class="td-sales">
+      <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
+             data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
+    </td>`,
+    a_check: stCell("check", "td-st"),
+    a_rival: stCell("rival", "td-rival"),
+    a_qual:  stCell("quality", "td-rival"),
+    a_buy:   stCell("buy", "td-st"),
+    a_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
+    a_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
+  };
+  const tds = colsOf("products")
+    .map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
 
-  if (editPicks.has(key)) return `
-    <tr class="pick-editing" data-row="${esc(key)}">
-      <td class="td-src"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}" title="追加日"></td>
-      <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>
-      <td class="td-img"><input class="input-sm pe-image2" type="url" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>
-      <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
-      <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>
-      <td class="td-url"><input class="input-sm pe-url2" type="url" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>
-      <td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" value="${esc(p.sales30)}" placeholder="30日販売数"></td>
-      ${stCell("check", "td-st")}
-      ${rivalCell}
-      ${qualCell}
-      ${stCell("buy", "td-st")}
-      <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
-      <td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>
-    </tr>`;
+  if (editing) return `<tr class="pick-editing" data-row="${esc(key)}" data-both="1">${tds}</tr>`;
 
   const chkColor = (stList("check").find((o) => o.v === p.check) || {}).color || "gray";
   const done = p.buy !== stFirst("buy");        // 買付の判断が済んだ行は落ち着かせる
-  return `
-    <tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}">
-      ${srcCell}
-      ${imgCell(AMZ)}
-      ${imgCell(RAK)}
-      <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
-      ${urlCell(AMZ)}
-      ${urlCell(RAK)}
-      ${salesCell}
-      ${stCell("check", "td-st")}
-      ${rivalCell}
-      ${qualCell}
-      ${stCell("buy", "td-st")}
-      <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
-      <td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>
-    </tr>`;
+  return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}">${tds}</tr>`;
 }
 
 /* 画面が狭いときは、はみ出さないよう全列を比率のまま縮める（横スクロールを出さない） */
@@ -1655,7 +1710,7 @@ function fitColumns() {
   fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(effWidth(c) * factor))));
 }
 
-/* 列幅パネル（上部の「⇔ 幅調整」） */
+/* 列管理パネル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
 function renderColPanel() {
   const rowInput = (which, val, def) => `
     <div class="col-card row-h">
@@ -1666,11 +1721,20 @@ function renderColPanel() {
       </div>
     </div>`;
 
-  const card = (c) => {
+  const card = (c, i, list, grp) => {
     const st = colSet(c.key);
     const al = colAlign(c);
-    return `<div class="col-card" data-col="${esc(c.key)}">
-      <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名">
+    const off = colOff(c.key);
+    return `<div class="col-card${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}">
+      <div class="col-card-top">
+        <button type="button" class="col-eye${off ? "" : " on"}" data-eye
+                title="${off ? "この列を表示する" : "この列を隠す"}">${off ? "☐" : "☑"}</button>
+        <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名">
+        <span class="col-mv">
+          <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ左へ">↑</button>
+          <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ右へ">↓</button>
+        </span>
+      </div>
       <div class="col-card-row">
         <input class="col-w" type="number" min="40" max="1600" step="4" value="${st.w ?? (c.w || "")}" placeholder="${c.w || "自動"}">
         <span class="col-unit">px</span>
@@ -1680,25 +1744,47 @@ function renderColPanel() {
     </div>`;
   };
 
-  /* 「追加した商品」タブの表は商品用の行の高さを使う */
+  /* 「追加した商品」タブの表は商品用の行の高さを使う。
+     グループ＝設定のまとまり。amazon基準/楽天基準は列キーが同じなので自動的に共通、
+     追加した商品（added）とチェックした商品（pick）はそれぞれ別に持つ。 */
   const added = isAdded(view);
   const groups = [
     added
-      ? { ttl: SEC(view).label, which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: ADDED_COLS }
-      : { ttl: SEC(view).label, which: "rowH",     val: rowH(),  def: ROW_H_DEF,  cols: colsOf(view) },
+      ? { grp: "added", ttl: SEC(view).label, note: "この表だけの設定",
+          which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allColsOf(view) }
+      : { grp: "rank", ttl: SEC(view).label, note: "amazon基準・楽天基準で共通",
+          which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf(view) },
   ];
   if (!added) {
-    groups.push({ ttl: "チェックした商品", which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: pickColsOf(view) });
+    groups.push({ grp: "pick", ttl: "チェックした商品", note: "行を開いたときの表",
+      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(view) });
   }
 
-  $("colPanelBody").innerHTML = groups.map((g) => `
-    <div class="col-grp">
-      <span class="col-grp-ttl">${esc(g.ttl)}</span>
+  $("colPanelBody").innerHTML = groups.map((g) => {
+    const on = g.cols.filter((c) => !colOff(c.key)).length;
+    return `
+    <div class="col-grp" data-grp="${esc(g.grp)}">
+      <span class="col-grp-ttl">${esc(g.ttl)}
+        <span class="col-grp-note">${esc(g.note)}</span>
+        <span class="col-grp-cnt">表示 ${on} / ${g.cols.length}</span>
+        <button type="button" class="btn btn-ghost btn-xs col-allon" data-allon="${esc(g.grp)}">全部表示</button>
+      </span>
       <div class="col-grp-items">
         ${rowInput(g.which, g.val, g.def)}
-        ${g.cols.map(card).join("")}
+        ${g.cols.map((c, i) => card(c, i, g.cols, g.grp)).join("")}
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
+
+  /* グループの今の並び（非表示も含む全部）を返す */
+  const groupCols = (grp) => (groups.find((g) => g.grp === grp) || { cols: [] }).cols;
+
+  $("colPanelBody").querySelectorAll("[data-allon]").forEach((b) => {
+    b.onclick = () => {
+      for (const c of groupCols(b.dataset.allon)) delete ensureCols().items[c.key]?.off;
+      saveCols(); renderBody(); renderColPanel();
+    };
+  });
 
   const apply = () => { saveCols(); renderBody(); };
 
@@ -1712,7 +1798,31 @@ function renderColPanel() {
 
   $("colPanelBody").querySelectorAll(".col-card[data-col]").forEach((cd) => {
     const key = cd.dataset.col;
+    const grp = cd.dataset.grp;
     const box = () => (ensureCols().items[key] ||= {});
+
+    /* 表示 / 非表示 */
+    cd.querySelector("[data-eye]").onclick = () => {
+      const list = groupCols(grp);
+      if (!colOff(key) && list.filter((c) => !colOff(c.key)).length <= 1) {
+        toast("最後の1列は隠せません", true); return;
+      }
+      if (colOff(key)) delete ensureCols().items[key]?.off; else box().off = true;
+      saveCols(); renderBody(); renderColPanel();
+    };
+
+    /* 並べ替え（この列を1つ前／後ろへ） */
+    cd.querySelectorAll("[data-mv]").forEach((b) => {
+      b.onclick = () => {
+        const list = groupCols(grp).map((c) => c.key);
+        const i = list.indexOf(key);
+        const j = b.dataset.mv === "up" ? i - 1 : i + 1;
+        if (i < 0 || j < 0 || j >= list.length) return;
+        [list[i], list[j]] = [list[j], list[i]];
+        ensureCols().order[grp] = list;
+        saveCols(); renderBody(); renderColPanel();
+      };
+    });
 
     cd.querySelector(".col-name").oninput = (e) => {
       const v = e.target.value.slice(0, 24).trim();
@@ -1905,13 +2015,6 @@ function thumbTag(src, cls, id) {
     : `<span class="thumb ${cls} none"${mark}></span>`;
 }
 
-function statusCells(itemId, p) {
-  const sel = (field, list, v) =>
-    stButton(list, v, `data-pickstatus="${esc(itemId)}|${esc(p.id)}|${field}"`);
-  return `<td class="td-st">${sel("check", stList("check"), p.check)}</td>` +
-         `<td class="td-st">${sel("buy", stList("buy"), p.buy)}</td>`;
-}
-
 /* サムネ1枚。side は "amazon" / "rakuten" */
 function pickThumb(itemId, p, side) {
   const sd = PSIDE(side);
@@ -1938,34 +2041,56 @@ function pickPanel(it) {
     .sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""))   // 同じ日なら追加が新しい順
     .map((p) => {
       const key = `${it.id}|${p.id}`;
-      if (editPicks.has(key)) return `
-      <tr class="pick-editing" data-row="${esc(key)}">
-        <td class="td-date"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>
-        <td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>
-        <td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p[sd.img])}" placeholder="画像URL"></td>
-        <td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p[sd.url])}" placeholder="https://…"></td>
-        <td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>
-        ${statusCells(it.id, p)}
-        <td class="td-acts">
-          <button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button>
-        </td>
-      </tr>`;
+      const editing = editPicks.has(key);
       const url = p[sd.url];
-      return `
-      <tr>
-        <td class="td-date">${esc(p.addedAt || "—")}</td>
-        <td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>
-        <td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>
-        <td class="td-url">${url
+      const stCell = (field) =>
+        `<td class="td-st">${stButton(stList(field), p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
+
+      /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
+      const cells = editing ? {
+        p_date:  `<td class="td-date"><input class="input-sm pe-date" type="date" value="${esc(p.addedAt)}"></td>`,
+        p_title: `<td class="td-title"><input class="input-sm pe-title" type="text" value="${esc(p.title)}" placeholder="商品名"></td>`,
+        [sd.imgCol]: `<td class="td-img"><input class="input-sm pe-image" type="url" value="${esc(p[sd.img])}" placeholder="画像URL"></td>`,
+        [sd.urlCol]: `<td class="td-url"><input class="input-sm pe-url" type="url" value="${esc(p[sd.url])}" placeholder="https://…"></td>`,
+        p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
+        p_check: stCell("check"),
+        p_buy:   stCell("buy"),
+        p_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
+      } : {
+        p_date:  `<td class="td-date">${esc(p.addedAt || "—")}</td>`,
+        p_title: `<td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>`,
+        [sd.imgCol]: `<td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>`,
+        [sd.urlCol]: `<td class="td-url">${url
           ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">${esc(prettyUrl(url, 62))}</a>`
-          : '<span class="dash">—</span>'}</td>
-        <td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>
-        ${statusCells(it.id, p)}
-        <td class="td-acts">
-          <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
-        </td>
-      </tr>`;
+          : '<span class="dash">—</span>'}</td>`,
+        p_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
+        p_check: stCell("check"),
+        p_buy:   stCell("buy"),
+        p_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
+      };
+      const tds = cols.map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
+      return editing
+        ? `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`
+        : `<tr>${tds}</tr>`;
     }).join("");
+
+  /* 「＋ 商品」の空行 */
+  const newCells = {
+    p_date:  `<td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>`,
+    p_title: `<td class="td-title"><input class="input-sm pick-title" type="text" placeholder="商品名"></td>`,
+    [sd.imgCol]: `<td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>`,
+    [sd.urlCol]: `<td class="td-url"><input class="input-sm pick-url" type="url" placeholder="${esc(sd.label)}の商品URL  https://…"></td>`,
+    p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>`,
+  };
+  let newRow = "";
+  if (addRows.has(it.id)) {
+    const tds = cols.map((c) => newCells[c.key] || `<td class="${c.cls}"></td>`);
+    /* 「編集」列を非表示にしていると追加ボタンの居場所が無くなるので、最後の列に置く */
+    if (!cols.some((c) => c.key === "p_edit") && tds.length) {
+      tds[tds.length - 1] = `<td class="${cols[cols.length - 1].cls}"><button class="btn btn-add btn-xs pick-add">追加</button></td>`;
+    }
+    newRow = `<tr class="pick-new" data-for="${esc(it.id)}">${tds.join("")}</tr>`;
+  }
 
   return `<section class="pick-block">
     <div class="pick-hdr">
@@ -1982,14 +2107,7 @@ function pickPanel(it) {
       }).join("")}</colgroup>
       <thead><tr>${cols.map((c) => `<th class="${c.cls}">${esc(colLabel(c))}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("")}</tr></thead>
       <tbody>
-        ${addRows.has(it.id) ? `<tr class="pick-new" data-for="${esc(it.id)}">
-          <td class="td-date"><input class="input-sm pick-added" type="date" value="${esc(today())}"></td>
-          <td class="td-title"><input class="input-sm pick-title" type="text" placeholder="商品名"></td>
-          <td class="td-img"><input class="input-sm pick-image" type="url" placeholder="画像URL"></td>
-          <td class="td-url"><input class="input-sm pick-url" type="url" placeholder="${esc(sd.label)}の商品URL  https://…"></td>
-          <td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>
-          <td class="td-st"></td><td class="td-st"></td><td class="td-acts"></td>
-        </tr>` : ""}
+        ${newRow}
         ${picks}
         ${!it.picks.length && !addRows.has(it.id) ? `<tr><td class="pick-empty" colspan="${cols.length}">まだありません。右の「＋ 商品」から追加できます。</td></tr>` : ""}
       </tbody>
@@ -2754,10 +2872,10 @@ function bind() {
   });
   $("btnCols").onclick     = () => toggleColPanel();
   $("btnColsReset").onclick = () => {
-    if (!confirm("項目名・幅・揃え・行の高さを既定に戻します。よろしいですか？")) return;
+    if (!confirm("表示する列・並び順・項目名・幅・揃え・行の高さを既定に戻します。よろしいですか？")) return;
     data.cols = normCols(null);
     saveCols(); renderBody(); renderColPanel();
-    toast("項目の設定を既定に戻しました");
+    toast("列の設定を既定に戻しました");
   };
   $("btnSaveGh").onclick   = () => saveToGitHub(false);
   $("saveState").onclick   = () => { if (saveErr || dirty) saveToGitHub(false); };

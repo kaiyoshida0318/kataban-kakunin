@@ -384,7 +384,16 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 .col-panel-ttl{font-size:11.5px;font-weight:700;color:var(--muted)}
 .col-panel-body{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:flex-start}
 .col-grp{display:flex;flex-direction:column;gap:5px;padding:0 0 0 11px;border-left:3px solid var(--border)}
-.col-grp-ttl{font-size:11px;font-weight:700;color:var(--accent-dark);letter-spacing:.04em}
+.col-grp-ttl{
+  font-size:11px;font-weight:700;color:var(--accent-dark);letter-spacing:.04em;
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+}
+.col-grp-note{font-weight:500;color:var(--muted);letter-spacing:0}
+.col-grp-cnt{
+  font-weight:700;color:var(--accent);background:var(--accent-soft);
+  border-radius:999px;padding:1px 8px;letter-spacing:0;
+}
+.col-grp-ttl .col-allon{padding:1px 8px;font-size:10.5px}
 .col-grp-items{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch}
 .col-card{
   display:flex;flex-direction:column;gap:4px;
@@ -411,6 +420,21 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 .col-al button:hover{border-color:var(--accent);color:var(--accent)}
 .col-al button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .col-card.row-h{background:var(--accent-soft);border-color:#c3d8f3;width:120px;justify-content:center}
+
+/* 列の表示/非表示・並べ替え */
+.col-card-top{display:flex;align-items:center;gap:5px}
+.col-card-top .col-name{flex:1;min-width:0}
+.col-eye{
+  width:22px;height:22px;flex:0 0 auto;padding:0;cursor:pointer;line-height:1;
+  border:1px solid var(--border);background:var(--surface);border-radius:6px;
+  font-size:12px;color:var(--muted);
+}
+.col-eye.on{background:var(--accent-soft);border-color:#c3d8f3;color:var(--accent-dark)}
+.col-eye:hover{border-color:var(--accent);color:var(--accent)}
+.col-mv{display:flex;gap:2px;flex:0 0 auto}
+.col-mv .ord-btn{width:20px;height:22px;font-size:10px;border-radius:5px}
+.col-card.off{background:#f4f6f9;border-style:dashed;opacity:.72}
+.col-card.off .col-name{color:var(--muted);text-decoration:line-through;font-weight:500}
 .col-grp-items{align-items:stretch}
 .col-panel-hint{margin:0}
 #btnCols.on,#btnEditMode.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}

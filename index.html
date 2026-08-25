@@ -25,7 +25,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.55.0</span>
+      <span class="ver-badge" id="verLabel">v0.56.0</span>
       <span class="dirty-badge" id="saveState" hidden title=""></span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -46,7 +46,7 @@
     </div>
     <div class="seg" id="catSeg"></div>
     <span class="count" id="countLabel"></span>
-    <button class="btn btn-ghost btn-sm" id="btnCols" title="項目名・幅・揃え・行の高さを変える">▦ 項目編集</button>
+    <button class="btn btn-ghost btn-sm" id="btnCols" title="表示する列・並び順・項目名・幅・揃え・行の高さを変える">▦ 列管理</button>
     <button class="btn btn-ghost btn-sm" id="btnEditMode" title="表の中で直接編集する">✎ 表編集</button>
     <button class="btn btn-add btn-sm" id="btnNew">＋ 追加</button>
   </div>
@@ -54,10 +54,10 @@
   <!-- 列幅パネル -->
   <div class="col-panel" id="colPanel" hidden>
     <div class="col-panel-in">
-      <span class="col-panel-ttl">項目編集</span>
+      <span class="col-panel-ttl">列管理</span>
       <div class="col-panel-body" id="colPanelBody"></div>
       <button class="btn btn-ghost btn-sm" id="btnColsReset">既定に戻す</button>
-      <span class="hint col-panel-hint">項目名・幅（px）・揃えを変えられます。幅は列の境目をドラッグでも変更でき、境目のダブルクリックで既定に戻ります</span>
+      <span class="hint col-panel-hint">☑で表示/非表示、↑↓で並び順。項目名・幅（px）・揃えもここで変えられます（幅は列の境目のドラッグ、ダブルクリックで既定）</span>
     </div>
   </div>
 
