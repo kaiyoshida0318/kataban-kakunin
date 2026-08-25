@@ -23,6 +23,9 @@
 *{box-sizing:border-box}
 [hidden]{display:none !important}
 html,body{margin:0;padding:0}
+/* 縦スクロールバーは常に出しておく。行が増減したときに出たり消えたりすると
+   そのぶん表の幅が変わり、商品を追加した直後に列がずれて見えるため。 */
+html{overflow-y:scroll;scrollbar-gutter:stable}
 body{
   background:var(--bg);color:var(--text);
   font-family:"Noto Sans JP",sans-serif;

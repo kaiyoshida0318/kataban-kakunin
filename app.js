@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.52.0";
+const VERSION   = "0.53.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -104,7 +104,15 @@ const colSet = (key) => ensureCols().items[key] || {};
 const rowH  = () => ensureCols().rowH || ROW_H_DEF;
 const pRowH = () => ensureCols().pickRowH || PROW_H_DEF;
 /* 項目名・幅・揃え。未設定なら既定値 */
-const colLabel = (c) => colSet(c.key).label || (c.key === "name" ? SEC(view).nameLabel : c.label);
+/* 同じ状態フィールドを出す列（隙あり/なし・買付）は項目名を共有する */
+function colLabelOf(key) {
+  for (const ck of colGroup(key)) {
+    const l = colSet(ck).label;
+    if (l) return l;
+  }
+  return "";
+}
+const colLabel = (c) => colLabelOf(c.key) || (c.key === "name" ? SEC(view).nameLabel : c.label);
 const colAlign = (c) => colSet(c.key).align || "";
 function normCols(raw) {
   const out = {
@@ -120,7 +128,24 @@ function normCols(raw) {
     if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
     if (Object.keys(o).length) out.items[k] = o;
   }
+  unifyStCols(out.items);
+  for (const [k, v] of Object.entries(out.items)) if (!Object.keys(v).length) delete out.items[k];
   return out;
+}
+
+/* 状態列は表ごとに別々の項目名を持てたので、食い違っていたら既定に戻して共通化する。
+   （「追加した商品」の a_check だけ別名になっていた等） */
+function unifyStCols(items) {
+  for (const f of ST_FIELDS) {
+    const cols = f.cols || [];
+    if (cols.length < 2) continue;
+    const labs = cols.map((c) => items[c]?.label).filter(Boolean);
+    if (!labs.length) continue;
+    if (labs.length !== cols.length || labs.some((l) => l !== labs[0])) {
+      for (const c of cols) delete items[c]?.label;
+    }
+  }
+  return items;
 }
 
 /* ---------- セクション定義 ---------- */
@@ -197,14 +222,17 @@ const ST_FIELDS = [
   ] },
 ];
 const ST_DEF = (key) => ST_FIELDS.find((f) => f.key === key);
+/* 同じ状態フィールドを出す列は1つの項目名を共有する（a_check と p_check など） */
+const ST_COL_GROUP = (() => {
+  const m = {};
+  for (const f of ST_FIELDS) for (const ck of f.cols || []) m[ck] = f.cols;
+  return m;
+})();
+const colGroup = (key) => ST_COL_GROUP[key] || [key];
 /* 見出しは「項目編集」で付けた名前に合わせる */
 function stTitle(key) {
   const f = ST_DEF(key);
-  for (const ck of f.cols || []) {
-    const l = colSet(ck).label;
-    if (l) return l;
-  }
-  return f.title;
+  return colLabelOf((f.cols || [])[0] || "") || f.title;
 }
 const newOptVal = () => "o_" + Math.random().toString(36).slice(2, 8);
 
@@ -1683,7 +1711,11 @@ function renderColPanel() {
 
     cd.querySelector(".col-name").oninput = (e) => {
       const v = e.target.value.slice(0, 24).trim();
-      if (v) box().label = v; else delete ensureCols().items[key]?.label;
+      /* 状態列は両方の表に同じ項目名を入れる（別名になると別項目に見えるため） */
+      for (const ck of colGroup(key)) {
+        if (v) (ensureCols().items[ck] ||= {}).label = v;
+        else delete ensureCols().items[ck]?.label;
+      }
       apply();
     };
     cd.querySelector(".col-w").oninput = (e) => {
