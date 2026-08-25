@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-25T08:59:16.858Z",
+  "updatedAt": "2026-08-25T08:59:19.455Z",
   "labels": {
     "rival": [
       {
@@ -132,9 +132,7 @@
       "a_qual": {
         "w": 120
       },
-      "p_check": {
-        "off": true
-      }
+      "p_check": {}
     },
     "order": {}
   },
