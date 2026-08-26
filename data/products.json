@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:37:52.574Z",
+  "updatedAt": "2026-08-26T05:38:31.760Z",
   "labels": {
     "rival": [
       {
@@ -262,10 +262,10 @@
         "ord",
         "side",
         "img",
-        "name2",
-        "amzurl",
-        "name",
         "rakurl",
+        "name2",
+        "name",
+        "amzurl",
         "note",
         "check",
         "cnt",
