@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.61.0";
+const VERSION   = "0.62.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1377,7 +1377,12 @@ function renderBody() {
     };
   });
   root.querySelectorAll("[data-canceladd]").forEach((b) => {
-    b.onclick = () => { addRows.delete(b.dataset.canceladd); renderBody(); };
+    /* 入力行だけでなく、その下に開いた「チェックした商品」ごとたたむ */
+    b.onclick = () => {
+      const id = b.dataset.canceladd;
+      addRows.delete(id); openRows.delete(id);
+      renderBody();
+    };
   });
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
