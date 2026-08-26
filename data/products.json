@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:07:59.849Z",
+  "updatedAt": "2026-08-26T05:08:11.454Z",
   "labels": {
     "rival": [
       {
@@ -227,13 +227,13 @@
       "items": [
         {
           "id": "itm_f8u59p96341",
-          "name": "スマートウォッチ用ケーブルの売れ筋ランキング",
+          "name": "",
           "category": "スマートウォッチアクセサリ",
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71KN3-p0MqL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/14616559051",
           "urlRakuten": "https://ranking.rakuten.co.jp/daily/568380/",
-          "nameAmazon": "",
+          "nameAmazon": "スマートウォッチ用ケーブルの売れ筋ランキング",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-19",
@@ -270,7 +270,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-26T03:08:02.417Z"
+          "updatedAt": "2026-08-26T05:08:06.991Z"
         },
         {
           "id": "itm_l7plowx4grx",
