@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:03:04.559Z",
+  "updatedAt": "2026-08-26T06:03:16.094Z",
   "labels": {
     "rival": [
       {
@@ -341,6 +341,21 @@
         "cnt",
         "addp",
         "act"
+      ],
+      "pick_rakuten": [
+        "p_date",
+        "p_rimg",
+        "p_rurl",
+        "p_title",
+        "p_aimg",
+        "p_aurl",
+        "a_sales",
+        "p_edit",
+        "p_check",
+        "a_rival",
+        "a_qual",
+        "p_buy",
+        "p_act"
       ]
     },
     "hide": {
