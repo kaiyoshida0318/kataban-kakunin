@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.76.0";
+const VERSION   = "0.77.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2260,9 +2260,11 @@ function rankRow(it, idx = 0, all = []) {
       case "name":
         return tableEdit
           ? `<td class="c-name"><input class="cell-input" type="text" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}"></td>`
-          : `<td class="c-name">${head
-              ? `<a class="r-name" href="${esc(head)}" target="_blank" rel="noopener noreferrer" title="${esc(it.name)}">${breadcrumbHtml(it.name || hostOf(head))}</a>`
-              : `<span class="r-name" title="${esc(it.name)}">${breadcrumbHtml(it.name)}</span>`}</td>`;
+          : `<td class="c-name">${it.name
+              ? (head
+                  ? `<a class="r-name" href="${esc(head)}" target="_blank" rel="noopener noreferrer" title="${esc(it.name)}">${breadcrumbHtml(it.name)}</a>`
+                  : `<span class="r-name" title="${esc(it.name)}">${breadcrumbHtml(it.name)}</span>`)
+              : '<span class="dash">—</span>'}</td>`;
       case "name2": {
         const amz = it.urlAmazon || "";
         return tableEdit
