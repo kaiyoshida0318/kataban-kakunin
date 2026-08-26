@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:40:26.058Z",
+  "updatedAt": "2026-08-26T05:40:53.941Z",
   "labels": {
     "rival": [
       {
@@ -106,7 +106,8 @@
     "pickRowH": 66,
     "labels": {
       "title": "検索KW",
-      "st_check": "楽天隙あり/なし"
+      "st_check": "楽天隙あり/なし",
+      "side": "区分"
     },
     "layout": {
       "amazon": {
@@ -188,6 +189,9 @@
         },
         "a_qual": {
           "w": 120
+        },
+        "side": {
+          "w": 100
         }
       },
       "added": {
