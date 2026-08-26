@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:13:37.534Z",
+  "updatedAt": "2026-08-26T06:13:50.186Z",
   "labels": {
     "rival": [
       {
@@ -548,7 +548,7 @@
         },
         {
           "id": "itm_5t0ipbd3tqv",
-          "name": "首輪",
+          "name": "ペット・ペットグッズ  >  猫用品  >  首輪・ハーネス  >  首輪",
           "category": "首輪・リード",
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71XNdNQ6YeL._AC_UL600_SR600,400_.jpg",
           "url": "",
@@ -606,7 +606,7 @@
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
-          "updatedAt": "2026-08-26T06:13:35.516Z"
+          "updatedAt": "2026-08-26T06:13:45.711Z"
         }
       ]
     },
