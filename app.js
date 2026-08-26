@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.80.0";
+const VERSION   = "0.81.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2063,8 +2063,6 @@ function renderColModal() {
         <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ上へ">↑</button>
         <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ下へ">↓</button>
       </span>
-      <input class="col-no" type="number" min="1" max="${list.length}" value="${i + 1}"
-             data-no title="この番号の位置へ動かします">
       <label class="col-chk" title="${off ? "この列を表示する" : "この列を隠す"}">
         <input type="checkbox" data-eye${off ? "" : " checked"}>
         <span></span>
@@ -2096,7 +2094,7 @@ function renderColModal() {
         <button type="button" class="btn btn-ghost btn-xs" data-allon="${esc(g.grp)}">全部表示</button>
       </h3>
       <div class="col-rows-head">
-        <span>移動</span><span>順番</span><span>表示</span><span>項目名 <em>共通</em></span><span>幅 <em>表ごと</em></span><span>揃え <em>表ごと</em></span><span></span>
+        <span>移動</span><span>表示</span><span>項目名 <em>共通</em></span><span>幅 <em>表ごと</em></span><span>揃え <em>表ごと</em></span><span></span>
       </div>
       <div class="col-rows">${g.cols.map((c, i) => row(c, i, g.cols, g.grp)).join("")}</div>
     </section>`;
@@ -2150,15 +2148,6 @@ function renderColModal() {
       }
       if (e.target.checked) ensureCols().hide[grp] = hideSet(grp).filter((k) => k !== key);
       else if (!colOff(key, grp)) hideSet(grp).push(key);
-      redraw();
-    };
-
-    /* 番号を打ち替えて並べ替え */
-    cd.querySelector("[data-no]").onchange = (e) => {
-      const to = parseInt(e.target.value, 10) - 1;
-      if (!Number.isFinite(to) || !reorder(grp, idx(), Math.max(0, Math.min(groupCols(grp).length - 1, to)))) {
-        renderColModal(); return;
-      }
       redraw();
     };
 
