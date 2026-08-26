@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.77.0";
+const VERSION   = "0.78.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2028,6 +2028,10 @@ function renderColModal() {
     const al = colAlign(c, grp);
     const off = colOff(c.key, grp);
     return `<div class="col-row${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}" data-lk="${esc(lkOf(c.key))}">
+      <span class="col-mv">
+        <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ上へ">↑</button>
+        <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ下へ">↓</button>
+      </span>
       <input class="col-no" type="number" min="1" max="${list.length}" value="${i + 1}"
              data-no title="この番号の位置へ動かします">
       <label class="col-chk" title="${off ? "この列を表示する" : "この列を隠す"}">
@@ -2042,10 +2046,6 @@ function renderColModal() {
       </span>
       <span class="col-al">${ALIGNS.map((a) =>
         `<button type="button" class="${a.v === al ? "on" : ""}" data-al="${a.v}" title="${a.label}揃え">${a.mark}</button>`).join("")}</span>
-      <span class="col-mv">
-        <button type="button" class="ord-btn" data-mv="up"${i === 0 ? " disabled" : ""} title="1つ上へ">↑</button>
-        <button type="button" class="ord-btn" data-mv="down"${i === list.length - 1 ? " disabled" : ""} title="1つ下へ">↓</button>
-      </span>
     </div>`;
   };
 
@@ -2065,7 +2065,7 @@ function renderColModal() {
         <button type="button" class="btn btn-ghost btn-xs" data-allon="${esc(g.grp)}">全部表示</button>
       </h3>
       <div class="col-rows-head">
-        <span>順番</span><span>表示</span><span>項目名 <em>共通</em></span><span>幅 <em>表ごと</em></span><span>揃え <em>表ごと</em></span><span>移動</span>
+        <span>移動</span><span>順番</span><span>表示</span><span>項目名 <em>共通</em></span><span>幅 <em>表ごと</em></span><span>揃え <em>表ごと</em></span><span></span>
       </div>
       <div class="col-rows">${g.cols.map((c, i) => row(c, i, g.cols, g.grp)).join("")}</div>
     </section>`;

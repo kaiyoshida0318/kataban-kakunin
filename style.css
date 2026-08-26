@@ -418,7 +418,8 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 /* 1列＝1行のリスト */
 .col-rows-head,.col-row{
   display:grid;
-  grid-template-columns:56px 44px minmax(120px,1fr) 92px 78px 52px;
+  /* 移動 / 順番 / 表示 / 項目名（15文字ぶん） / 幅 / 揃え / 余白 */
+  grid-template-columns:52px 52px 40px 15em 92px 78px 1fr;
   align-items:center;gap:8px;
 }
 .col-rows-head{
@@ -430,7 +431,7 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
   font-style:normal;font-weight:700;font-size:9px;color:var(--accent);
   background:var(--accent-soft);border-radius:999px;padding:0 5px;margin-left:3px;
 }
-.col-rows-head span:nth-child(3){text-align:left}
+.col-rows-head span:nth-child(4){text-align:left}
 .col-rows{display:flex;flex-direction:column}
 .col-row{
   padding:3px 10px;border-bottom:1px solid var(--border-soft);background:var(--surface);
@@ -468,8 +469,8 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 .col-mv .ord-btn{width:22px;height:22px;font-size:10px;border-radius:5px}
 @media (max-width:720px){
   .col-rows-head{display:none}
-  .col-row{grid-template-columns:52px 40px 1fr;row-gap:4px}
-  .col-row .col-w-box,.col-row .col-al,.col-row .col-mv{grid-column:span 3;justify-content:flex-start}
+  .col-row{grid-template-columns:52px 52px 40px 1fr;row-gap:4px}
+  .col-row .col-w-box,.col-row .col-al{grid-column:span 4;justify-content:flex-start}
 }
 #btnCols.on,#btnEditMode.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 
