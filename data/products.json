@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:22:45.151Z",
+  "updatedAt": "2026-08-26T06:24:43.266Z",
   "fields": [
     {
       "key": "rival",
@@ -215,6 +215,9 @@
         },
         "a_qual": {
           "w": 120
+        },
+        "a_src": {
+          "w": 471
         }
       },
       "pick_amazon": {
