@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.68.0";
+const VERSION   = "0.70.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -525,16 +525,23 @@ const modeToggle = (attr, text) => `<span class="url-mode">
     <button type="button" class="${text ? "on" : ""}" ${attr} data-mode="text" title="文字として扱う">文字</button>
     <button type="button" class="${text ? "" : "on"}" ${attr} data-mode="url" title="URLとして扱う">URL</button>
   </span>`;
-/* セルの中身（左に値・右に切り替え） */
-function urlCellHtml(o, field, cut, attr) {
+/* 編集中のURL欄（入力＋文字/URLの切り替え）。切り替えは入力値を消さずにその場で効く */
+function urlEditCell(o, field, label) {
+  const t = isTextMode(o, field);
+  return `<td class="td-url"><div class="url-cell">
+    <input class="input-sm pe-url url-main" type="${t ? "text" : "url"}" data-pf="${field}" data-pfmode="${t ? "text" : "url"}"
+           data-ph="${esc(label)}" value="${esc(o[field] || "")}" placeholder="${t ? "文字" : esc(label)}">
+    ${modeToggle(`data-editmode="${esc(field)}"`, t)}
+  </div></td>`;
+}
+
+/* 一覧のセルの中身。切り替えボタンは出さない（編集画面だけに置く） */
+function urlCellHtml(o, field, cut) {
   const v = o[field] || "";
-  const text = isTextMode(o, field);
-  const main = !v
-    ? '<span class="dash">—</span>'
-    : text
-      ? `<span class="url-plain" title="${esc(v)}">${esc(v)}</span>`
-      : `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, cut))}</a>${dupTag(v)}`;
-  return `<div class="url-cell"><span class="url-main">${main}</span>${modeToggle(attr, text)}</div>`;
+  if (!v) return '<span class="dash">—</span>';
+  return isTextMode(o, field)
+    ? `<span class="url-plain" title="${esc(v)}">${esc(v)}</span>`
+    : `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, cut))}</a>${dupTag(v)}`;
 }
 
 /* ---------- 同じURLが他にも入っていないか ----------
@@ -1438,27 +1445,6 @@ function renderBody() {
       moveRow(id, dir === "up" ? -1 : 1);
     };
   });
-  // URL / 文字 の切り替え
-  root.querySelectorAll("[data-urlmode]").forEach((b) => {
-    b.onclick = () => {
-      const [id, field] = b.dataset.urlmode.split("|");
-      const it = itemsOf(view).find((i) => i.id === id);
-      if (!it || isTextMode(it, field) === (b.dataset.mode === "text")) return;
-      setUrlMode(it, field, b.dataset.mode);
-      it.updatedAt = nowIso();
-      upsert(view, it);
-    };
-  });
-  root.querySelectorAll("[data-pickurlmode]").forEach((b) => {
-    b.onclick = () => {
-      const [id, pid, field] = b.dataset.pickurlmode.split("|");
-      const at = locatePick(`${id}|${pid}`);
-      if (!at || isTextMode(at.p, field) === (b.dataset.mode === "text")) return;
-      setUrlMode(at.p, field, b.dataset.mode);
-      at.it.updatedAt = nowIso();
-      upsert(at.sec, at.it);
-    };
-  });
   // 大カテゴリ（決まった選択肢のタブ）
   root.querySelectorAll("[data-cat]").forEach((btn) => {
     btn.onclick = () => {
@@ -1642,6 +1628,20 @@ function renderBody() {
   root.querySelectorAll("[data-pickcancel]").forEach((b) => {
     b.onclick = () => { editPicks.delete(b.dataset.pickcancel); renderBody(); };
   });
+  /* 編集中の行の「文字 / URL」。入力値は消さずに、その場で入力欄の型だけ変える */
+  root.querySelectorAll("[data-editmode]").forEach((b) => {
+    b.onclick = () => {
+      const box = b.closest(".url-cell");
+      const inp = box.querySelector("[data-pf]");
+      const mode = b.dataset.mode;
+      inp.dataset.pfmode = mode;
+      inp.type = mode === "text" ? "text" : "url";
+      inp.placeholder = mode === "text" ? "文字" : (inp.dataset.ph || inp.placeholder);
+      box.querySelectorAll("[data-editmode]").forEach((x) =>
+        x.classList.toggle("on", x.dataset.mode === mode));
+      inp.focus();
+    };
+  });
   root.querySelectorAll("[data-picksave]").forEach((b) => {
     const key = b.dataset.picksave;
     const row = root.querySelector(`.pick-editing[data-row="${key}"]`);
@@ -1652,7 +1652,10 @@ function renderBody() {
       /* 入力欄は data-pf に書き込み先の項目名を持たせている。
          列を非表示にしていると欄自体が無いので、その項目は今の値のままになる */
       const next = {};
-      row.querySelectorAll("[data-pf]").forEach((el) => { next[el.dataset.pf] = el.value.trim(); });
+      row.querySelectorAll("[data-pf]").forEach((el) => {
+        next[el.dataset.pf] = el.value.trim();
+        if (el.dataset.pfmode) setUrlMode(p, el.dataset.pf, el.dataset.pfmode);   // 文字 / URL
+      });
       if (!next.addedAt) delete next.addedAt;                 // 空の日付は今の値を残す
 
       const after = { ...p, ...next };
@@ -1785,8 +1788,7 @@ function addedRow(r) {
 
   const imgCell = (sd) =>
     `<td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>`;
-  const urlCell = (sd) =>
-    `<td class="td-url">${urlCellHtml(p, sd.url, 52, `data-pickurlmode="${esc(it.id)}|${esc(p.id)}|${esc(sd.url)}"`)}</td>`;
+  const urlCell = (sd) => `<td class="td-url">${urlCellHtml(p, sd.url, 52)}</td>`;
   const stCell = (field, cls) => {
     const list = stList(field);
     return `<td class="${cls}">${stButton(list, p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
@@ -1798,8 +1800,8 @@ function addedRow(r) {
     p_aimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="imageAmazon" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>`,
     p_rimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="imageRakuten" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>`,
     a_title: `<td class="td-title"><input class="input-sm pe-title" type="text" data-pf="title" value="${esc(p.title)}" placeholder="商品名"></td>`,
-    p_aurl:  `<td class="td-url"><input class="input-sm pe-url" type="${isTextMode(p, "urlAmazon") ? "text" : "url"}" data-pf="urlAmazon" value="${esc(p.urlAmazon)}" placeholder="${isTextMode(p, "urlAmazon") ? "文字" : "amazonURL"}"></td>`,
-    p_rurl:  `<td class="td-url"><input class="input-sm pe-url" type="${isTextMode(p, "urlRakuten") ? "text" : "url"}" data-pf="urlRakuten" value="${esc(p.urlRakuten)}" placeholder="${isTextMode(p, "urlRakuten") ? "文字" : "楽天URL"}"></td>`,
+    p_aurl:  urlEditCell(p, "urlAmazon", "amazonURL"),
+    p_rurl:  urlEditCell(p, "urlRakuten", "楽天URL"),
     a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
     a_check: stCell("check", "td-st"),
     a_rival: stCell("rival", "td-rival"),
@@ -2083,15 +2085,11 @@ function rankRow(it, idx = 0, all = []) {
 
   const urlCell = (c) => {
     const v = it[c.field] || "";
-    const attr = `data-urlmode="${esc(it.id)}|${esc(c.field)}"`;
     const text = isTextMode(it, c.field);
     return tableEdit
-      ? `<td class="c-url"><div class="url-cell">
-           <input class="cell-input mono url-main" type="${text ? "text" : "url"}" data-f="${c.field}" data-id="${esc(it.id)}"
-                  value="${esc(v)}" placeholder="${esc(text ? "文字" : c.label)}">
-           ${modeToggle(attr, text)}
-         </div></td>`
-      : `<td class="c-url">${urlCellHtml(it, c.field, 42, attr)}</td>`;
+      ? `<td class="c-url"><input class="cell-input mono" type="${text ? "text" : "url"}" data-f="${c.field}" data-id="${esc(it.id)}"
+             value="${esc(v)}" placeholder="${esc(text ? "文字" : c.label)}"></td>`
+      : `<td class="c-url">${urlCellHtml(it, c.field, 42)}</td>`;
   };
 
   const cell = (c) => {
@@ -2232,15 +2230,10 @@ function pickPanel(it) {
         `<td class="${cls}">${stButton(stList(field), p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
       const imgCell = (x) =>
         `<td class="td-img" data-pickimg="${esc(key)}|${x.k}">${pickThumb(it.id, p, x.k)}</td>`;
-      const urlCell = (x) =>
-        `<td class="td-url">${urlCellHtml(p, x.url, 62, `data-pickurlmode="${esc(it.id)}|${esc(p.id)}|${esc(x.url)}"`)}</td>`;
+      const urlCell = (x) => `<td class="td-url">${urlCellHtml(p, x.url, 62)}</td>`;
       const imgEdit = (x) =>
         `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="${x.img}" value="${esc(p[x.img])}" placeholder="${esc(x.label)}画像"></td>`;
-      const urlEdit = (x) => {
-        const t = isTextMode(p, x.url);
-        return `<td class="td-url"><input class="input-sm pe-url" type="${t ? "text" : "url"}" data-pf="${x.url}"
-          value="${esc(p[x.url])}" placeholder="${t ? "文字" : esc(x.label) + "のURL  https://…"}"></td>`;
-      };
+      const urlEdit = (x) => urlEditCell(p, x.url, `${x.label}のURL  https://…`);
 
       /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
       const cells = editing ? {
@@ -2350,6 +2343,27 @@ function renderAll() {
 /* =========================================================
    編集モーダル
    ========================================================= */
+/* URL欄の「文字 / URL」。切り替えると入力欄の型と entry.modes が変わる */
+const URL_MODE_UI = {
+  url:        { box: "mUrl",    input: "rUrl",    ph: "https://…" },
+  urlAmazon:  { box: "mUrlAmz", input: "rUrlAmz", ph: "https://www.amazon.co.jp/…" },
+  urlRakuten: { box: "mUrlRak", input: "rUrlRak", ph: "https://ranking.rakuten.co.jp/…" },
+};
+function paintUrlMode(field) {
+  const ui = URL_MODE_UI[field];
+  if (!ui) return;
+  const text = isTextMode(entry, field);
+  $(ui.box).innerHTML = modeToggle(`data-rankmode="${field}"`, text).replace(/^<span class="url-mode">|<\/span>$/g, "");
+  $(ui.input).type = text ? "text" : "url";
+  $(ui.input).placeholder = text ? "文字（URL以外の覚え書き）" : ui.ph;
+  $(ui.box).querySelectorAll("[data-rankmode]").forEach((b) => {
+    b.onclick = () => {
+      setUrlMode(entry, field, b.dataset.mode);
+      paintUrlMode(field);
+      $(ui.input).focus();
+    };
+  });
+}
 function openRank(item) {
   isNew = !item;
   entry = item
@@ -2379,6 +2393,8 @@ function openRank(item) {
     box.hidden = false;
     urlWrap.appendChild(box);
   });
+  entry.modes = normModes(entry.modes);
+  fields.forEach(paintUrlMode);
 
   $("rankModalTtl").textContent = `${SEC(view).label}を${isNew ? "追加" : "編集"}`;
   $("rNameLabel").textContent = SEC(view).nameLabel;

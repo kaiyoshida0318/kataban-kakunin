@@ -376,10 +376,26 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 .r-sub > td{padding:0;background:var(--row-alt)}
 
 /* 列幅パネル */
-/* ===== 列管理モーダル ===== */
-.modal-cols{width:min(880px,96vw);max-height:88vh;display:flex;flex-direction:column}
-.modal-cols .modal-body{overflow-y:auto;flex:1 1 auto}
-.col-grp + .col-grp{margin-top:18px}
+/* ===== 列管理モーダル =====
+   表を見ながら触るものなので、画面の下半分に寄せて、後ろを暗くしない。
+   後ろの表はそのままスクロールも操作もできる（overlay は pointer-events:none）。 */
+#colModal{
+  align-items:flex-end;justify-content:center;padding:0;
+  background:transparent;pointer-events:none;overflow:visible;
+}
+#colModal .modal-cols{
+  pointer-events:auto;
+  width:min(1180px,100vw);max-width:none;margin:0;
+  max-height:46vh;                       /* 上端が画面の半分より下に来る高さ */
+  border-radius:14px 14px 0 0;
+  box-shadow:0 -10px 34px rgba(20,25,35,.22);
+  border:1px solid var(--border);border-bottom:0;
+}
+.modal-cols{display:flex;flex-direction:column}
+.modal-cols .modal-head{padding:10px 18px}
+.modal-cols .modal-body{overflow-y:auto;flex:1 1 auto;padding:12px 18px}
+.modal-cols .modal-foot{padding:10px 18px}
+.col-grp + .col-grp{margin-top:12px}
 .col-grp-ttl{
   font-size:12.5px;font-weight:700;color:var(--accent-dark);
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;
@@ -415,7 +431,7 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 .col-rows-head span:nth-child(3){text-align:left}
 .col-rows{display:flex;flex-direction:column}
 .col-row{
-  padding:5px 10px;border-bottom:1px solid var(--border-soft);background:var(--surface);
+  padding:3px 10px;border-bottom:1px solid var(--border-soft);background:var(--surface);
 }
 .col-row:hover{background:#f7f9fc}
 .col-row.off{background:#f4f6f9}
@@ -641,8 +657,8 @@ body.resizing *{cursor:col-resize !important}
 .pick-tbl .td-url a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* URL欄の中身と、右端の「文字 / URL」切り替え */
-.url-cell{display:flex;align-items:center;gap:6px;min-width:0}
-.url-main{flex:1 1 auto;min-width:0}
+.url-cell{display:flex;align-items:center;gap:4px 6px;min-width:0;flex-wrap:wrap}
+.url-main{flex:1 1 96px;min-width:0}
 .url-plain{
   display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-size:12.5px;color:var(--text);
@@ -658,6 +674,9 @@ body.resizing *{cursor:col-resize !important}
 .url-mode button + button{border-left:1px solid var(--border)}
 .url-mode button:hover{background:var(--row-alt);color:var(--accent)}
 .url-mode button.on{background:var(--sec,var(--accent));color:#fff}
+/* 編集モーダルの見出しの右に置くとき */
+.field label .url-mode{margin-left:8px;vertical-align:middle}
+.field label .url-mode button{font-size:10px;padding:2px 7px}
 
 /* URLの下の小さな印（同じURLが他にもあるか）。押せない飾り */
 .url-dup{
