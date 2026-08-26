@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.84.0";
+const VERSION   = "0.85.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1840,6 +1840,8 @@ function renderBody() {
         btn.className = "st-sel " + cur.cls;
         btn.title = cur.label;
         btn.querySelector(".st-lb").textContent = cur.label;
+        const row = btn.closest("tr");
+        if (row) row.classList.toggle("pk-ng", pickAlert(at.p));
       });
     };
   });
@@ -2048,7 +2050,7 @@ function addedRow(r) {
   const chkColor = hasField("check")
     ? ((stList("check").find((o) => o.v === pickVal(p, "check")) || {}).color || "gray") : "gray";
   const done = hasField("buy") && pickVal(p, "buy") !== stFirst("buy");   // 買付が済んだ行は落ち着かせる
-  return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}">${tds}</tr>`;
+  return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}${pickAlert(p) ? " pk-ng" : ""}">${tds}</tr>`;
 }
 
 /* 画面が狭いときは、はみ出さないよう全列を比率のまま縮める（横スクロールを出さない） */
@@ -2474,6 +2476,16 @@ function thumbTag(src, cls, id) {
 }
 
 /* サムネ1枚。side は "amazon" / "rakuten" */
+/* 赤系の選択肢が1つでも付いていたら、その商品は「見送り寄り」。行ごと赤くする */
+const NG_COLORS = new Set(["red", "pink"]);
+function pickAlert(p) {
+  for (const f of stFields()) {
+    const cur = stList(f.key).find((o) => o.v === pickVal(p, f.key));
+    if (cur && NG_COLORS.has(cur.color)) return true;
+  }
+  return false;
+}
+
 /* 商品1件ぶんの「項目」のセル。列キー → セル で返す */
 function stCellsFor(p, itemId, where) {
   const out = {};
@@ -2549,7 +2561,7 @@ function pickPanel(it) {
       const tds = cols.map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
       return editing
         ? `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`
-        : `<tr>${tds}</tr>`;
+        : `<tr class="${pickAlert(p) ? "pk-ng" : ""}">${tds}</tr>`;
     }).join("");
 
   /* 「＋ 商品」の空行 */
