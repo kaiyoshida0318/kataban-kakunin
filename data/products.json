@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:37:19.593Z",
+  "updatedAt": "2026-08-26T02:37:44.322Z",
   "labels": {
     "rival": [
       {
@@ -106,7 +106,7 @@
     "pickRowH": 66,
     "labels": {
       "title": "検索KW",
-      "st_check": "隙あり/なし"
+      "st_check": "楽天隙あり/なし"
     },
     "layout": {
       "rank": {
