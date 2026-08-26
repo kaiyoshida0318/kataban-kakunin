@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T08:10:30.255Z",
+  "updatedAt": "2026-08-26T08:12:11.970Z",
   "fields": [
     {
       "key": "rival",
@@ -396,12 +396,12 @@
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71KCY1tG6BL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/2285140051/ref=zg_bs_nav_electronics_2_207877547051",
-          "urlRakuten": "",
+          "urlRakuten": "https://ranking.rakuten.co.jp/keyword/earphone_case/",
           "checkNote": "",
           "checkedAt": "2026-08-26",
           "picks": [],
           "createdAt": "2026-08-26T08:09:42.022Z",
-          "updatedAt": "2026-08-26T08:10:25.677Z",
+          "updatedAt": "2026-08-26T08:12:07.332Z",
           "modes": {},
           "nameAmazon": "イヤホン・ヘッドホンケースの売れ筋ランキング"
         },
