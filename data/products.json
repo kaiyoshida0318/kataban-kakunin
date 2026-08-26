@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:28:31.227Z",
+  "updatedAt": "2026-08-26T05:30:24.923Z",
   "labels": {
     "rival": [
       {
@@ -109,7 +109,36 @@
       "st_check": "楽天隙あり/なし"
     },
     "layout": {
-      "rank": {
+      "amazon": {
+        "img": {
+          "w": 103
+        },
+        "note": {
+          "w": 204
+        },
+        "cnt": {
+          "w": 96
+        },
+        "check": {
+          "w": 226
+        },
+        "addp": {
+          "w": 100
+        },
+        "a_rival": {
+          "align": "center"
+        },
+        "a_sales": {
+          "align": "center"
+        },
+        "a_qual": {
+          "w": 120
+        },
+        "side": {
+          "w": 100
+        }
+      },
+      "rakuten": {
         "img": {
           "w": 103
         },
@@ -215,20 +244,6 @@
       }
     },
     "order": {
-      "rank": [
-        "ord",
-        "side",
-        "img",
-        "name2",
-        "amzurl",
-        "name",
-        "rakurl",
-        "note",
-        "check",
-        "cnt",
-        "addp",
-        "act"
-      ],
       "rivals": [
         "ord",
         "side",
@@ -242,10 +257,41 @@
         "cnt",
         "addp",
         "act"
+      ],
+      "amazon": [
+        "ord",
+        "side",
+        "img",
+        "name2",
+        "amzurl",
+        "name",
+        "rakurl",
+        "note",
+        "check",
+        "cnt",
+        "addp",
+        "act"
+      ],
+      "rakuten": [
+        "ord",
+        "side",
+        "img",
+        "name2",
+        "amzurl",
+        "name",
+        "rakurl",
+        "note",
+        "check",
+        "cnt",
+        "addp",
+        "act"
       ]
     },
     "hide": {
-      "rank": [
+      "amazon": [
+        "note"
+      ],
+      "rakuten": [
         "note"
       ],
       "rivals": [],
