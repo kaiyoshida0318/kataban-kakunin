@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.59.0";
+const VERSION   = "0.61.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -237,7 +237,7 @@ const SECTIONS = [
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
   { key: "products", icon: "📦", label: "追加した商品", nameLabel: "商品名",
-    accent: "#c0392b", tint: "#fdeeec", role: "作業リスト",
+    accent: "#2b8a63", tint: "#e8f5ee", role: "作業リスト",
     desc: "拾った商品を追加日ごとに並べて、上から順に確認・買付まで処理していく場所。",
     kind: "added", defSort: "addedAt", urlFields: ["url"],
     search: "商品名・URL・出所で検索…", add: "＋ 商品を追加",
@@ -1376,6 +1376,9 @@ function renderBody() {
       }, 30);
     };
   });
+  root.querySelectorAll("[data-canceladd]").forEach((b) => {
+    b.onclick = () => { addRows.delete(b.dataset.canceladd); renderBody(); };
+  });
   root.querySelectorAll("[data-expand]").forEach((b) => {
     b.onclick = () => {
       const id = b.dataset.expand;
@@ -1998,8 +2001,10 @@ function rankRow(it, idx = 0, all = []) {
             <button class="cnt-btn${open ? " on" : ""}" data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
           </td>`;
       case "addp":
-        return `<td class="c-addp">
-            <button class="btn btn-add btn-xs" data-addpick="${esc(it.id)}" title="この行に商品URLを追加">＋ 商品</button>
+        /* 入力行を出している間は、同じ場所が赤の「キャンセル」になる */
+        return `<td class="c-addp">${addRows.has(it.id)
+          ? `<button class="btn btn-cancel btn-xs" data-canceladd="${esc(it.id)}" title="商品の追加をやめる">✕ キャンセル</button>`
+          : `<button class="btn btn-add btn-xs" data-addpick="${esc(it.id)}" title="この行に商品URLを追加">＋ 商品</button>`}
           </td>`;
       case "act":
         return tableEdit
