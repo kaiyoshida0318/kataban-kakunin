@@ -1,11 +1,29 @@
 # 引き継ぎメモ（型番商品確認くん）
 
-最終更新: 2026-08-26 / 現行版 **v0.87.0**
+最終更新: 2026-08-26 / 現行版 **v0.88.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.87.0full.zip`（全ファイル入り。これが唯一の正）
+1. `katabankakuninv0.88.0full.zip`（全ファイル入り。**これが唯一の正**）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
+
+### 新しいチャットの最初にやること
+
+```bash
+mkdir -p /root/work/katabank && cd /root/work/katabank
+unzip -oq /mnt/user-data/uploads/katabankakuninv0.88.0full.zip -d /root/work/katabank
+nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
+```
+
+検証用テストは別zip（`katabank-tests.zip`）で渡している。展開先は `/root/work`:
+
+```bash
+unzip -oq /mnt/user-data/uploads/katabank-tests.zip -d /root/work
+node /root/work/t91.js        # 動くか確認（サーバが上がっていること）
+```
+
+そのうえで **この HANDOVER.md と README.md を読んでから着手する**。
+`app.js` は 3,683行あるので、頭から読まずに `grep -n` で該当箇所だけ当たること。
 
 ---
 
@@ -15,9 +33,9 @@
 データは `data/products.json` 1本で、**GitHub Contents API 経由で読み書き**する。サーバーは無い。
 
 ```
-index.html          画面の骨格（ヘッダー・モーダル・トースト等）  305行
-app.js              ロジック全部（1ファイル）                  2,909行
-style.css           スタイル全部                                801行
+index.html          画面の骨格（ヘッダー・モーダル・トースト等）  326行
+app.js              ロジック全部（1ファイル）                  3,683行
+style.css           スタイル全部                                935行
 data/products.json  データ本体
 logo.png / favicon.png
 README.md           使う人向けの機能説明（ユーザー向け）
@@ -35,7 +53,10 @@ HANDOVER.md         これ（作る側向け）
 ### 環境
 
 - 作業ディレクトリ: `/root/work/katabank`（zipを展開したもの）
-- テストスクリプト: `/root/work/t*.js`（t.js 〜 t42.js まで42本ある。使い回して良い）
+- テストスクリプト: `/root/work/t*.js`（49本。`katabank-tests.zip` で渡している）
+  - よく回すもの: **t53**(列管理の並び/非表示) **t54**(列を隠した状態での追加・保存・リロード)
+    **t56**(列管理モーダル) **t59**(チェックした商品の列) **t85/t86**(項目管理・項目の増減)
+    **t89**(赤系で行が赤くなる) **t90**(出所2行) **t91**(操作列に編集ボタン) **t92**(ジャンル名の改行)
 - ローカルサーバ: `cd /root/work/katabank && nohup python3 -m http.server 8899 &`
 - Playwright: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` を `executablePath` に指定して使う
 
@@ -44,7 +65,8 @@ HANDOVER.md         これ（作る側向け）
 1. 要望を読む → 該当箇所を `grep -n` で特定
 2. Python のヒアドキュメントで `app.js` / `style.css` を一括置換（下の「地雷」参照）
 3. `node /root/work/tXX.js` で検証（新しい観点なら新規テストを書く）
-4. 既存テスト（t18 / t28 / t32 / t35 / t36 あたり）を回してデグレを見る
+4. 既存テストを回してデグレを見る（列管理まわり＝列の並び/非表示、項目管理＝項目の増減、
+   赤行、列を隠した状態での追加・保存、あたりを毎回見ておくと事故が減る）
 5. `VERSION`（app.js 7行目）と `index.html` の `verLabel` を上げる
 6. `zip -qr /root/work/katabankakuninvX.Y.Zfull.zip . -x "*.git*"` → `SendUserFile` で納品
 7. 返信は「何を直したか」＋**検証ログの実出力**を短く貼る。日本語。
@@ -115,13 +137,17 @@ const SECTIONS = [
   **巡回リスト2つ＝青、作業リスト＝緑**（v0.61.0で赤から変更）。役割で色を分けるのはユーザーが明示的に決めた仕様。
   タブ・帯・見出し・日付帯・役割バッジは全部この2値から来るので、**色替えは SECTIONS の2行だけ**でよい。
 
-### 3-2. 列は `colsOf(key)` / `ADDED_COLS` / `pickColsOf(key)` の3系統
+### 3-2. 列は `rankDefs()` / `ADDED_COLS_OF()` / `pickDefs()` の3系統
 
-| 関数 | 使う場所 |
+| 定義を作る | 使う場所 |
 |---|---|
-| `colsOf(key)` | amazon基準 / 楽天基準の一覧表（`.rank-tbl`） |
-| `ADDED_COLS` | 追加した商品の表（`.added-tbl`） |
-| `pickColsOf(key)` | 一覧の行を開いたときの「チェックした商品」表（`.pick-tbl`） |
+| `rankDefs(key)` | 巡回タブの一覧表（`.rank-tbl`）。amazon / rakuten / rivals |
+| `ADDED_STATIC` + `ADDED_COLS_OF()` | 追加した商品の表（`.added-tbl`）。`@st` の位置に項目のぶんが挿し込まれる |
+| `pickDefs(key)` | 一覧の行を開いたときの「チェックした商品」表（`.pick-tbl`） |
+
+画面が呼ぶのは、そこに並び順と非表示を当てたあとの
+`colsOf(key)` / `pickColsOf(key)`（表示ぶんだけ）と、
+`allColsOf(key)` / `allPickColsOf(key)`（列管理パネル用。非表示も含む全部）。
 
 **列の見た目（項目名・幅・揃え・表示/非表示・並び順）は `data.cols` に入っていて products.json 経由で
 全端末に同期する**。v0.63.0で持ち方を変えた:
@@ -146,8 +172,8 @@ data.cols = {
   幅ドラッグは `<table data-grp>` から書き込み先の表を決める。
 - v0.62.0以前の `items[列]={label,w,align,off}` は `normCols()` が移行する
   （項目名は lk へ、幅・揃えは3グループ全部へ配って見た目を保つ）。
-`ensureCols()` → `{ rowH, pickRowH, items: { <colKey>: {label,w,align} } }`。
-`colLabel()` / `colWidth()` / `colAlign()` を通して読むこと。定義配列の `label` を直接使わない。
+**項目名・幅・揃えは必ず `colLabelOf()` / `colWidth(c,grp)` / `colAlign(c,grp)` を通して読む。**
+定義配列の `label` / `w` を直接使わないこと（ユーザー設定が無視される）。
 
 **状態列（`a_check`/`p_check`、`a_buy`/`p_buy`）の項目名は1つを共有する。** `ST_COL_GROUP`
 （`ST_FIELDS[].cols` から作る）で列キー→同じグループの列一覧を引き、`colLabelOf()` が
@@ -159,7 +185,7 @@ data.cols = {
 
 ### 3-2a. 「チェックした商品」の列（v0.59.0）
 
-`pickDefs()` は「追加した商品」（`ADDED_COLS`）と同じ顔ぶれを返す（`a_src` だけ無い）。
+`pickDefs()` は「追加した商品」（`ADDED_COLS_OF()`）と同じ顔ぶれを返す（`a_src` だけ無い）。
 両モールの画像・URLを持ち、**そのタブの基準側を先**に置く。`a_sales` / `a_rival` / `a_qual` は
 added と同じ列キーを使うので、項目名と幅は共通・表示/非表示は別（`hide` がグループごとのため）。
 
@@ -181,11 +207,9 @@ v0.70.0で「表を見ながら触りたい」という要望に合わせて、�
 v0.56.0ではヘッダー直下のインラインパネルだったが、ユーザーの要望でモーダルにした。
 `renderBody()` は開いている間だけ `renderColModal()` を呼び直す（タブで列が変わるため）。
 
-- 定義の配列（`rankDefs()` / `ADDED_COLS` / `pickDefs()`）は**素の定義**。ここから
+- 定義の配列（`rankDefs()` / `ADDED_COLS_OF()` / `pickDefs()`）は**素の定義**。ここから
   `arrangeCols(defs, group, secKey)` が `data.cols.order[group]` の順に並べ替え、
-  `shownCols()` が `items[key].off` の列を落とす。画面が使うのは
-  `colsOf(key)` / `pickColsOf(key)`（表示ぶんだけ）、列管理パネルは
-  `allColsOf(key)` / `allPickColsOf(key)`（非表示も含む全部）。
+  `shownCols(list, grp)` が `data.cols.hide[grp]` の列を落とす。
 - **グループはタブごと（v0.79.0 / v0.82.0）**。`COL_GROUPS` は巡回3タブ + `added` +
   `pick_<タブ>`（v0.82.0で「チェックした商品」もタブごとに分けた。`pickGroupOf(key)`）、
   振り分けは `colGroupOf(key)`（巡回タブはセクションキーそのもの）。v0.78.0以前は巡回3タブが `rank` を
@@ -205,9 +229,14 @@ v0.56.0ではヘッダー直下のインラインパネルだったが、ユー�
   **編集行の入力欄は `data-pf="<商品の項目名>"` を持たせ、保存は `[data-pf]` を集めるだけ**（v0.59.0）。
   クラス名（`.pe-url` 等）や「両モールかどうか」で分岐していたのをやめたので、どの表・どのモールでも同じ。
   `tr.pick-new` の追加は `val()` で欄の有無を吸収する。
-- 「編集」列を隠すと「＋商品」の追加ボタンの居場所が無くなるので、最後の列に置き直している。
+- **編集ボタンは「操作」列の中（v0.87.0）。** 専用の `a_edit` / `p_edit` 列は廃止した。
+  通常時は `編集`＋`✕`、編集中は `保存`＋`↩` を同じ `a_act` / `p_act` セルに入れる。
+  `tr.pick-new`（＋商品の入力行）の `追加` ボタンも `p_act`。
+  **`p_act` を隠すと追加ボタンの居場所が無くなるので、最後の列に置き直すフォールバックがある**
+  （`if (!cols.some(c => c.key === "p_act") …)`）。ここの列キーを変えたら一緒に直すこと。
 
-揃えは `alignStyle(cols, tableSel, rowSel)` が `nth-child` の `<style>` を生成して当てている。
+揃えは `alignStyle(cols, grp, tableSel, rowSel)` が `nth-child` の `<style>` を生成して当てている。
+**`grp` を渡し忘れない**（固定文字列にするとどのタブでも同じ設定を見る）。
 **新しい列や新しいセル中身を足したら alignStyle のセレクタ列挙にも足す**（img / input / .st-sel など個別に指定している）。
 
 ### 3-3. ドロップダウンは自前実装
@@ -270,17 +299,6 @@ URL欄に覚え書きを書きたいことがあるので、欄ごとに扱い�
 - 数える対象は**巡回タブの行のURLと、その行の商品のURL**。「追加した商品」は他タブの商品の写しなので
   数えない（数えると全部が「他あり」になる）。
 - 押せない飾り（`<span>`。`cursor:default`）。リンクの中には入れない。
-
-### 3-3b. URLの重複表示（v0.66.0）
-
-`buildUrlIndex()` が `renderBody()` の頭で全URLを数えて `urlCount`（Map）に入れ、
-`dupTag(url)` が「唯一 / 他あり N」の `<span class="url-dup">` を返す。URLセル3箇所で使う。
-
-- キーは `urlKey()`。**AmazonはASIN**（`asinOf`）、それ以外は `ホスト+パス`（`www.`・末尾スラッシュ・
-  クエリを落とす）。同じ商品の別表記を同一視するためで、ここを厳密なURL一致に戻すと役に立たなくなる。
-- 数える対象は**巡回タブの行のURLと、その行の商品のURL**。「追加した商品」は他タブの商品の写しなので
-  数えない（数えると全部が「他あり」になる）。
-- 押せない飾り（`<span>`。`cursor:default`）。リンクの中には入れない。
 - 出すのは表の3箇所だけ。**編集モーダルや表編集の入力欄には出さない**（ユーザーと確認済み）。
 
 ### 3-4. 保存（ここが一番こわい）
@@ -331,7 +349,7 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - 中継は普通に失敗する（実測で `r.jina.ai` が 429 を返した）。**失敗しても何もしない**のが約束。
   ⚙️設定の画像取得テストに楽天URLを入れると `fetchGenre` のログも出る。
 
-### 3-6. 見出しの固定（v0.52.0で追加。今いちばん新しい所）
+### 3-6. 見出しの固定（v0.52.0）
 
 - `.app-header` の実高さを `ResizeObserver` で測って `--head-h` に流す（`syncHeadH` / `watchHeadH`）。
   `renderAll()` / `toggleColPanel()` / `resize` でも呼んでいる。
@@ -354,6 +372,20 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
   検証時の注意: **Playwrightのheadlessは既定で `--hide-scrollbars` が付く。**
   `ignoreDefaultArgs:["--hide-scrollbars"]` を付けないと `innerWidth - clientWidth` が常に0になり、
   効いているのに効いていないように見える。
+
+### 3-6b. 出所は2行（v0.86.0 / 改行は v0.88.0）
+
+「追加した商品」の `a_src` セルは、1行目に区分バッジ（`.src-side.sd-*`）、2行目にジャンル名リンク
+（`.src-name`）。折り返すので `.added-tbl .td-src{white-space:normal}`。**揃え設定は `.src-name` にも当てること**
+（`alignStyle` のセレクタ列挙に入っている）。
+
+- **ジャンル名は `breadcrumbHtml()` を通す（v0.88.0）。** 一覧の `r-name` だけが通っていて、ここは
+  `esc(it.name)` を直に出していたので「一覧では改行するのに出所では改行しない」状態だった。
+  **ジャンル名を出す場所を増やしたら必ず `breadcrumbHtml()` を通すこと。** 空なら `—`（v0.77.0と同じ）。
+- 段数は `.src-name{-webkit-line-clamp:var(--src-lines,2)}`。`--src-lines` は `addedTable()` が
+  `Math.max(1, Math.floor((pRowH() - 30) / 16))` で出して `<table>` に流す（区分バッジ17px＋上下padding16pxを引いた残り ÷ 行送り15.5px）。
+  既定の66pxでは2段までなので、3段以上のパンくずは行の高さを上げないと下が切れる（`title` には全文が入っている）。
+  一覧の `--name-lines` と同じ考え方。
 
 ### 3-7. その他
 
@@ -380,12 +412,15 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 | 確認日を縦積みにしたら揃え設定が効かなくなった | `.check-cell` は `flex-direction:column`。寄せるのは `justify-content` ではなく `align-items`（`alignStyle` で別扱いにしてある） |
 | 「チェックした商品」の編集行を `.pe-url2` の有無で「両モール」と判定していて、列を隠すと保存先がずれた | 入力欄には `data-pf` で書き込み先を持たせる。DOMの有無で意味を判定しない |
 | 見出し固定（`.grid-tbl thead th`）が入れ子の「チェックした商品」にも効き、見出しが商品行に重なった | 一覧表の中には別の表が入る。`.grid-tbl` 配下のセレクタは `.pick-tbl` にも当たると考える |
+| 巡回タブごとにグループを分けたのに `effWidth` が `"rank"` 固定のままで、幅がどのタブでも同じだった | グループを受け取る引数は既定値まで含めて全部直す。`grep -n '"rank"'` で残りを潰す |
+| 移行処理の中から `normCols()` を呼び直して無限再帰（`Maximum call stack size exceeded`） | 正規化関数の中から自分を呼ばない。必要な処理はインラインで書く |
+| 項目をデータ駆動にした後、`ST_FIELDS` の参照が1つ残って `ReferenceError` | 定数を関数に変えたら `grep -n` で全部潰す。`pageerror` をログに出していれば必ず気づける |
 
 ---
 
-## 5. これまでの流れ（v0.19.0 → v0.52.0 の要約）
+## 5. これまでの流れ
 
-引き継ぎ時は v0.19.0。ユーザーの要望を1つずつ潰して30版ほど重ねた。大きな節目だけ:
+最初の引き継ぎ時は v0.19.0。ユーザーの要望を1つずつ潰して重ねてきた。v0.52.0までの節目と、それ以降の全版:
 
 - タブ構成の試行錯誤（不規則分/定期分を作って→消した）→ **amazon基準（オフェンス）/ 楽天基準（ディフェンス）/ 追加した商品** の3本に確定
 - 「区分」ドロップダウンで行をタブ間移動できるように
@@ -431,7 +466,8 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.84.0 項目そのものを増やす・消せるように
 - v0.85.0 赤系の項目が付いた商品は行ごと赤く（両方の表で）
 - v0.86.0 追加した商品の「出所」を2行に（区分バッジ / ジャンル名）
-- **v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）（最新）**
+- v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）
+- **v0.88.0 「追加した商品」の出所のジャンル名も「>」で改行（段数は行の高さ追従）（最新）**
 
 ---
 

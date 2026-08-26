@@ -727,7 +727,7 @@ body.resizing *{cursor:col-resize !important}
 .src-side.sd-riv{background-color:#f3ecfb;border:1px solid #ddc9f0;color:#6b3fa0}
 .src-name{
   color:var(--muted);max-width:100%;overflow:hidden;overflow-wrap:anywhere;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--src-lines,2);
 }
 .src-name:hover{color:var(--accent)}
 
