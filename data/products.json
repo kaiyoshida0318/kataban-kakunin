@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:55:01.553Z",
+  "updatedAt": "2026-08-26T02:56:06.405Z",
   "labels": {
     "rival": [
       {
@@ -436,7 +436,7 @@
           "category": "未分類",
           "image": "https://tshop.r10s.jp/yukaiya/cabinet/foot/foot-23-03b-01a.jpg?fitin=128:128",
           "url": "",
-          "urlAmazon": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/hpc/169822011",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/402786/",
           "checkNote": "",
           "checkedAt": "2026-08-25",
@@ -485,7 +485,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-26T02:25:14.078Z"
+          "updatedAt": "2026-08-26T02:56:01.799Z"
         }
       ]
     },
