@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:52:14.218Z",
+  "updatedAt": "2026-08-26T02:53:14.074Z",
   "labels": {
     "rival": [
       {
@@ -487,9 +487,24 @@
           "urlRakuten": "https://item.rakuten.co.jp/shotr-/008/",
           "checkNote": "",
           "checkedAt": "2026-08-26",
-          "picks": [],
+          "picks": [
+            {
+              "id": "itm_am1s8t91clj",
+              "addedAt": "2026-08-26",
+              "title": "",
+              "urlAmazon": "",
+              "urlRakuten": "https://item.rakuten.co.jp/shotr-/coster/?s-id=rk_shop_pc_rnkInShop",
+              "imageAmazon": "",
+              "imageRakuten": "https://shop.r10s.jp/shotr-/cabinet/13742534/imgrc0118808659.jpg",
+              "sales30": "",
+              "rival": "o_p14mmp",
+              "quality": "",
+              "check": "before",
+              "buy": "before"
+            }
+          ],
           "createdAt": "2026-08-26T02:40:42.417Z",
-          "updatedAt": "2026-08-26T02:45:00.408Z"
+          "updatedAt": "2026-08-26T02:53:09.511Z"
         }
       ]
     },
