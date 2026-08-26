@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T03:22:54.387Z",
+  "updatedAt": "2026-08-26T03:23:09.199Z",
   "labels": {
     "rival": [
       {
@@ -451,7 +451,7 @@
         {
           "id": "itm_se7mgyhsmi8",
           "name": "楽天市場トップ  >  ランキングトップ  >  キッズ・ベビー・マタニティ  >  ベビーファッション  >  ファッション雑貨・小物  >  手袋",
-          "category": "未分類",
+          "category": "ベビーファッション",
           "image": "https://tshop.r10s.jp/yukaiya/cabinet/baby/baby-23-01-b-01b.jpg?fitin=128:128",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/fashion/346103011",
@@ -461,12 +461,12 @@
           "checkedAt": "2026-08-19",
           "picks": [],
           "createdAt": "2026-08-19T07:56:36.464Z",
-          "updatedAt": "2026-08-20T03:03:45.190Z"
+          "updatedAt": "2026-08-26T03:23:04.560Z"
         },
         {
           "id": "itm_iynsrce6nrc",
           "name": "楽天市場トップ  >  ランキングトップ  >  靴  >  靴ケア用品・アクセサリー  >  靴ずれ防止",
-          "category": "未分類",
+          "category": "靴ケア用品・アクセサリー",
           "image": "https://tshop.r10s.jp/yukaiya/cabinet/foot/foot-23-03b-01a.jpg?fitin=128:128",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/hpc/169822011",
@@ -522,7 +522,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-26T02:56:35.213Z"
+          "updatedAt": "2026-08-26T03:22:54.959Z"
         }
       ]
     },
