@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:03:37.142Z",
+  "updatedAt": "2026-08-26T06:03:56.315Z",
   "labels": {
     "rival": [
       {
@@ -379,7 +379,8 @@
         "p_aurl",
         "a_sales",
         "a_qual",
-        "p_buy"
+        "p_buy",
+        "a_rival"
       ],
       "pick_rivals": []
     }
