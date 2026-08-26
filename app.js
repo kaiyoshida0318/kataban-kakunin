@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.79.0";
+const VERSION   = "0.80.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2010,6 +2010,8 @@ function fitColumns() {
   fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(effWidth(c) * factor))));
 }
 
+let colTab = "";            // 列管理モーダルでいま見ている表
+let colTabView = "";        // そのときのタブ（画面のタブを変えたら追従させる）
 /* 列管理モーダル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
 function renderColModal() {
   /* グループ＝設定のまとまり。4つとも常に出す（どのタブからでも設定できるように）。
@@ -2029,10 +2031,27 @@ function renderColModal() {
     { grp: "added", ttl: "追加した商品", note: "「追加した商品」タブの表",
       which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allColsOf("products") },
   ];
-  /* いま開いているタブの表を先頭に */
+  /* 上のタブで1つ選んで、その表だけを出す */
   const mine = added ? "added" : colGroupOf(view);
-  const groups = [...all].sort((x, y) => (y.grp === mine) - (x.grp === mine));
-  for (const g of groups) if (g.grp === mine) g.now = true;
+  if (colTabView !== view) { colTab = mine; colTabView = view; }        // タブを切り替えたら追従
+  if (!all.some((g) => g.grp === colTab)) colTab = mine;
+  const cur = all.find((g) => g.grp === colTab);
+  cur.now = cur.grp === mine;
+  const groups = [cur];
+
+  const tabRow = (ttl, keys) => `<span class="col-tabs-ttl">${esc(ttl)}</span>` +
+    keys.map((k) => {
+      const g = all.find((x) => x.grp === k);
+      const on = g.grp === colTab;
+      return `<button type="button" class="col-tab${on ? " on" : ""}${g.grp === mine ? " mine" : ""}"
+        data-ctab="${esc(g.grp)}">${esc(g.ttl)}</button>`;
+    }).join("");
+  $("colTabs").innerHTML =
+    `<div class="col-tabs-row">${tabRow("■ ランキング", ["amazon", "rakuten", "rivals", "added"])}</div>` +
+    `<div class="col-tabs-row">${tabRow("■ 展開部分", ["pick"])}</div>`;
+  $("colTabs").querySelectorAll("[data-ctab]").forEach((b) => {
+    b.onclick = () => { colTab = b.dataset.ctab; renderColModal(); };
+  });
 
   /* 1列＝1行。左から 番号 / 表示 / 項目名 / 幅 / 揃え / 上下 */
   const row = (c, i, list, grp) => {
@@ -2065,7 +2084,7 @@ function renderColModal() {
     const on = g.cols.filter((c) => !colOff(c.key, g.grp)).length;
     return `
     <section class="col-grp${g.now ? " now" : ""}" data-grp="${esc(g.grp)}">
-      <h3 class="col-grp-ttl">${esc(g.ttl)}
+      <h3 class="col-grp-ttl">
         ${g.now ? '<span class="col-grp-now">いま開いている表</span>' : ""}
         <span class="col-grp-note">${esc(g.note)}</span>
         <span class="col-grp-cnt">表示 ${on} / ${g.cols.length}</span>
