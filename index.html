@@ -25,7 +25,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.74.0</span>
+      <span class="ver-badge" id="verLabel">v0.76.0</span>
       <span class="dirty-badge" id="saveState" hidden title=""></span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -102,12 +102,7 @@
               </div>
             </div>
           </div>
-          <div class="field">
-            <label for="rName"><span id="rNameLabel">ジャンル名</span> <span class="req">*</span>
-              <button type="button" class="btn btn-ghost btn-xs" id="btnGenre" hidden>楽天URLから取得</button>
-            </label>
-            <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター / SD-1200X 電動キックボード">
-          </div>
+          <!-- URL → そのモールのジャンル名、の順に並べる（並び順は openRank が組む） -->
           <div id="rUrlFields">
             <div class="field" id="fUrl">
               <label for="rUrl">URL <span class="req">*</span><span class="url-mode" id="mUrl"></span></label>
@@ -117,9 +112,21 @@
               <label for="rUrlAmz">Amazon URL<span class="url-mode" id="mUrlAmz"></span></label>
               <input id="rUrlAmz" type="url" placeholder="https://www.amazon.co.jp/…">
             </div>
+            <div class="field" id="fName2" hidden>
+              <label for="rName2">amazonジャンル名
+                <button type="button" class="btn btn-ghost btn-xs" id="btnGenreAmz">Amazon URLから取得</button>
+              </label>
+              <input id="rName2" type="text" placeholder="例) ファッション > メンズ靴 > 靴ケア用品">
+            </div>
             <div class="field" id="fUrlRak" hidden>
               <label for="rUrlRak">楽天 URL<span class="url-mode" id="mUrlRak"></span></label>
               <input id="rUrlRak" type="url" placeholder="https://ranking.rakuten.co.jp/…">
+            </div>
+            <div class="field" id="fName">
+              <label for="rName"><span id="rNameLabel">ジャンル名</span> <span class="req">*</span>
+                <button type="button" class="btn btn-ghost btn-xs" id="btnGenre" hidden>楽天URLから取得</button>
+              </label>
+              <input id="rName" type="text" placeholder="例) 家電 > 扇風機・サーキュレーター">
             </div>
           </div>
           <div class="field" id="fNote">

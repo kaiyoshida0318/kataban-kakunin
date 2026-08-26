@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.74.0";
+const VERSION   = "0.76.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -45,7 +45,9 @@ function rankDefs(key) {
     ...(sided ? [{ key: "side", label: "区分", w: 118, cls: "c-side" }] : []),
     { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
     { key: "cat",   label: SEC(key)?.catLabel || "大カテゴリ", w: 116, cls: "c-cat", sort: "category" },
-    { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
+    { key: "name",  label: SEC(key)?.nameLabel || "ジャンル名", w: 240, cls: "c-name", sort: "name" },
+    ...(urlFieldsOf(key).includes("urlAmazon")
+      ? [{ key: "name2", label: "amazonジャンル名", w: 200, cls: "c-name", sort: "nameAmazon" }] : []),
     ...urls,
     { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
     { key: "check", label: "確認日",     w: 140, cls: "c-check", sort: "checkedAt" },
@@ -231,19 +233,19 @@ function normCols(raw) {
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "amazon",   icon: "📊", label: "amazonランキング", nameLabel: "ジャンル名",
+  { key: "amazon",   icon: "📊", label: "amazonランキング", nameLabel: "楽天ジャンル名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "Amazon側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"], side: "offense",
-    catLabel: "カテゴリー名",
+    omit: ["cat"],                          // カテゴリー名は使わない
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "amazonランキングで見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
+  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "楽天ジャンル名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "楽天側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
-    catLabel: "カテゴリー名",
+    omit: ["cat"],                          // カテゴリー名は使わない
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天ランキングで見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
@@ -552,6 +554,13 @@ function urlCellHtml(o, field, cut) {
   return isTextMode(o, field)
     ? `<span class="url-plain" title="${esc(v)}">${esc(v)}</span>`
     : `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, cut))}</a>${dupTag(v)}`;
+}
+
+/* パンくず（A > B > C）は「>」で改行して見せる。1段ずつ縦に並ぶので読みやすい */
+function breadcrumbHtml(v) {
+  const parts = esc(v).split(/\s*&gt;\s*/);
+  if (parts.length < 2) return esc(v);
+  return parts.map((x, i) => (i < parts.length - 1 ? `${x} &gt;` : x)).join("<br>");
 }
 
 /* ---------- 同じURLが他にも入っていないか ----------
@@ -908,9 +917,32 @@ function genreFromPage(txt) {
   const tt = (txt.match(/^Title:\s*(.+)$/mi) || txt.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || "";
   return genreFromTitle(tt);
 }
+/* Amazonのパンくず（#wayfinding-breadcrumbs_feature_div）。無ければタイトルから */
+function amazonGenreFromHtml(txt) {
+  try {
+    const doc = new DOMParser().parseFromString(txt, "text/html");
+    const box = doc.querySelector("#wayfinding-breadcrumbs_feature_div, .a-breadcrumb, #nav-subnav");
+    if (box) {
+      const names = genreClean([...box.querySelectorAll("a")].map((x) => x.textContent));
+      if (names.length) return names.join(" > ");
+    }
+  } catch { /* noop */ }
+  /* 「Amazon.co.jp: 靴ケア用品」「Amazon 売れ筋ランキング: シューケア用品 の中で最も人気のある商品です」など */
+  const t = (txt.match(/^Title:\s*(.+)$/mi) || txt.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || "";
+  let x = String(t).replace(/\s+/g, " ").trim()
+    .replace(/^Amazon(\.co\.jp)?[:：]?\s*/i, "")
+    .replace(/^売れ筋ランキング[:：]?\s*/, "")
+    .replace(/\s*の中で最も人気のある商品です.*$/, "")
+    .replace(/\s*\|\s*Amazon.*$/i, "")
+    .replace(/【[^】]*】/g, "")
+    .trim();
+  return GENRE_DROP.test(x) ? "" : x.slice(0, 60);
+}
+
 /* 中継サービスを順に試して、最初に取れたものを返す */
 async function fetchGenre(url, log = () => {}) {
-  if (!isRakutenUrl(url)) { log("ジャンル", "楽天のURLではない"); return ""; }
+  const amazon = isAmazonUrl(url);
+  if (!amazon && !isRakutenUrl(url)) { log("ジャンル", "楽天/AmazonのURLではない"); return ""; }
   const list = proxyList();
   if (!list.length) { log("ジャンル", "中継なしの設定のためスキップ"); return ""; }
   for (const tpl of list) {
@@ -921,7 +953,8 @@ async function fetchGenre(url, log = () => {}) {
       const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
       clearTimeout(timer);
       if (!res.ok) { log("ジャンル", `${via} → HTTP ${res.status}`); continue; }
-      const name = genreFromPage((await res.text()).slice(0, 900000));
+      const body = (await res.text()).slice(0, 900000);
+      const name = amazon ? amazonGenreFromHtml(body) : genreFromPage(body);
       if (name) { log("ジャンル", `${via} → ${name}`); return name; }
       log("ジャンル", `${via} → 取れたがパンくずが見つからない`);
     } catch (e) {
@@ -1008,6 +1041,7 @@ function normRank(it) {
     url:       it.url || "",
     urlAmazon: it.urlAmazon || "",        // Amazon側のURL
     urlRakuten: it.urlRakuten || "",      // 楽天側のURL
+    nameAmazon: it.nameAmazon || "",        // amazon側のジャンル名
     modes:     normModes(it.modes),         // URL欄を文字として扱うか
     checkNote: it.checkNote || "",          // 確認内容
     checkedAt: ymd(it.checkedAt) || "",     // 最終確認日 (YYYY-MM-DD)
@@ -1320,6 +1354,7 @@ function renderToolbar() {
     return;
   }
 
+  if ((SEC(view).omit || []).includes("cat")) { $("catSeg").innerHTML = ""; return; }
   const cats = categories(view);
   $("catSeg").innerHTML = cats.length < 2 ? "" :
     seg("*", "すべて", itemsOf(view).length, F().cat === "*") +
@@ -1375,7 +1410,7 @@ function visibleItems() {
     .filter((it) => {
       if (F().cat !== "*" && (it.category || "未分類") !== F().cat) return false;
       if (!q) return true;
-      const hay = [it.name, it.category, it.url, it.urlAmazon, it.urlRakuten, it.checkNote,
+      const hay = [it.name, it.nameAmazon, it.category, it.url, it.urlAmazon, it.urlRakuten, it.checkNote,
                    it.picks.map((p) => [p.title, p.urlAmazon, p.urlRakuten].join(" ")).join(" ")].join(" ");
       return hay.toLowerCase().includes(q);
     });
@@ -1407,7 +1442,8 @@ function comparator() {
   const sgn = dir === "asc" ? 1 : -1;
   const val = (it) => {
     switch (sort) {
-      case "name":      return it.name || it.model || "";
+      case "name":       return it.name || it.model || "";
+      case "nameAmazon": return it.nameAmazon || "";
       case "model":     return it.model || "";
       case "category": {
         /* 決まった選択肢のタブ（強さ）は、選択肢の並び順で揃える */
@@ -1507,13 +1543,14 @@ function renderBody() {
       it.updatedAt = nowIso();
       persistLocal(); markDirty(true);
       if (f === "category") renderToolbar();
-      /* 楽天URLを入れて名称が空なら、パンくずから入れてみる */
-      if (f === "urlRakuten" && v && !it.name && autoGenreTab(view) && !isTextMode(it, f)) {
-        const sec = view, id = it.id;
+      /* URLを入れて、そのモールのジャンル名が空なら、パンくずから入れてみる */
+      const GF = { urlRakuten: "name", urlAmazon: "nameAmazon" };
+      if (GF[f] && v && !it[GF[f]] && autoGenreTab(view) && !isTextMode(it, f)) {
+        const sec = view, id = it.id, target = GF[f];
         fetchGenre(v).then((name) => {
           const cur = itemsOf(sec).find((x) => x.id === id);
-          if (!name || !cur || cur.name) return;
-          cur.name = name; cur.updatedAt = nowIso();
+          if (!name || !cur || cur[target]) return;
+          cur[target] = name; cur.updatedAt = nowIso();
           upsert(sec, cur);
           toast(`ジャンル名を取り込みました：${name}`);
         });
@@ -2224,8 +2261,18 @@ function rankRow(it, idx = 0, all = []) {
         return tableEdit
           ? `<td class="c-name"><input class="cell-input" type="text" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}"></td>`
           : `<td class="c-name">${head
-              ? `<a class="r-name" href="${esc(head)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(head))}</a>`
-              : `<span class="r-name">${esc(it.name)}</span>`}</td>`;
+              ? `<a class="r-name" href="${esc(head)}" target="_blank" rel="noopener noreferrer" title="${esc(it.name)}">${breadcrumbHtml(it.name || hostOf(head))}</a>`
+              : `<span class="r-name" title="${esc(it.name)}">${breadcrumbHtml(it.name)}</span>`}</td>`;
+      case "name2": {
+        const amz = it.urlAmazon || "";
+        return tableEdit
+          ? `<td class="c-name"><input class="cell-input" type="text" data-f="nameAmazon" data-id="${esc(it.id)}" value="${esc(it.nameAmazon)}"></td>`
+          : `<td class="c-name">${it.nameAmazon
+              ? (amz && !isTextMode(it, "urlAmazon")
+                  ? `<a class="r-name" href="${esc(amz)}" target="_blank" rel="noopener noreferrer" title="${esc(it.nameAmazon)}">${breadcrumbHtml(it.nameAmazon)}</a>`
+                  : `<span class="r-name" title="${esc(it.nameAmazon)}">${breadcrumbHtml(it.nameAmazon)}</span>`)
+              : '<span class="dash">—</span>'}</td>`;
+      }
       case "cat": {
         const list = catList(view);
         if (list.length) return `<td class="c-cat">
@@ -2446,23 +2493,29 @@ function renderAll() {
 /* =========================================================
    編集モーダル
    ========================================================= */
-/* 楽天のページからジャンル名を取り込む。取れなければ何もしない（手入力はいつでもできる） */
+/* ページからジャンル名を取り込む。取れなければ何もしない（手入力はいつでもできる） */
 let genreBusy = false;
-async function fillGenre(force) {
-  if (genreBusy || !autoGenreTab(view)) return;
-  const url = $("rUrlRak").value.trim();
-  if (!url || isTextMode(entry, "urlRakuten")) return;
-  if (!force && $("rName").value.trim()) return;          // 自動は空のときだけ
-  const btn = $("btnGenre");
-  const ph  = $("rName").placeholder;
+const GENRE_UI = {
+  urlRakuten: { url: "rUrlRak", name: "rName",  btn: "btnGenre",    label: "楽天URLから取得",     via: "楽天" },
+  urlAmazon:  { url: "rUrlAmz", name: "rName2", btn: "btnGenreAmz", label: "Amazon URLから取得", via: "Amazon" },
+};
+async function fillGenre(field, force) {
+  const ui = GENRE_UI[field];
+  if (genreBusy || !ui || !autoGenreTab(view)) return;
+  if ($(ui.btn).hidden) return;
+  const url = $(ui.url).value.trim();
+  if (!url || isTextMode(entry, field)) return;
+  if (!force && $(ui.name).value.trim()) return;          // 自動は空のときだけ
+  const btn = $(ui.btn);
+  const ph  = $(ui.name).placeholder;
   genreBusy = true;
   btn.disabled = true; btn.textContent = "取得中…";
-  $("rName").placeholder = "楽天のページから取得中…";
+  $(ui.name).placeholder = `${ui.via}のページから取得中…`;
   const name = await fetchGenre(url);
   genreBusy = false;
-  btn.disabled = false; btn.textContent = "楽天URLから取得";
-  $("rName").placeholder = ph;
-  if (name) { $("rName").value = name; toast(`ジャンル名を取り込みました：${name}`); }
+  btn.disabled = false; btn.textContent = ui.label;
+  $(ui.name).placeholder = ph;
+  if (name) { $(ui.name).value = name; toast(`ジャンル名を取り込みました：${name}`); }
   else if (force) toast("ジャンル名が取れませんでした。手で入れてください", true);
 }
 
@@ -2509,20 +2562,27 @@ function openRank(item) {
     $("rSide").className = "side-sel side-sel-lg " + SIDE(side).cls;
   }
 
+  /* URL → そのモールのジャンル名、の順に並べ直す */
+  const NAME_BOX = { urlRakuten: "fName", url: "fName", urlAmazon: "fName2" };
   const urlWrap = $("rUrlFields");
-  Object.values(FIELD_BOX).forEach((id) => { $(id).hidden = true; });
+  [...Object.values(FIELD_BOX), "fName", "fName2"].forEach((id) => { $(id).hidden = true; });
   fields.forEach((f) => {                                // 並び順もタブに合わせる
     const box = $(FIELD_BOX[f]);
     box.hidden = false;
     urlWrap.appendChild(box);
+    const nb = NAME_BOX[f];
+    if (nb) { $(nb).hidden = false; urlWrap.appendChild($(nb)); }
   });
+  if ($("fName").hidden) { $("fName").hidden = false; urlWrap.appendChild($("fName")); }  // 名称は必ず出す
   entry.modes = normModes(entry.modes);
   fields.forEach(paintUrlMode);
   $("btnGenre").hidden = !(autoGenreTab(view) && fields.includes("urlRakuten"));
+  $("btnGenreAmz").hidden = !(autoGenreTab(view) && fields.includes("urlAmazon"));
 
   $("rankModalTtl").textContent = `${SEC(view).label}を${isNew ? "追加" : "編集"}`;
   $("rNameLabel").textContent = SEC(view).nameLabel;
   $("rName").value    = entry.name;
+  $("rName2").value   = entry.nameAmazon || "";
 
   /* 大カテゴリ。決まった選択肢のタブ（強さ）はドロップダウンにする */
   const cats = catList(view);
@@ -2538,8 +2598,10 @@ function openRank(item) {
   } else {
     $("rCat").value = isNew ? "" : entry.category;
   }
-  /* 使わない項目は出さない（楽天ライバルの確認内容など） */
-  $("fNote").hidden = (SEC(view).omit || []).includes("note");
+  /* 使わない項目は出さない（ランキングのカテゴリー名・ライバルの確認内容） */
+  const omit = SEC(view).omit || [];
+  $("fNote").hidden = omit.includes("note");
+  $("fCat").hidden  = omit.includes("cat");
   $("rUrl").value     = entry.url;
   $("rUrlAmz").value  = entry.urlAmazon || "";
   $("rUrlRak").value  = entry.urlRakuten || "";
@@ -2605,8 +2667,9 @@ function saveRank() {
   const fields = urlFieldsOf(view);
   const INPUT = { url: "rUrl", urlAmazon: "rUrlAmz", urlRakuten: "rUrlRak" };
   const name = $("rName").value.trim();
+  const name2 = $("fName2").hidden ? "" : $("rName2").value.trim();
   const vals = Object.fromEntries(fields.map((f) => [f, $(INPUT[f]).value.trim()]));
-  if (!name) { toast(`${SEC(view).nameLabel}は必須です`, true); $("rName").focus(); return; }
+  if (!name && !name2) { toast(`${SEC(view).nameLabel}は必須です`, true); $("rName").focus(); return; }
   if (!fields.some((f) => vals[f])) {
     toast(fields.length > 1 ? "URLをどちらか入れてください" : "URLは必須です", true);
     $(INPUT[fields[0]]).focus();
@@ -2614,10 +2677,11 @@ function saveRank() {
   }
 
   entry.name = name;
+  entry.nameAmazon = $("fName2").hidden ? (entry.nameAmazon || "") : $("rName2").value.trim();
   /* 画面に出ていないURL欄は今の値のまま（タブを移してきた行の反対側を消さない） */
   for (const f of ["url", "urlAmazon", "urlRakuten"]) if (fields.includes(f)) entry[f] = vals[f] || "";
   const cats = catList(view);
-  entry.category  = cats.length ? $("rCatSel").value : ($("rCat").value.trim() || "未分類");
+  if (!$("fCat").hidden) entry.category = cats.length ? $("rCatSel").value : ($("rCat").value.trim() || "未分類");
   entry.image     = $("rImage").value.trim();
   if (!$("fNote").hidden) entry.checkNote = $("rNote").value.trim();
   entry.checkedAt = $("rChecked").value || "";
@@ -3097,7 +3161,7 @@ async function runImgTest() {
   btn.disabled = true; btn.textContent = "実行中…";
   const found = await guessImage(url, (stage, msg) => add(stage, msg));
   /* 楽天のURLなら、ジャンル名（パンくず）も一緒に試す */
-  if (isRakutenUrl(url)) {
+  if (isRakutenUrl(url) || isAmazonUrl(url)) {
     const g = await fetchGenre(url, (stage, msg) => add(stage, msg));
     add("ジャンル名", g || "取得できず", g ? "ok" : "ng");
   }
@@ -3284,8 +3348,10 @@ function bind() {
     else toast("画像が見つかりませんでした。手動でURLを貼ってください", true);
   };
   /* 楽天URL → ジャンル名（パンくず）。空のときだけ自動、ボタンならいつでも取り直し */
-  $("rUrlRak").onchange = () => fillGenre(false);
-  $("btnGenre").onclick = () => fillGenre(true);
+  $("rUrlRak").onchange   = () => fillGenre("urlRakuten", false);
+  $("btnGenre").onclick    = () => fillGenre("urlRakuten", true);
+  $("rUrlAmz").onchange    = () => fillGenre("urlAmazon", false);
+  $("btnGenreAmz").onclick = () => fillGenre("urlAmazon", true);
   $("rSide").onchange = () => {
     $("rSide").className = "side-sel side-sel-lg " + SIDE($("rSide").value).cls;
   };
