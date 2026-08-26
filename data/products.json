@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:57:17.056Z",
+  "updatedAt": "2026-08-26T06:01:17.828Z",
   "labels": {
     "rival": [
       {
@@ -352,7 +352,10 @@
       ],
       "rivals": [],
       "added": [],
-      "pick_amazon": [],
+      "pick_amazon": [
+        "p_rimg",
+        "p_rurl"
+      ],
       "pick_rakuten": [],
       "pick_rivals": []
     }
