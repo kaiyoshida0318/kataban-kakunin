@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.89.1";
+const VERSION   = "0.90.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2057,7 +2057,7 @@ function addedRow(r) {
 
   if (editing) return `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`;
 
-  const chkColor = pickBarColor(p);   /* 行の左の帯。件表示ボタンの色と同じ引き方（v0.89.0） */
+  const chkColor = pickBarColor(p);   /* 行の左端の帯。「隙あり/なし」の色（件表示ボタンとは別もの） */
   const done = hasField("buy") && pickVal(p, "buy") !== stFirst("buy");   // 買付が済んだ行は落ち着かせる
   return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}${pickAlert(p) ? " pk-ng" : ""}">${tds}</tr>`;
 }
@@ -2432,8 +2432,8 @@ function rankRow(it, idx = 0, all = []) {
       case "cnt": {
         /* 中の商品の色で塗り分ける（開いている間は表そのものが見えるので既定の青のまま） */
         const bg  = open ? "" : cntBg(it.picks);
-        const mix = open ? [] : pickColorMix(it.picks);
-        const tip = mix.map((m) => `${m.label || "未設定"} ${m.n}`).join(" / ");
+        const mix = open ? [] : cntMix(it.picks);
+        const tip = mix.length > 1 ? mix.map((m) => `${m.label} ${m.n}`).join(" / ") : "";
         return `<td class="c-cnt">
             <button class="cnt-btn${open ? " on" : ""}${bg ? " tinted" : ""}"${bg ? ` style="background:${bg}"` : ""}${tip ? ` title="${esc(tip)}"` : ""} data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
           </td>`;
@@ -2500,45 +2500,44 @@ function pickAlert(p) {
   return false;
 }
 
-/* ---------- 「N 件表示」ボタンの色（v0.89.0） ----------
-   中に入っている商品の「隙あり/なし」の色を、出てくる色のぶんだけ等分の帯にする。
-   3色なら33%ずつ、2色なら50%ずつ。並びは項目管理の選択肢の順。
-   小さいボタンの中でも一目で分かるよう、設定画面のチップ（`.sw-*`）よりはっきり濃くしてある（v0.89.1）。 */
-const CNT_TINT = {
-  gray:  "#d7dde6", blue:  "#bcd7f7", green: "#b6e0cb", amber: "#f6d9a6",
-  red:   "#f7bdb3", purple:"#dbcfec", teal:  "#b3e1dc", pink:  "#f7bdd6",
-};
+/* ---------- 「N 件表示」ボタンの色（v0.90.0） ----------
+   中に入っている商品を「赤いか / そうでないか」で数え、出てくるぶんだけ等分の帯にする。
+   赤の判定は行の色（`pk-ng`）と同じ `pickAlert()`。**必ず同じ関数を通すこと**で、
+   一覧のボタンと開いたときの行の色が食い違わないようにしている。
+   2種類あれば50%ずつ。全部ふつうなら塗らない（今まで通りの青）。 */
+const CNT_TONES = [
+  { k: "plain", label: "白", bg: "#ffffff" },   /* 赤系が付いていない＝空白 */
+  { k: "ng",    label: "赤", bg: "#f7bdb3" },   /* 赤系の選択肢が1つでも付いている */
+];
 
-/* 商品1件の色＝「隙あり/なし」で選ばれている選択肢の色。項目が消えていれば gray */
+/* 商品1件の色＝「隙あり/なし」で選ばれている選択肢の色。項目が消えていれば gray。
+   これは「追加した商品」の行の左端の帯（`bar-*`）用で、件表示ボタンとは別もの */
 function pickBarColor(p) {
   if (!hasField("check")) return "gray";
   return (stList("check").find((o) => o.v === pickVal(p, "check")) || {}).color || "gray";
 }
 
-/* 出てくる色を選択肢の並び順で1回ずつ。[{color,label,n}] */
-function pickColorMix(picks) {
-  const opts = stList("check");
+/* 出てくる種類を CNT_TONES の順で1回ずつ。[{k,label,bg,n}] */
+function cntMix(picks) {
   const mix = [];
   for (const p of picks) {
-    const c = pickBarColor(p);
-    const hit = mix.find((x) => x.color === c);
+    const k = pickAlert(p) ? "ng" : "plain";
+    const hit = mix.find((x) => x.k === k);
     if (hit) { hit.n++; continue; }
-    const o = opts.find((x) => (x.color || "gray") === c);
-    mix.push({ color: c, label: o ? o.label : "", n: 1, i: o ? opts.indexOf(o) : 99 });
+    mix.push({ ...CNT_TONES.find((t) => t.k === k), n: 1 });
   }
-  return mix.sort((a, b) => a.i - b.i);
+  const ord = (x) => CNT_TONES.findIndex((t) => t.k === x.k);
+  return mix.sort((a, b) => ord(a) - ord(b));
 }
 
-/* linear-gradient の文字列。1色ならその色だけ返す。商品が無ければ空（既定の青のまま） */
+/* linear-gradient の文字列。商品が無い / 全部ふつう なら空（既定の青のまま） */
 function cntBg(picks) {
-  const mix = pickColorMix(picks);
-  if (!mix.length) return "";
-  const tint = (c) => CNT_TINT[c] || CNT_TINT.gray;
-  if (mix.length === 1) return tint(mix[0].color);
+  const mix = cntMix(picks);
+  if (!mix.length || mix.every((m) => m.k === "plain")) return "";
+  if (mix.length === 1) return mix[0].bg;
   const n = mix.length;
-  const stops = mix.map((m, i) =>
-    `${tint(m.color)} ${(i * 100 / n).toFixed(2)}% ${((i + 1) * 100 / n).toFixed(2)}%`).join(",");
-  return `linear-gradient(90deg,${stops})`;
+  return `linear-gradient(90deg,${mix.map((m, i) =>
+    `${m.bg} ${(i * 100 / n).toFixed(2)}% ${((i + 1) * 100 / n).toFixed(2)}%`).join(",")})`;
 }
 
 /* 商品1件ぶんの「項目」のセル。列キー → セル で返す */
