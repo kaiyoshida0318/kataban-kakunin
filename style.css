@@ -156,13 +156,12 @@ body[data-kind="added"] .list .tbl-wrap{border-radius:var(--radius)}
 .wk-row > td:first-child::before{
   content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
 }
-/* 買付の判断が済んだ行は落ち着かせて、残りの作業が目立つようにする */
-/* 赤系の項目が1つでも付いた商品は、行ごと赤っぽくする（追加した商品・チェックした商品の両方） */
+/* 買付の3段階で行の背景を変える（追加した商品・チェックした商品の両方。v0.94.0）
+   途中＝白（クラス無し） / 最後まで行った＝青 / 途中でだめだった＝赤 */
 .added-tbl tr.pk-ng > td,.pick-tbl tr.pk-ng > td{background:#fdecea}
 .added-tbl tr.pk-ng:hover > td,.pick-tbl tr.pk-ng:hover > td{background:#fbdedb}
-.added-tbl tr.pk-ng.wk-done > td,.pick-tbl tr.pk-ng.wk-done > td{background:#fdf3f2}
-.wk-done > .td-title,.wk-done > .td-url,.wk-done > .td-img,.wk-done > .td-src{opacity:.5}
-.wk-done > td{background:#fbfcfe}
+.added-tbl tr.pk-ok > td,.pick-tbl tr.pk-ok > td{background:#eaf1fd}
+.added-tbl tr.pk-ok:hover > td,.pick-tbl tr.pk-ok:hover > td{background:#dce8fa}
 
 /* --- 3段目: ツールバー --- */
 .head-tools{padding-top:9px;padding-bottom:9px;flex-wrap:wrap}

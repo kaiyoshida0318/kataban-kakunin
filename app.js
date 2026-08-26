@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.93.0";
+const VERSION   = "0.94.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2053,9 +2053,9 @@ function addedRow(r) {
 
   if (editing) return `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`;
 
-  const chkColor = pickBarColor(p);   /* 行の左端の帯。「隙あり/なし」の色（件表示ボタンとは別もの） */
-  const done = pickDone(p);           /* 買付が済んだ行は落ち着かせる */
-  return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}${pickAlert(p) ? " pk-ng" : ""}">${tds}</tr>`;
+  const chkColor = pickBarColor(p);   /* 行の左端の帯。「隙あり/なし」の色（背景とは別もの） */
+  const tone = TONE_CLS[pickTone(p)]; /* 背景。買付の3段階（白 / 青 / 赤） */
+  return `<tr class="wk-row bar-${esc(chkColor)}${tone ? " " + tone : ""}">${tds}</tr>`;
 }
 
 /* 画面が狭いときは、はみ出さないよう全列を比率のまま縮める（横スクロールを出さない） */
@@ -2429,7 +2429,7 @@ function rankRow(it, idx = 0, all = []) {
         /* 中の商品の色で塗り分ける（開いている間は表そのものが見えるので既定の青のまま） */
         const bg  = open ? "" : cntBg(it.picks);
         const mix = open ? [] : cntMix(it.picks);
-        const tip = mix.length > 1 ? mix.map((m) => `${m.label} ${m.n}`).join(" / ") : "";
+        const tip = mix.length > 1 ? mix.map((m) => `${m.labels.join("・") || "途中"} ${m.n}`).join(" / ") : "";
         return `<td class="c-cnt">
             <button class="cnt-btn${open ? " on" : ""}${bg ? " tinted" : ""}"${bg ? ` style="background:${bg}"` : ""}${tip ? ` title="${esc(tip)}"` : ""} data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
           </td>`;
@@ -2486,68 +2486,77 @@ function thumbTag(src, cls, id) {
 }
 
 /* サムネ1枚。side は "amazon" / "rakuten" */
-/* 赤系の選択肢が1つでも付いていたら、その商品は「見送り寄り」。行ごと赤くする */
+
+/* ---------- 商品の状態（v0.94.0） ----------
+   行の背景も「N 件表示」ボタンの色も、**買付だけ**で決まる。
+     途中（買付前など、グレーの選択肢）… 白
+     最後まで行った（買付済など）      … 青
+     途中でだめだった（買付不可など）  … 赤
+   どれになるかは **買付の選択肢に付けた色**で決める（項目管理で変えられる）。
+   赤系（red/pink）＝赤、グレー＝白、それ以外＝青。
+   v0.93.0以前は「赤系の選択肢が1つでも付いていたら赤」（楽天ライバル状況なども見ていた）＋
+   「買付が済んだ行は薄く」だったが、ユーザーの指定で買付の3段階だけにした。 */
 const NG_COLORS = new Set(["red", "pink"]);
-function pickAlert(p) {
-  for (const f of stFields()) {
-    const cur = stList(f.key).find((o) => o.v === pickVal(p, f.key));
-    if (cur && NG_COLORS.has(cur.color)) return true;
-  }
-  return false;
+const TONE_OF_COLOR = (c) => (NG_COLORS.has(c) ? "ng" : c === "gray" ? "mid" : "done");
+
+/* 商品1件がどれか。買付の項目が無ければ全部「途中」 */
+function pickTone(p) {
+  if (!hasField("buy")) return "mid";
+  const list = stList("buy");
+  const cur = list.find((o) => o.v === pickVal(p, "buy")) || list[0];   /* 表示（stButton）と同じ引き方 */
+  return TONE_OF_COLOR(cur.color);
 }
+const TONE_CLS = { mid: "", done: "pk-ok", ng: "pk-ng" };
 
-/* 買付の判断が済んだか（＝先頭の選択肢以外）。行を薄くするのに使う */
-const pickDone = (p) => hasField("buy") && pickVal(p, "buy") !== stFirst("buy");
-
-/* 商品の行に付ける印（左の帯・薄く・赤）を、今の値から付け直す（v0.93.0）。
+/* 商品の行に付ける印（左の帯・背景）を、今の値から付け直す（v0.93.0）。
    ドロップダウンで選び直した直後は表を描き直さないので、ここだけ直接当てる。
-   **印を増やしたらここにも足すこと。** 片方だけ直すと、表示と行の見た目が食い違ったまま残る
-   （「買付前」に戻したのに行が薄いまま、が実際に起きた） */
+   **印を増やしたらここと `addedRow()` の両方に足すこと。** 片方だけ直すと食い違ったまま残る。 */
 function paintPickRow(row, p) {
   if (!row) return;
-  if (row.classList.contains("wk-row")) {          /* 追加した商品の行だけ帯と薄くするのがある */
+  if (row.classList.contains("wk-row")) {          /* 追加した商品の行にだけ左端の帯がある */
     for (const c of [...row.classList]) if (c.startsWith("bar-")) row.classList.remove(c);
     row.classList.add("bar-" + pickBarColor(p));
-    row.classList.toggle("wk-done", pickDone(p));
   }
-  row.classList.toggle("pk-ng", pickAlert(p));
+  const tone = pickTone(p);
+  row.classList.toggle("pk-ok", tone === "done");
+  row.classList.toggle("pk-ng", tone === "ng");
 }
 
-/* ---------- 「N 件表示」ボタンの色（v0.90.0） ----------
-   中に入っている商品を「赤いか / そうでないか」で数え、出てくるぶんだけ等分の帯にする。
-   赤の判定は行の色（`pk-ng`）と同じ `pickAlert()`。**必ず同じ関数を通すこと**で、
-   一覧のボタンと開いたときの行の色が食い違わないようにしている。
-   2種類あれば50%ずつ。全部ふつうなら塗らない（今まで通りの青）。 */
+/* ---------- 「N 件表示」ボタンの色（v0.94.0） ----------
+   中の商品を買付の3段階で数え、出てくるぶんだけ等分の帯にする。判定は行と同じ `pickTone()`。
+   3種類なら33%ずつ、2種類なら50%ずつ。0件と「全部途中」は白。 */
 const CNT_TONES = [
-  { k: "plain", label: "白", bg: "#ffffff" },   /* 赤系が付いていない＝空白 */
-  { k: "ng",    label: "赤", bg: "#f7bdb3" },   /* 赤系の選択肢が1つでも付いている */
+  { k: "mid",  bg: "#ffffff" },   /* 途中 */
+  { k: "done", bg: "#bcd7f7" },   /* 最後まで行った */
+  { k: "ng",   bg: "#f7bdb3" },   /* 途中でだめだった */
 ];
 
 /* 商品1件の色＝「隙あり/なし」で選ばれている選択肢の色。項目が消えていれば gray。
-   これは「追加した商品」の行の左端の帯（`bar-*`）用で、件表示ボタンとは別もの */
+   これは「追加した商品」の行の左端の帯（`bar-*`）用で、背景・件表示ボタンとは別もの */
 function pickBarColor(p) {
   if (!hasField("check")) return "gray";
   return (stList("check").find((o) => o.v === pickVal(p, "check")) || {}).color || "gray";
 }
 
-/* 出てくる種類を CNT_TONES の順で1回ずつ。[{k,label,bg,n}] */
+/* 出てくる種類を CNT_TONES の順で1回ずつ。内訳の名前は買付の選択肢の文言をそのまま使う */
 function cntMix(picks) {
+  const list = hasField("buy") ? stList("buy") : [];
   const mix = [];
   for (const p of picks) {
-    const k = pickAlert(p) ? "ng" : "plain";
+    const k = pickTone(p);
+    const cur = list.find((o) => o.v === pickVal(p, "buy")) || list[0];
     const hit = mix.find((x) => x.k === k);
-    if (hit) { hit.n++; continue; }
-    mix.push({ ...CNT_TONES.find((t) => t.k === k), n: 1 });
+    if (hit) { hit.n++; if (cur && !hit.labels.includes(cur.label)) hit.labels.push(cur.label); continue; }
+    mix.push({ ...CNT_TONES.find((t) => t.k === k), n: 1, labels: cur ? [cur.label] : [] });
   }
   const ord = (x) => CNT_TONES.findIndex((t) => t.k === x.k);
   return mix.sort((a, b) => ord(a) - ord(b));
 }
 
-/* linear-gradient の文字列。商品が0件なら白、全部ふつうなら空（既定の青のまま） */
+/* linear-gradient の文字列。0件と「全部途中」は白1枚 */
 function cntBg(picks) {
   const mix = cntMix(picks);
-  if (!mix.length) return CNT_TONES[0].bg;          /* 0件＝白（v0.92.0） */
-  if (mix.every((m) => m.k === "plain")) return "";
+  if (!mix.length || (mix.length === 1 && mix[0].k === "mid")) return CNT_TONES[0].bg;
   if (mix.length === 1) return mix[0].bg;
   const n = mix.length;
   return `linear-gradient(90deg,${mix.map((m, i) =>
@@ -2633,7 +2642,7 @@ function pickPanel(it) {
       const tds = cols.map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
       return editing
         ? `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`
-        : `<tr class="${pickAlert(p) ? "pk-ng" : ""}">${tds}</tr>`;
+        : `<tr class="${TONE_CLS[pickTone(p)]}">${tds}</tr>`;
     }).join("");
 
   /* 「＋ 商品」の空行 */
