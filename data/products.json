@@ -1,6 +1,20 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:14:31.946Z",
+  "updatedAt": "2026-08-26T06:15:39.138Z",
+  "fields": [
+    {
+      "key": "rival",
+      "title": "楽天ライバル状況"
+    },
+    {
+      "key": "quality",
+      "title": "商品品質"
+    },
+    {
+      "key": "buy",
+      "title": "買付"
+    }
+  ],
   "labels": {
     "rival": [
       {
@@ -59,23 +73,6 @@
         "v": "high",
         "label": "まあOK",
         "color": "blue"
-      }
-    ],
-    "check": [
-      {
-        "v": "before",
-        "label": "確認前",
-        "color": "gray"
-      },
-      {
-        "v": "after",
-        "label": "隙あり",
-        "color": "blue"
-      },
-      {
-        "v": "skip",
-        "label": "隙なし",
-        "color": "pink"
       }
     ],
     "buy": [
@@ -414,7 +411,8 @@
               "buy": "o_2zv9gp",
               "sales30": "1230",
               "rival": "o_9rscsw",
-              "quality": "high"
+              "quality": "high",
+              "st": {}
             },
             {
               "id": "itm_x9st70mqew8",
@@ -429,7 +427,8 @@
               "buy": "before",
               "sales30": "413",
               "rival": "o_ww912j",
-              "quality": ""
+              "quality": "",
+              "st": {}
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
@@ -477,7 +476,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "o_ww912j",
-              "quality": ""
+              "quality": "",
+              "st": {}
             },
             {
               "id": "itm_z26p7jnab5u",
@@ -492,7 +492,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "o_dn58o9",
-              "quality": "o_mk4n54"
+              "quality": "o_mk4n54",
+              "st": {}
             }
           ],
           "createdAt": "2026-08-20T05:08:00.530Z",
@@ -524,7 +525,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "heavy",
-              "quality": ""
+              "quality": "",
+              "st": {}
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
@@ -572,7 +574,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "heavy",
-              "quality": ""
+              "quality": "",
+              "st": {}
             },
             {
               "id": "itm_zzjbkdtckbd",
@@ -587,7 +590,8 @@
               "buy": "before",
               "sales30": "220",
               "rival": "o_ww912j",
-              "quality": ""
+              "quality": "",
+              "st": {}
             },
             {
               "id": "itm_udzcz52ke67",
@@ -602,7 +606,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "heavy",
-              "quality": ""
+              "quality": "",
+              "st": {}
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
@@ -704,7 +709,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "o_p14mmp",
-              "quality": ""
+              "quality": "",
+              "st": {}
             },
             {
               "id": "itm_jy5lrepk98v",
@@ -719,7 +725,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "o_dn58o9",
-              "quality": "high"
+              "quality": "high",
+              "st": {}
             },
             {
               "id": "itm_v6fgtxmr1ny",
@@ -734,7 +741,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "o_dn58o9",
-              "quality": "o_mk4n54"
+              "quality": "o_mk4n54",
+              "st": {}
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
@@ -770,7 +778,8 @@
               "buy": "before",
               "sales30": "",
               "rival": "o_p14mmp",
-              "quality": ""
+              "quality": "",
+              "st": {}
             }
           ],
           "createdAt": "2026-08-26T02:40:42.417Z",
