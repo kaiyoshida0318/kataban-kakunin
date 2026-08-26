@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:19:23.137Z",
+  "updatedAt": "2026-08-26T05:19:34.741Z",
   "labels": {
     "rival": [
       {
@@ -245,7 +245,9 @@
       ]
     },
     "hide": {
-      "rank": [],
+      "rank": [
+        "note"
+      ],
       "rivals": [],
       "added": [],
       "pick": []
