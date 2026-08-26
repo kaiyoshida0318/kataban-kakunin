@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:56:39.723Z",
+  "updatedAt": "2026-08-26T02:59:00.764Z",
   "labels": {
     "rival": [
       {
@@ -402,6 +402,20 @@
     },
     "rakuten": {
       "items": [
+        {
+          "id": "itm_z3q7p368bm7",
+          "name": "楽天市場トップ  >  ランキングトップ  >  靴  >  靴ケア用品・アクセサリー  >  外反母趾サポート用品",
+          "category": "未分類",
+          "image": "https://tshop.r10s.jp/sevencolor-001/cabinet/09327282/09331248/imgrc0083857153.jpg?fitin=128:128",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://ranking.rakuten.co.jp/weekly/304108/",
+          "checkNote": "",
+          "checkedAt": "2026-08-26",
+          "picks": [],
+          "createdAt": "2026-08-26T02:58:34.831Z",
+          "updatedAt": "2026-08-26T02:58:56.181Z"
+        },
         {
           "id": "itm_g6va2jv33n9",
           "name": "楽天市場トップ  >  ランキングトップ  >  Garmin(ガーミン)",
