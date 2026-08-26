@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:40:23.621Z",
+  "updatedAt": "2026-08-26T02:41:18.198Z",
   "labels": {
     "rival": [
       {
@@ -476,7 +476,22 @@
       ]
     },
     "rivals": {
-      "items": []
+      "items": [
+        {
+          "id": "itm_7ah1fntlc4x",
+          "name": "インソール専門店 PhoenixSole",
+          "category": "未分類",
+          "image": "https://thumbnail.image.rakuten.co.jp/@0_mall/insole-phoenix/logo/logo1.jpg?_ex=128x128",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://www.rakuten.co.jp/insole-phoenix/",
+          "checkNote": "",
+          "checkedAt": "2026-08-26",
+          "picks": [],
+          "createdAt": "2026-08-26T02:40:42.417Z",
+          "updatedAt": "2026-08-26T02:41:13.677Z"
+        }
+      ]
     },
     "products": {
       "items": [
