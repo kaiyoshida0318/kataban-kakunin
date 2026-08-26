@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T08:10:15.977Z",
+  "updatedAt": "2026-08-26T08:10:30.255Z",
   "fields": [
     {
       "key": "rival",
@@ -393,7 +393,7 @@
           "id": "itm_88swd60cfba",
           "name": "",
           "category": "",
-          "image": "https://m.media-amazon.com/images/I/31MkSSIX5+L._AC_SL1500_.png",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/71KCY1tG6BL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/2285140051/ref=zg_bs_nav_electronics_2_207877547051",
           "urlRakuten": "",
@@ -401,7 +401,7 @@
           "checkedAt": "2026-08-26",
           "picks": [],
           "createdAt": "2026-08-26T08:09:42.022Z",
-          "updatedAt": "2026-08-26T08:10:11.056Z",
+          "updatedAt": "2026-08-26T08:10:25.677Z",
           "modes": {},
           "nameAmazon": "イヤホン・ヘッドホンケースの売れ筋ランキング"
         },
