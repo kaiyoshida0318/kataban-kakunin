@@ -145,19 +145,18 @@ a:hover{text-decoration:underline}
 /* --- 作業リスト（追加した商品）の行 --- */
 body[data-kind="added"] .list .tbl-wrap{border-radius:var(--radius)}
 .wk-row > td:first-child{position:relative}
-.wk-row.bar-gray   > td:first-child::before{background:#c3c8d1}
-.wk-row.bar-blue   > td:first-child::before{background:#3f7fd8}
-.wk-row.bar-green  > td:first-child::before{background:#3aa27a}
-.wk-row.bar-amber  > td:first-child::before{background:#e0a13c}
-.wk-row.bar-red    > td:first-child::before{background:#d1483a}
-.wk-row.bar-purple > td:first-child::before{background:#9b8bb4}
-.wk-row.bar-teal   > td:first-child::before{background:#37a99e}
-.wk-row.bar-pink   > td:first-child::before{background:#d76a9c}
+.wk-row.bar-gray  > td:first-child::before{background:#c3c8d1}
+.wk-row.bar-blue  > td:first-child::before{background:#2f6fd0}
+.wk-row.bar-sky   > td:first-child::before{background:#8ab4e8}
+.wk-row.bar-red   > td:first-child::before{background:#cf4132}
+.wk-row.bar-rose  > td:first-child::before{background:#e8907f}
+.wk-row.bar-green > td:first-child::before{background:#2f9a70}
+.wk-row.bar-mint  > td:first-child::before{background:#84cbac}
 .wk-row > td:first-child::before{
   content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
 }
-/* 買付の3段階で行の背景を変える（追加した商品・チェックした商品の両方。v0.94.0）
-   途中＝白（クラス無し） / 最後まで行った＝青 / 途中でだめだった＝赤 */
+/* 選択肢の色で行の背景を変える（追加した商品・チェックした商品の両方。v0.97.0）
+   赤系が1つでもあれば赤 / 無くて青系があれば青 / どちらも無ければ白（クラス無し） */
 .added-tbl tr.pk-ng > td,.pick-tbl tr.pk-ng > td{background:#fdecea}
 .added-tbl tr.pk-ng:hover > td,.pick-tbl tr.pk-ng:hover > td{background:#fbdedb}
 .added-tbl tr.pk-ok > td,.pick-tbl tr.pk-ok > td{background:#eaf1fd}
@@ -628,14 +627,14 @@ body.resizing *{cursor:col-resize !important}
 .st-menu button:hover{filter:brightness(.95)}
 .st-menu button.on{box-shadow:inset 0 0 0 2px var(--accent)}
 /* ドロップダウンの色（設定で選べる8色） */
+/* 選択肢の色は7つだけ（v0.97.0）。グレー ＋ 青2・赤2・緑2。濃い方／薄い方が並ぶようにしてある */
 .sw-gray  {background:var(--row-alt);border-color:var(--border);color:var(--muted)}
-.sw-blue  {background:#e8f0fb;border-color:#c3d7f2;color:#1a55a6}
-.sw-green {background:var(--green-soft);border-color:#cbe6da;color:#22795a}
-.sw-amber {background:var(--warn-soft);border-color:#f0dcbd;color:#9a6212}
-.sw-red   {background:#fdecea;border-color:#f3cac3;color:#c0392b}
-.sw-purple{background:#f2f0f4;border-color:#e2dde8;color:#8b7fa0}
-.sw-teal  {background:#e4f4f3;border-color:#c2e4e1;color:#1c7168}
-.sw-pink  {background:#fdecf3;border-color:#f5cbdd;color:#b03a6c}
+.sw-blue  {background:#d6e6fa;border-color:#a5c7ee;color:#14488f}
+.sw-sky   {background:#edf4fd;border-color:#cde0f7;color:#2f6bb5}
+.sw-red   {background:#fbdcd8;border-color:#eeb4ab;color:#a63328}
+.sw-rose  {background:#fdeeeb;border-color:#f5cdc6;color:#c05343}
+.sw-green {background:#d6eee3;border-color:#a7d8c2;color:#1a6c50}
+.sw-mint  {background:#eaf7f1;border-color:#c7e6d7;color:#2f8a68}
 
 /* 区分（オフェンス=赤 / ディフェンス=緑） */
 .rank-tbl .c-ord{text-align:center;padding:4px 2px}

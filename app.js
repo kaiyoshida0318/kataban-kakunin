@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.94.0";
+const VERSION   = "0.97.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -57,7 +57,7 @@ function rankDefs(key) {
 /* 大カテゴリを決まった選択肢から選ぶタブ（楽天ライバルの「強さ」）*/
 const catList = (key) => (SEC(key)?.cats || []).map((o) => ({
   v: String(o.v ?? ""), label: o.label || "(未設定)",
-  cls: "sw-" + (SWATCH_OK(o.color) ? o.color : "gray"),
+  cls: "sw-" + swatchOf(o.color),
 }));
 
 /* ---------- 列管理（並び順と表示/非表示） ----------
@@ -286,7 +286,7 @@ const SECTIONS = [
     cats: [                                 // 選択肢。値がそのまま category に入る
       { v: "",     label: "未設定", color: "gray"  },
       { v: "弱小", label: "弱小",   color: "blue"  },
-      { v: "中堅", label: "中堅",   color: "amber" },
+      { v: "中堅", label: "中堅",   color: "rose"  },
       { v: "競合", label: "競合",   color: "red"   },
     ],
     omit: ["note"],                         // 確認内容は使わない
@@ -316,29 +316,35 @@ const sideOptions = (v) =>
 
 /* ---------- 商品行のドロップダウン ----------
    値（v）は保存済みのデータが参照するので変えない。表示名と色だけ設定で変えられる。 */
+/* 色は「グレー ＋ 青2・赤2・緑2」の7つだけ（v0.97.0）。多すぎて意味が伝わらないので絞った。
+   **青系＝行が青 / 赤系＝行が赤 / 緑・グレー＝行は白**（`pickTone()`）。 */
 const SWATCHES = [
-  { c: "gray",   label: "グレー" },
-  { c: "blue",   label: "青"     },
-  { c: "green",  label: "緑"     },
-  { c: "amber",  label: "黄"     },
-  { c: "red",    label: "赤"     },
-  { c: "purple", label: "紫"     },
-  { c: "teal",   label: "青緑"   },
-  { c: "pink",   label: "ピンク" },
+  { c: "gray",  label: "グレー" },
+  { c: "blue",  label: "青"     },
+  { c: "sky",   label: "薄い青" },
+  { c: "red",   label: "赤"     },
+  { c: "rose",  label: "薄い赤" },
+  { c: "green", label: "緑"     },
+  { c: "mint",  label: "薄い緑" },
 ];
-const SWATCH_OK = (c) => SWATCHES.some((x) => x.c === c);
+/* 昔の色は近いものへ寄せる。**消した色を選んでいた既存データを壊さないため。ここを消さないこと。** */
+const SWATCH_ALIAS = { amber: "rose", purple: "sky", teal: "mint", pink: "rose" };
+const swatchOf = (c) => {
+  const x = SWATCH_ALIAS[c] || c;
+  return SWATCHES.some((s) => s.c === x) ? x : "gray";
+};
 
 /* 商品行のドロップダウン項目。既定の4つ。ユーザーは列管理の「項目管理」で増減できる */
 const ST_DEFAULT_FIELDS = [
   { key: "rival", title: "楽天ライバル状況", cols: ["a_rival"], opts: [
     { v: "",      label: "未調査",       color: "gray"  },
     { v: "few",   label: "少数",         color: "blue"  },
-    { v: "some",  label: "そこそこいる", color: "amber" },
+    { v: "some",  label: "そこそこいる", color: "rose"  },
     { v: "heavy", label: "激戦",         color: "red"   },
   ] },
   { key: "quality", title: "商品品質", cols: ["a_qual"], opts: [
     { v: "",     label: "未調査",  color: "gray"  },
-    { v: "low",  label: "4.0以下", color: "amber" },
+    { v: "low",  label: "4.0以下", color: "rose"  },
     { v: "high", label: "4.0以上", color: "green" },
   ] },
   { key: "check", title: "隙あり/なし", cols: ["a_check", "p_check"], opts: [
@@ -348,8 +354,8 @@ const ST_DEFAULT_FIELDS = [
   ] },
   { key: "buy", title: "買付", cols: ["a_buy", "p_buy"], opts: [
     { v: "before", label: "買付前",   color: "gray"   },
-    { v: "done",   label: "買付済",   color: "green"  },
-    { v: "skip",   label: "スキップ", color: "purple" },
+    { v: "done",   label: "買付済",   color: "blue"   },   /* 最後まで行った＝青（行が青くなる） */
+    { v: "skip",   label: "スキップ", color: "rose"   },
   ] },
 ];
 const ST_DEFAULT = (key) => ST_DEFAULT_FIELDS.find((f) => f.key === key);
@@ -401,8 +407,8 @@ function stList(key) {
   return src.map((o) => ({
     v: String(o.v ?? ""),
     label: o.label || "(未設定)",
-    color: SWATCH_OK(o.color) ? o.color : "gray",
-    cls: "sw-" + (SWATCH_OK(o.color) ? o.color : "gray"),
+    color: swatchOf(o.color),
+    cls: "sw-" + swatchOf(o.color),
   }));
 }
 const stCls = (list, v) => (list.find((o) => o.v === v) || list[0]).cls;
@@ -440,7 +446,7 @@ function normLabels(raw, fields) {
       .map((o) => ({
         v: String(o.v ?? ""),
         label: String(o.label || "").slice(0, 24) || "(未設定)",
-        color: SWATCH_OK(o.color) ? o.color : "gray",
+        color: swatchOf(o.color),
       }))
       .filter((o, i, a) => a.findIndex((x) => x.v === o.v) === i);   // 値の重複は落とす
     out[f.key] = list.length ? list : def.map((o) => ({ ...o }));
@@ -1003,28 +1009,54 @@ function amazonGenreFromHtml(txt) {
   return GENRE_DROP.test(x) ? "" : x.slice(0, 60);
 }
 
-/* 中継サービスを順に試して、最初に取れたものを返す */
+/* ---------- Amazonを日本語で取る（v0.95.0） ----------
+   中継サービスは日本語のクッキーもブラウザの言語設定も持たないので、amazon.co.jp が
+   既定（英語）のページを返すことがある。`?language=ja_JP` を付けると日本語で返る。
+   **中継を通すURLにだけ付ける。** ユーザーが入力したURLそのものは書き換えない。 */
+function amazonJaUrl(u) {
+  try {
+    const x = new URL(u);
+    if (!/(^|\.)amazon\.co\.jp$/i.test(x.hostname)) return u;   /* .com などはそのまま */
+    x.searchParams.set("language", "ja_JP");
+    return x.toString();
+  } catch { return u; }
+}
+/* ひらがな・カタカナ・漢字が1文字でもあれば日本語とみなす */
+const hasJa = (s) => /[\u3040-\u30ff\u3400-\u9fff]/.test(String(s || ""));
+
+/* 中継サービスを順に試して、最初に取れたものを返す。
+   Amazonは英語で返ってくることがあるので、**日本語が取れるまで次の中継も試す**。
+   最後まで日本語が無ければ、英語でも取れたぶんを入れる（空よりまし） */
 async function fetchGenre(url, log = () => {}) {
   const amazon = isAmazonUrl(url);
   if (!amazon && !isRakutenUrl(url)) { log("ジャンル", "楽天/AmazonのURLではない"); return ""; }
   const list = proxyList();
   if (!list.length) { log("ジャンル", "中継なしの設定のためスキップ"); return ""; }
+  const target = amazon ? amazonJaUrl(url) : url;
+  if (amazon && target !== url) log("ジャンル", "日本語で取りに行く（language=ja_JP）");
+  let en = "";                                   /* 日本語が取れなかったときの保険 */
   for (const tpl of list) {
     const via = (() => { try { return new URL(tpl.replace("{url}", "")).hostname; } catch { return tpl; } })();
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 9000);
-      const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
+      const res = await fetch(tpl.replace("{url}", encodeURIComponent(target)), { signal: ctrl.signal });
       clearTimeout(timer);
       if (!res.ok) { log("ジャンル", `${via} → HTTP ${res.status}`); continue; }
       const body = (await res.text()).slice(0, 900000);
       const name = amazon ? amazonGenreFromHtml(body) : genreFromPage(body);
-      if (name) { log("ジャンル", `${via} → ${name}`); return name; }
+      if (name && (!amazon || hasJa(name))) { log("ジャンル", `${via} → ${name}`); return name; }
+      if (name) {
+        if (!en) en = name;
+        log("ジャンル", `${via} → 英語で返ってきた（${name}）。次の中継を試す`);
+        continue;
+      }
       log("ジャンル", `${via} → 取れたがパンくずが見つからない`);
     } catch (e) {
       log("ジャンル", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
     }
   }
+  if (en) { log("ジャンル", `どの中継も英語だったので、そのまま入れる：${en}`); return en; }
   return "";
 }
 /* ジャンル名を自動で入れるタブか（ランキングの2つだけ。ライバルは店名なので対象外） */
@@ -2004,12 +2036,13 @@ function addedRow(r) {
   const editing = editPicks.has(key);
 
   /* 出所は2行（1行目＝区分、2行目＝ジャンル名）。
-     ジャンル名は一覧と同じく breadcrumbHtml() で「>」ごとに改行し、途中で切らずに全部出す（v0.91.0） */
+     ジャンル名は**「>」で改行しない**（v0.96.0でユーザーが指定）。長ければ普通に折り返すだけ。
+     途中で切らずに全部出す（v0.91.0）。一覧の列（`.r-name`）は今まで通り「>」で改行する。 */
   const srcCell = `<td class="td-src">
       ${side ? `<div><span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label.replace(/\n/g, " "))}</span></div>` : ""}
       ${it.name
         ? `<a class="src-name" href="${esc(mainUrl(it, sec))}" target="_blank" rel="noopener noreferrer"
-             title="${esc(it.name)}">${breadcrumbHtml(it.name)}</a>`
+             title="${esc(it.name)}">${esc(it.name)}</a>`
         : `<span class="dash">—</span>`}
     </td>`;
 
@@ -2429,7 +2462,7 @@ function rankRow(it, idx = 0, all = []) {
         /* 中の商品の色で塗り分ける（開いている間は表そのものが見えるので既定の青のまま） */
         const bg  = open ? "" : cntBg(it.picks);
         const mix = open ? [] : cntMix(it.picks);
-        const tip = mix.length > 1 ? mix.map((m) => `${m.labels.join("・") || "途中"} ${m.n}`).join(" / ") : "";
+        const tip = mix.length > 1 ? mix.map((m) => `${m.label} ${m.n}`).join(" / ") : "";
         return `<td class="c-cnt">
             <button class="cnt-btn${open ? " on" : ""}${bg ? " tinted" : ""}"${bg ? ` style="background:${bg}"` : ""}${tip ? ` title="${esc(tip)}"` : ""} data-expand="${esc(it.id)}">${it.picks.length} 件表示 ${open ? "▲" : "▼"}</button>
           </td>`;
@@ -2496,15 +2529,22 @@ function thumbTag(src, cls, id) {
    赤系（red/pink）＝赤、グレー＝白、それ以外＝青。
    v0.93.0以前は「赤系の選択肢が1つでも付いていたら赤」（楽天ライバル状況なども見ていた）＋
    「買付が済んだ行は薄く」だったが、ユーザーの指定で買付の3段階だけにした。 */
-const NG_COLORS = new Set(["red", "pink"]);
-const TONE_OF_COLOR = (c) => (NG_COLORS.has(c) ? "ng" : c === "gray" ? "mid" : "done");
+const NG_COLORS = new Set(["red", "rose"]);    /* 赤系 */
+const OK_COLORS = new Set(["blue", "sky"]);    /* 青系 */
 
-/* 商品1件がどれか。買付の項目が無ければ全部「途中」 */
+/* 商品1件がどれか。**項目は全部見る**（買付だけではない。v0.97.0）。
+   赤系が1つでもあれば赤。無くて青系が1つでもあれば青。どちらも無ければ白。
+   値が今の選択肢に無いときは `stButton()` と同じく先頭にフォールバックする（表示と判定を揃える） */
 function pickTone(p) {
-  if (!hasField("buy")) return "mid";
-  const list = stList("buy");
-  const cur = list.find((o) => o.v === pickVal(p, "buy")) || list[0];   /* 表示（stButton）と同じ引き方 */
-  return TONE_OF_COLOR(cur.color);
+  let ok = false;
+  for (const f of stFields()) {
+    const list = stList(f.key);
+    const cur = list.find((o) => o.v === pickVal(p, f.key)) || list[0];
+    if (!cur) continue;
+    if (NG_COLORS.has(cur.color)) return "ng";
+    if (OK_COLORS.has(cur.color)) ok = true;
+  }
+  return ok ? "done" : "mid";
 }
 const TONE_CLS = { mid: "", done: "pk-ok", ng: "pk-ng" };
 
@@ -2526,9 +2566,9 @@ function paintPickRow(row, p) {
    中の商品を買付の3段階で数え、出てくるぶんだけ等分の帯にする。判定は行と同じ `pickTone()`。
    3種類なら33%ずつ、2種類なら50%ずつ。0件と「全部途中」は白。 */
 const CNT_TONES = [
-  { k: "mid",  bg: "#ffffff" },   /* 途中 */
-  { k: "done", bg: "#bcd7f7" },   /* 最後まで行った */
-  { k: "ng",   bg: "#f7bdb3" },   /* 途中でだめだった */
+  { k: "mid",  label: "白", bg: "#ffffff" },   /* 青も赤も付いていない */
+  { k: "done", label: "青", bg: "#bcd7f7" },   /* 青系が付いている */
+  { k: "ng",   label: "赤", bg: "#f7bdb3" },   /* 赤系が付いている */
 ];
 
 /* 商品1件の色＝「隙あり/なし」で選ばれている選択肢の色。項目が消えていれば gray。
@@ -2538,16 +2578,14 @@ function pickBarColor(p) {
   return (stList("check").find((o) => o.v === pickVal(p, "check")) || {}).color || "gray";
 }
 
-/* 出てくる種類を CNT_TONES の順で1回ずつ。内訳の名前は買付の選択肢の文言をそのまま使う */
+/* 出てくる種類を CNT_TONES の順で1回ずつ。[{k,label,bg,n}] */
 function cntMix(picks) {
-  const list = hasField("buy") ? stList("buy") : [];
   const mix = [];
   for (const p of picks) {
     const k = pickTone(p);
-    const cur = list.find((o) => o.v === pickVal(p, "buy")) || list[0];
     const hit = mix.find((x) => x.k === k);
-    if (hit) { hit.n++; if (cur && !hit.labels.includes(cur.label)) hit.labels.push(cur.label); continue; }
-    mix.push({ ...CNT_TONES.find((t) => t.k === k), n: 1, labels: cur ? [cur.label] : [] });
+    if (hit) { hit.n++; continue; }
+    mix.push({ ...CNT_TONES.find((t) => t.k === k), n: 1 });
   }
   const ord = (x) => CNT_TONES.findIndex((t) => t.k === x.k);
   return mix.sort((a, b) => ord(a) - ord(b));
