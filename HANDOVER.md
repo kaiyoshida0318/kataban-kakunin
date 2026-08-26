@@ -1,17 +1,17 @@
 # 引き継ぎメモ（型番商品確認くん）
 
-最終更新: 2026-08-26 / 現行版 **v0.89.0**
+最終更新: 2026-08-26 / 現行版 **v0.89.1**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.89.0full.zip`（全ファイル入り。**これが唯一の正**）
+1. `katabankakuninv0.89.1full.zip`（全ファイル入り。**これが唯一の正**）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ### 新しいチャットの最初にやること
 
 ```bash
 mkdir -p /root/work/katabank && cd /root/work/katabank
-unzip -oq /mnt/user-data/uploads/katabankakuninv0.89.0full.zip -d /root/work/katabank
+unzip -oq /mnt/user-data/uploads/katabankakuninv0.89.1full.zip -d /root/work/katabank
 nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
 ```
 
@@ -67,7 +67,8 @@ HANDOVER.md         これ（作る側向け）
 3. `node /root/work/tXX.js` で検証（新しい観点なら新規テストを書く）
 4. 既存テストを回してデグレを見る（列管理まわり＝列の並び/非表示、項目管理＝項目の増減、
    赤行、列を隠した状態での追加・保存、あたりを毎回見ておくと事故が減る）
-5. `VERSION`（app.js 7行目）と `index.html` の `verLabel` を上げる
+5. `VERSION`（app.js 7行目）と `index.html` の `verLabel`、**`index.html` の
+   `app.js?v=` / `style.css?v=` の3+1箇所**を全部上げる（`grep -n "0\.8"` で確認）
 6. `zip -qr /root/work/katabankakuninvX.Y.Zfull.zip . -x "*.git*"` → `SendUserFile` で納品
 7. 返信は「何を直したか」＋**検証ログの実出力**を短く貼る。日本語。
 
@@ -428,6 +429,7 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 | 巡回タブごとにグループを分けたのに `effWidth` が `"rank"` 固定のままで、幅がどのタブでも同じだった | グループを受け取る引数は既定値まで含めて全部直す。`grep -n '"rank"'` で残りを潰す |
 | 移行処理の中から `normCols()` を呼び直して無限再帰（`Maximum call stack size exceeded`） | 正規化関数の中から自分を呼ばない。必要な処理はインラインで書く |
 | 項目をデータ駆動にした後、`ST_FIELDS` の参照が1つ残って `ReferenceError` | 定数を関数に変えたら `grep -n` で全部潰す。`pageerror` をログに出していれば必ず気づける |
+| **直したのにユーザーの画面が変わらない**（`index.html` の `app.js?v=0.51.0` が v0.51.0 から据え置きで、ブラウザが古い app.js を出していた） | キャッシュのクエリはバージョンと必ず一緒に上げる。「見た目が変わらない」と言われたら、まず `?v=` と `Ctrl+F5` を疑う |
 
 ---
 
@@ -481,7 +483,8 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.86.0 追加した商品の「出所」を2行に（区分バッジ / ジャンル名）
 - v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）
 - v0.88.0 「追加した商品」の出所のジャンル名も「>」で改行（段数は行の高さ追従）
-- **v0.89.0 「N 件表示」ボタンを中の商品の色で塗り分け（3色=33%ずつ / 2色=50%ずつ）（最新）**
+- v0.89.0 「N 件表示」ボタンを中の商品の色で塗り分け（3色=33%ずつ / 2色=50%ずつ）
+- **v0.89.1 上の色をはっきり濃く / `app.js?v=` `style.css?v=` の据え置きを修正（最新）**
 
 ---
 

@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.89.0";
+const VERSION   = "0.89.1";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2503,10 +2503,10 @@ function pickAlert(p) {
 /* ---------- 「N 件表示」ボタンの色（v0.89.0） ----------
    中に入っている商品の「隙あり/なし」の色を、出てくる色のぶんだけ等分の帯にする。
    3色なら33%ずつ、2色なら50%ずつ。並びは項目管理の選択肢の順。
-   小さいボタンの中で見分けが付くよう、設定画面のチップ（`.sw-*`）より少しだけ濃くしてある。 */
+   小さいボタンの中でも一目で分かるよう、設定画面のチップ（`.sw-*`）よりはっきり濃くしてある（v0.89.1）。 */
 const CNT_TINT = {
-  gray:  "#e6eaf1", blue:  "#d7e6fa", green: "#d5eee2", amber: "#fbe8c9",
-  red:   "#fbd9d3", purple:"#e9e3f2", teal:  "#d3edea", pink:  "#fbd8e7",
+  gray:  "#d7dde6", blue:  "#bcd7f7", green: "#b6e0cb", amber: "#f6d9a6",
+  red:   "#f7bdb3", purple:"#dbcfec", teal:  "#b3e1dc", pink:  "#f7bdd6",
 };
 
 /* 商品1件の色＝「隙あり/なし」で選ばれている選択肢の色。項目が消えていれば gray */
