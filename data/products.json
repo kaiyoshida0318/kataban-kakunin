@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:03:21.899Z",
+  "updatedAt": "2026-08-26T06:03:37.142Z",
   "labels": {
     "rival": [
       {
@@ -377,7 +377,9 @@
       "pick_rakuten": [
         "p_aimg",
         "p_aurl",
-        "a_sales"
+        "a_sales",
+        "a_qual",
+        "p_buy"
       ],
       "pick_rivals": []
     }
