@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.78.0";
+const VERSION   = "0.79.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -68,9 +68,9 @@ const catList = (key) => (SEC(key)?.cats || []).map((o) => ({
      rank  … amazon基準 / 楽天基準の一覧表（共通）
      added … 追加した商品の表
      pick  … 一覧の行を開いた「チェックした商品」の表 */
-const COL_GROUPS = ["rank", "rivals", "added", "pick"];
-/* rank = amazonランキング + 楽天ランキング（共通） / rivals = 楽天ライバル（独立） */
-const colGroupOf = (key) => (isAdded(key) ? "added" : key === "rivals" ? "rivals" : "rank");
+/* 巡回タブは1つずつ独立。added / pick はそれぞれの表 */
+const COL_GROUPS = ["amazon", "rakuten", "rivals", "added", "pick"];
+const colGroupOf = (key) => (isAdded(key) ? "added" : key);
 function arrangeCols(defs, group, secKey) {
   const ord = ensureCols().order?.[group];
   let out = defs.slice();
@@ -82,7 +82,7 @@ function arrangeCols(defs, group, secKey) {
       .map((x) => x.c);
   }
   /* URL列だけは、そのタブの基準側を必ず先に置く（並びは2タブ共通なので、ここで入れ替える） */
-  if ((group === "rank" || group === "rivals") && secKey) {
+  if (secKey && !isAdded(secKey) && group !== "pick") {
     const want = urlFieldsOf(secKey).map((f) => URL_COLS[f]?.key).filter(Boolean);
     const at = out.map((c, i) => (want.includes(c.key) ? i : -1)).filter((i) => i >= 0);
     if (at.length === 2 && out[at[0]].key !== want[0]) {
@@ -208,11 +208,20 @@ function normCols(raw) {
       ? [...new Set(hid.filter((k) => typeof k === "string" && k).slice(0, 80))] : [];
   }
 
-  /* v0.73.0以前は楽天ライバルも rank の設定を使っていた。初回だけ rank から写して見た目を保つ */
-  if (!raw?.order?.rivals && out.order.rank) out.order.rivals = [...out.order.rank];
-  if (!raw?.hide?.rivals && out.hide.rank.length) out.hide.rivals = [...out.hide.rank];
-  if (!raw?.layout?.rivals && Object.keys(out.layout.rank).length) {
-    out.layout.rivals = JSON.parse(JSON.stringify(out.layout.rank));
+  /* v0.78.0以前は巡回タブが1つの "rank" 設定を共有していた。初回だけ各タブへ写して見た目を保つ */
+  const oldRank = { order: raw?.order?.rank, hide: raw?.hide?.rank, layout: raw?.layout?.rank };
+  for (const g of ["amazon", "rakuten", "rivals"]) {
+    if (!raw?.order?.[g] && Array.isArray(oldRank.order) && oldRank.order.length) out.order[g] = [...oldRank.order];
+    if (!raw?.hide?.[g] && Array.isArray(oldRank.hide) && oldRank.hide.length) out.hide[g] = [...oldRank.hide];
+    if (!raw?.layout?.[g] && oldRank.layout && Object.keys(oldRank.layout).length) {
+      for (const [k, v] of Object.entries(oldRank.layout)) {
+        if (!v || typeof v !== "object") continue;
+        const o = {};
+        if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
+        if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
+        if (Object.keys(o).length) out.layout[g][k] = o;
+      }
+    }
   }
 
   /* v0.62.0以前は items[列] に {label,w,align,off} をキー単位で持っていた。
@@ -277,9 +286,9 @@ const SEC = (k) => SECTIONS.find((s) => s.key === k);
 
 /* 区分（オフェンス / ディフェンス / ライバル）。どれを選ぶかでタブそのものが決まる */
 const SIDES = [
-  { v: "offense", label: "オフェンス",   cls: "sd-off", sec: "amazon"  },
-  { v: "defense", label: "ディフェンス", cls: "sd-def", sec: "rakuten" },
-  { v: "rival",   label: "ライバル",     cls: "sd-riv", sec: "rivals"  },
+  { v: "offense", label: "amazon\nランキング", cls: "sd-off", sec: "amazon"  },
+  { v: "defense", label: "楽天\nランキング",   cls: "sd-def", sec: "rakuten" },
+  { v: "rival",   label: "楽天\nライバル",     cls: "sd-riv", sec: "rivals"  },
 ];
 const SIDE = (v) => SIDES.find((o) => o.v === v) || SIDES[0];
 const sideSecOf = (v) => SIDE(v).sec;
@@ -1184,7 +1193,8 @@ function saveSort() {
 }
 const colWidth = (c, grp) => (colBox(grp, c.key).w ?? c.w);
 /* 表編集中は画像URL欄が入るので画像列を広げる（一覧表だけ） */
-const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c, "rank"), 170) : colWidth(c, "rank"));
+const effWidth = (c, grp = colGroupOf(view)) =>
+  (tableEdit && c.key === "img" ? Math.max(colWidth(c, grp), 170) : colWidth(c, grp));
 
 /* stamp=false のときは updatedAt を触らない（GitHubから読んだ内容をそのまま控える用） */
 function persistLocal(stamp = true) {
@@ -1841,7 +1851,8 @@ function rankTable(list) {
 
   /* 行の高さに収まる行数だけ、ジャンル名を折り返して見せる */
   const nameLines = Math.max(1, Math.floor((rowH() - 16) / 19));
-  return `${alignStyle(COLS, "rank", "table.rank-tbl", "tbody tr.r-main")}<div class="tbl-wrap"><table data-grp="rank" class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
+  const grp = colGroupOf(view);
+  return `${alignStyle(COLS, grp, "table.rank-tbl", "tbody tr.r-main")}<div class="tbl-wrap"><table data-grp="${esc(grp)}" class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
@@ -1918,7 +1929,7 @@ function addedRow(r) {
   const editing = editPicks.has(key);
 
   const srcCell = `<td class="td-src">
-      ${side ? `<span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label)}</span>` : ""}
+      ${side ? `<span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label.replace(/\n/g, " "))}</span>` : ""}
       <a class="src-name" href="${esc(mainUrl(it, sec))}" target="_blank" rel="noopener noreferrer"
          title="${esc(it.name)}">${esc(it.name)}</a>
     </td>`;
@@ -2005,11 +2016,12 @@ function renderColModal() {
      amazonランキングと楽天ランキングは列キーが同じなので共通、
      楽天ライバル（rivals）・追加した商品（added）・チェックした商品（pick）はそれぞれ別に持つ。 */
   const added = isAdded(view);
-  const rankKey = (view === "amazon" || view === "rakuten") ? view : "amazon";   // 一覧表の見本にするタブ
   const pickKey = added ? "amazon" : view;
   const all = [
-    { grp: "rank",  ttl: "amazonランキング / 楽天ランキング", note: "2つのタブで共通",
-      which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf(rankKey) },
+    { grp: "amazon", ttl: "amazonランキング", note: "このタブだけの設定",
+      which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf("amazon") },
+    { grp: "rakuten", ttl: "楽天ランキング", note: "このタブだけの設定",
+      which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf("rakuten") },
     { grp: "rivals", ttl: "楽天ライバル", note: "このタブだけの設定",
       which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf("rivals") },
     { grp: "pick",  ttl: "チェックした商品", note: "一覧の行を「N件表示」で開いた表",
@@ -2198,7 +2210,7 @@ function bindResizers(root) {
         document.body.classList.remove("resizing");
         rz.classList.remove("dragging");
         const px = parseInt(col.style.width, 10);
-        const grp = table.dataset.grp || "rank";
+        const grp = table.dataset.grp || colGroupOf(view);
         (layoutOf(grp)[rz.dataset.col] ||= {}).w = px;
         saveCols();
         const inp = document.querySelector(`[data-colw="${rz.dataset.col}"]`);
@@ -2210,7 +2222,7 @@ function bindResizers(root) {
     // ダブルクリックで既定値に戻す
     rz.ondblclick = (e) => {
       e.stopPropagation();
-      delete layoutOf(rz.closest("table").dataset.grp || "rank")[rz.dataset.col];
+      delete layoutOf(rz.closest("table").dataset.grp || colGroupOf(view))[rz.dataset.col];
       saveCols(); renderBody(); if (colModalOpen()) renderColModal();
     };
   });

@@ -590,6 +590,9 @@ body.resizing *{cursor:col-resize !important}
   -webkit-appearance:none;appearance:none;
 }
 .st-sel .st-lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 区分は2段（amazon / ランキング）で出す */
+.side-sel .st-lb{white-space:pre-line;text-overflow:clip;line-height:1.25;text-align:center}
+#stMenu button{white-space:pre-line}
 .st-sel .st-ar{font-size:8px;opacity:.55;flex:0 0 auto}
 .st-sel:hover{filter:brightness(.97)}
 .st-sel.st-open{box-shadow:0 0 0 2px var(--accent-soft)}
