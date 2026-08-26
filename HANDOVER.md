@@ -1,10 +1,10 @@
 # 引き継ぎメモ（型番商品確認くん）
 
-最終更新: 2026-08-26 / 現行版 **v0.70.0**
+最終更新: 2026-08-26 / 現行版 **v0.73.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.70.0full.zip`（全ファイル入り。これが唯一の正）
+1. `katabankakuninv0.73.0full.zip`（全ファイル入り。これが唯一の正）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ---
@@ -76,9 +76,9 @@ await p.goto('http://localhost:8899/index.html');
 
 ```js
 const SECTIONS = [
-  { key:"amazon",  label:"amazonランキング（オフェンス）", side:"offense",
+  { key:"amazon",  label:"amazonランキング", side:"offense",
     urlFields:["urlAmazon","urlRakuten"], accent:"#206acf", tint:"#eef4fd", role:"巡回リスト", … },
-  { key:"rakuten", label:"楽天ランキング（ディフェンス）", side:"defense",
+  { key:"rakuten", label:"楽天ランキング", side:"defense",
     urlFields:["urlRakuten","urlAmazon"], accent:"#206acf", … },
   { key:"rivals",  label:"楽天ライバル", side:"rival",        // v0.64.0。中身は楽天ランキングと同じ
     urlFields:["urlRakuten","urlAmazon"], accent:"#206acf", … },
@@ -286,6 +286,20 @@ URL欄に覚え書きを書きたいことがあるので、欄ごとに扱い�
 設定画面に画像取得テスト（`runImgTest`）があり、どの段で落ちたかログが出る。ユーザーは
 画像が出ないとき、このログを貼ってくる。
 
+### 3-5b. 楽天のパンくず → ジャンル名（v0.73.0）
+
+`fetchGenre(url, log)` が `proxyList()` の中継を順に叩き、`genreFromPage(txt)` が中身を読む。
+中継は画像取得と同じものを使い回す（`r.jina.ai` はHTMLではなく**マークダウン**で返ってくるので、
+HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の BreadcrumbList → HTMLのパンくず
+（`[class*=readcrumb]` 等）→ h1/title**。`GENRE_DROP` で「楽天市場トップ」「ランキングトップ」を捨てる。
+
+- 入れるのは **`autoGenreTab()` が真のタブ（amazon / rakuten）だけ**。楽天ライバルは店名なので対象外。
+- **名前が空のときしか入れない。** ユーザーは「編集は自由」を選んだので、入力欄のロックはしていない。
+  取り直しは編集モーダルの `#btnGenre`（こちらは上書きする）。
+- 表編集でURLを直したときは非同期で取りにいき、**戻ってきた時点でまだ空なら**書く（`upsert`）。
+- 中継は普通に失敗する（実測で `r.jina.ai` が 429 を返した）。**失敗しても何もしない**のが約束。
+  ⚙️設定の画像取得テストに楽天URLを入れると `fetchGenre` のログも出る。
+
 ### 3-6. 見出しの固定（v0.52.0で追加。今いちばん新しい所）
 
 - `.app-header` の実高さを `ResizeObserver` で測って `--head-h` に流す（`syncHeadH` / `watchHeadH`）。
@@ -331,6 +345,7 @@ URL欄に覚え書きを書きたいことがあるので、欄ごとに扱い�
 | リファクタ後に旧名（`DEFAULT_PROXY` / `PICK_COLS`）が残り、設定モーダルが無言で開かなくなった | 名前を変えたら `grep -n` で全部潰す。`pageerror` を必ずログに出す |
 | 項目編集パネルがタブ切替に追従しなかった | 表の形が変わる操作の後は `renderAll()` 側で追従させる |
 | 揃え設定が日付の帯（`.day-row`）にも効いてしまった | `alignStyle` の `rowSel` で行を絞る |
+| 確認日を縦積みにしたら揃え設定が効かなくなった | `.check-cell` は `flex-direction:column`。寄せるのは `justify-content` ではなく `align-items`（`alignStyle` で別扱いにしてある） |
 | 「チェックした商品」の編集行を `.pe-url2` の有無で「両モール」と判定していて、列を隠すと保存先がずれた | 入力欄には `data-pf` で書き込み先を持たせる。DOMの有無で意味を判定しない |
 | 見出し固定（`.grid-tbl thead th`）が入れ子の「チェックした商品」にも効き、見出しが商品行に重なった | 一覧表の中には別の表が入る。`.grid-tbl` 配下のセレクタは `.pick-tbl` にも当たると考える |
 
@@ -367,7 +382,10 @@ URL欄に覚え書きを書きたいことがあるので、欄ごとに扱い�
 - v0.67.0 URL欄ごとに「文字 / URL」を選べるように
 - v0.68.0 ランキング2タブの「大カテゴリ」を「カテゴリー名」に
 - v0.69.0 文字/URLの切り替えを編集画面だけに（一覧からは外した）
-- **v0.70.0 列管理を画面下半分のパネルに（表を見ながら触れる）（最新）**
+- v0.70.0 列管理を画面下半分のパネルに（表を見ながら触れる）
+- v0.71.0 確認日の「本日反映」を日付の下に（列幅 212→140px）
+- v0.72.0 タブ名から（オフェンス）（ディフェンス）を外す（区分の呼び名は据え置き）
+- **v0.73.0 楽天URLのパンくずからジャンル名を自動で入れる（最新）**
 
 ---
 

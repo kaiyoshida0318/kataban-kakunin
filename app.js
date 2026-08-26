@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.70.0";
+const VERSION   = "0.73.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -48,7 +48,7 @@ function rankDefs(key) {
     { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
     ...urls,
     { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
-    { key: "check", label: "確認日",     w: 212, cls: "c-check", sort: "checkedAt" },
+    { key: "check", label: "確認日",     w: 140, cls: "c-check", sort: "checkedAt" },
     { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
     { key: "addp",  label: "商品追加",   w: 96,  cls: "c-addp"  },
     { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
@@ -221,7 +221,7 @@ function normCols(raw) {
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "amazon",   icon: "📊", label: "amazonランキング（オフェンス）", nameLabel: "ジャンル名",
+  { key: "amazon",   icon: "📊", label: "amazonランキング", nameLabel: "ジャンル名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "Amazon側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"], side: "offense",
@@ -229,7 +229,7 @@ const SECTIONS = [
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "amazonランキングで見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天ランキング（ディフェンス）",   nameLabel: "ジャンル名",
+  { key: "rakuten",  icon: "🏆", label: "楽天ランキング",   nameLabel: "ジャンル名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "楽天側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
@@ -845,6 +845,84 @@ async function ogImages(url, log = () => {}) {
   return [];
 }
 
+/* ---------- 楽天のページからジャンル名（パンくず）を取る ----------
+   ブラウザから楽天は直接読めないので、画像取得と同じ中継サービス越しに読む。
+   中継が詰まると取れないことがあるので、取れなかったときは黙って何もしない（手入力はいつでもできる）。 */
+const GENRE_DROP = /^(楽天市場トップ|楽天市場|ランキングトップ|ランキング|デイリーランキング|リアルタイムランキング|トップ|ホーム|home|top|rakuten)$/i;
+const genreClean = (arr) => arr
+  .map((t) => String(t || "").replace(/\s+/g, " ").trim())
+  .filter((t) => t && t.length < 40 && !GENRE_DROP.test(t))
+  .filter((t, i, a) => a.indexOf(t) === i);
+/* 「【楽天市場】家電 | 人気・おすすめランキング…」→「家電」 */
+function genreFromTitle(t) {
+  let x = String(t || "").replace(/\s+/g, " ").trim();
+  if (!x) return "";
+  x = x.replace(/^【[^】]*】\s*/, "").split(/[|｜]/)[0].trim();
+  x = x.replace(/(の)?(売れ筋|人気)?ランキング$/, "").trim();
+  return GENRE_DROP.test(x) ? "" : x.slice(0, 60);
+}
+/* 取ってきた中身（HTMLでも r.jina.ai の素のテキストでも）からジャンル名を組み立てる */
+function genreFromPage(txt) {
+  /* 1) 構造化データ */
+  for (const m of txt.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const list = [].concat(JSON.parse(m[1].trim()));
+      for (const o of list) {
+        if (o && o["@type"] === "BreadcrumbList" && Array.isArray(o.itemListElement)) {
+          const names = genreClean(o.itemListElement.map((x) => x?.name || x?.item?.name || ""));
+          if (names.length) return names.join(" > ");
+        }
+      }
+    } catch { /* noop */ }
+  }
+  /* 2) HTMLのパンくず */
+  if (/<\/(html|body|nav|div)>/i.test(txt)) {
+    try {
+      const doc = new DOMParser().parseFromString(txt, "text/html");
+      const sel = '[class*="readcrumb"],[id*="readcrumb"],[class*="ankuzu"],[class*="pan-kuzu"],nav[aria-label*="パンくず"]';
+      for (const el of doc.querySelectorAll(sel)) {
+        const names = genreClean([...el.querySelectorAll("a")].map((x) => x.textContent));
+        if (names.length) return names.join(" > ");
+      }
+      const t = genreFromTitle(doc.querySelector("h1")?.textContent) ||
+                genreFromTitle(doc.querySelector("title")?.textContent);
+      if (t) return t;
+    } catch { /* noop */ }
+  }
+  /* 3) 素のテキスト（r.jina.ai はマークダウンで返ってくる） */
+  const line = txt.split(/\n+/).find((l) => l.includes("楽天市場トップ") && /[>›»]/.test(l));
+  if (line) {
+    const names = genreClean(line.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").split(/[>›»]/));
+    if (names.length) return names.join(" > ");
+  }
+  const tt = (txt.match(/^Title:\s*(.+)$/mi) || txt.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || "";
+  return genreFromTitle(tt);
+}
+/* 中継サービスを順に試して、最初に取れたものを返す */
+async function fetchGenre(url, log = () => {}) {
+  if (!isRakutenUrl(url)) { log("ジャンル", "楽天のURLではない"); return ""; }
+  const list = proxyList();
+  if (!list.length) { log("ジャンル", "中継なしの設定のためスキップ"); return ""; }
+  for (const tpl of list) {
+    const via = (() => { try { return new URL(tpl.replace("{url}", "")).hostname; } catch { return tpl; } })();
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 9000);
+      const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) { log("ジャンル", `${via} → HTTP ${res.status}`); continue; }
+      const name = genreFromPage((await res.text()).slice(0, 900000));
+      if (name) { log("ジャンル", `${via} → ${name}`); return name; }
+      log("ジャンル", `${via} → 取れたがパンくずが見つからない`);
+    } catch (e) {
+      log("ジャンル", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
+    }
+  }
+  return "";
+}
+/* ジャンル名を自動で入れるタブか（ランキングの2つだけ。ライバルは店名なので対象外） */
+const autoGenreTab = (key) => key === "amazon" || key === "rakuten";
+
 /* 商品URLからメイン画像を1つ決める。
    Amazonウィジェット → 楽天API → メタ情報サービス → 中継してページを読む、の順に試す。 */
 async function guessImage(url, log = () => {}) {
@@ -1419,6 +1497,17 @@ function renderBody() {
       it.updatedAt = nowIso();
       persistLocal(); markDirty(true);
       if (f === "category") renderToolbar();
+      /* 楽天URLを入れて名称が空なら、パンくずから入れてみる */
+      if (f === "urlRakuten" && v && !it.name && autoGenreTab(view) && !isTextMode(it, f)) {
+        const sec = view, id = it.id;
+        fetchGenre(v).then((name) => {
+          const cur = itemsOf(sec).find((x) => x.id === id);
+          if (!name || !cur || cur.name) return;
+          cur.name = name; cur.updatedAt = nowIso();
+          upsert(sec, cur);
+          toast(`ジャンル名を取り込みました：${name}`);
+        });
+      }
     };
     inp.onchange = commit;
     if (inp.dataset.f === "image") {
@@ -1728,7 +1817,8 @@ function alignStyle(cols, grp, tableSel, rowSel = "tbody tr") {
       `${S} th:nth-child(${n}),${cell}{text-align:${a}}`,
       `${cell} input,${cell} textarea{text-align:${a}}`,
       `${cell} img,${cell} .thumb,${cell} .pick-thumb{margin-left:${ml};margin-right:${mr}}`,
-      `${cell} .check-cell,${cell} .ord-cell,${cell} .st-sel{justify-content:${FLEX[a]}}`,
+      `${cell} .ord-cell,${cell} .st-sel{justify-content:${FLEX[a]}}`,
+      `${cell} .check-cell{align-items:${FLEX[a]}}`,
       `${cell}.c-img{justify-content:${FLEX[a]}}`,
       `${cell} .src-name,${cell} .r-name{text-align:${a}}`,
     ].join("");
@@ -2343,6 +2433,26 @@ function renderAll() {
 /* =========================================================
    編集モーダル
    ========================================================= */
+/* 楽天のページからジャンル名を取り込む。取れなければ何もしない（手入力はいつでもできる） */
+let genreBusy = false;
+async function fillGenre(force) {
+  if (genreBusy || !autoGenreTab(view)) return;
+  const url = $("rUrlRak").value.trim();
+  if (!url || isTextMode(entry, "urlRakuten")) return;
+  if (!force && $("rName").value.trim()) return;          // 自動は空のときだけ
+  const btn = $("btnGenre");
+  const ph  = $("rName").placeholder;
+  genreBusy = true;
+  btn.disabled = true; btn.textContent = "取得中…";
+  $("rName").placeholder = "楽天のページから取得中…";
+  const name = await fetchGenre(url);
+  genreBusy = false;
+  btn.disabled = false; btn.textContent = "楽天URLから取得";
+  $("rName").placeholder = ph;
+  if (name) { $("rName").value = name; toast(`ジャンル名を取り込みました：${name}`); }
+  else if (force) toast("ジャンル名が取れませんでした。手で入れてください", true);
+}
+
 /* URL欄の「文字 / URL」。切り替えると入力欄の型と entry.modes が変わる */
 const URL_MODE_UI = {
   url:        { box: "mUrl",    input: "rUrl",    ph: "https://…" },
@@ -2395,6 +2505,7 @@ function openRank(item) {
   });
   entry.modes = normModes(entry.modes);
   fields.forEach(paintUrlMode);
+  $("btnGenre").hidden = !(autoGenreTab(view) && fields.includes("urlRakuten"));
 
   $("rankModalTtl").textContent = `${SEC(view).label}を${isNew ? "追加" : "編集"}`;
   $("rNameLabel").textContent = SEC(view).nameLabel;
@@ -2972,6 +3083,11 @@ async function runImgTest() {
   const btn = $("btnImgTest");
   btn.disabled = true; btn.textContent = "実行中…";
   const found = await guessImage(url, (stage, msg) => add(stage, msg));
+  /* 楽天のURLなら、ジャンル名（パンくず）も一緒に試す */
+  if (isRakutenUrl(url)) {
+    const g = await fetchGenre(url, (stage, msg) => add(stage, msg));
+    add("ジャンル名", g || "取得できず", g ? "ok" : "ng");
+  }
   btn.disabled = false; btn.textContent = "実行";
 
   if (found) {
@@ -3154,6 +3270,9 @@ function bind() {
     else if (!asinOf(url)) toast("自動取得はAmazonの商品URL（/dp/…）のみ対応しています", true);
     else toast("画像が見つかりませんでした。手動でURLを貼ってください", true);
   };
+  /* 楽天URL → ジャンル名（パンくず）。空のときだけ自動、ボタンならいつでも取り直し */
+  $("rUrlRak").onchange = () => fillGenre(false);
+  $("btnGenre").onclick = () => fillGenre(true);
   $("rSide").onchange = () => {
     $("rSide").className = "side-sel side-sel-lg " + SIDE($("rSide").value).cls;
   };

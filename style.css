@@ -353,14 +353,16 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 }
 .thumb.none,.thumb.broken{border-style:dashed;background:var(--row-alt)}
 
+/* 日付の下に「本日反映」を置く（横に並べると列が広くなるため） */
 .check-cell{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:2px 3px 2px 5px;border-radius:8px;
+  display:inline-flex;flex-direction:column;align-items:stretch;gap:3px;
+  padding:3px 4px;border-radius:8px;
   background:var(--green-soft);border:1px solid #cbe6da;
 }
+.check-cell .btn-xs{width:100%;padding:2px 6px}
 .check-cell.stale{background:var(--warn-soft);border-color:#f0dcbd}
 .grid-tbl input.check-date{
-  width:124px;padding:2px 5px;font-size:11.5px;border-radius:6px;
+  width:118px;padding:2px 4px;font-size:11.5px;border-radius:6px;
   font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--surface);
 }
 .btn-xs{padding:3px 9px;font-size:11px;border-radius:7px;flex:0 0 auto}
