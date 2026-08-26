@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:06:16.318Z",
+  "updatedAt": "2026-08-26T02:16:24.289Z",
   "labels": {
     "rival": [
       {
@@ -118,7 +118,7 @@
         "w": 226
       },
       "addp": {
-        "w": 82
+        "w": 100
       },
       "a_rival": {
         "align": "center"
