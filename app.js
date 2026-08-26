@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.63.0";
+const VERSION   = "0.64.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -104,8 +104,8 @@ const PICK_SIDES = [
   { k: "rakuten", url: "urlRakuten", img: "imageRakuten", label: "楽天",   imgCol: "p_rimg", urlCol: "p_rurl" },
 ];
 const PSIDE = (k) => PICK_SIDES.find((x) => x.k === k) || PICK_SIDES[0];
-/* そのタブが扱うモール。型番商品など基準が無いタブは Amazon 側を使う */
-const sideKeyOf = (sectionKey) => (SEC(sectionKey)?.side === "defense" ? "rakuten" : "amazon");
+/* そのタブが扱うモール。URL欄の並びで決める（楽天が先なら楽天基準）。決められなければ Amazon 側 */
+const sideKeyOf = (sectionKey) => (urlFieldsOf(sectionKey)[0] === "urlRakuten" ? "rakuten" : "amazon");
 
 /* チェックした商品の列。「追加した商品」と同じ項目を一通り持つ（出所だけはその行そのものなので無い）。
    画像とURLは、そのタブの基準側のモールを先に置く。要らない列は ▦列管理 で隠す。 */
@@ -215,34 +215,42 @@ function normCols(raw) {
 
 /* ---------- セクション定義 ---------- */
 const SECTIONS = [
-  { key: "amazon",   icon: "📊", label: "amazon基準（オフェンス）", nameLabel: "ジャンル名",
+  { key: "amazon",   icon: "📊", label: "amazonランキング（オフェンス）", nameLabel: "ジャンル名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "Amazon側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"], side: "offense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
-    emptySub: "Amazon基準で見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
-  { key: "rakuten",  icon: "🏆", label: "楽天基準（ディフェンス）",   nameLabel: "ジャンル名",
+    emptySub: "amazonランキングで見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
+  { key: "rakuten",  icon: "🏆", label: "楽天ランキング（ディフェンス）",   nameLabel: "ジャンル名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "楽天側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
-    emptySub: "楽天基準で見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
+    emptySub: "楽天ランキングで見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
+  { key: "rivals",   icon: "🥊", label: "楽天ライバル", nameLabel: "ジャンル名",
+    accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
+    desc: "楽天のライバルを見て回る場所。中身は楽天ランキングと同じで、気になった商品は各行の「＋ 商品」から拾う。",
+    defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "rival",
+    search: "ジャンル名・URLで検索…", add: "＋ 追加",
+    emptyTtl: "まだ登録がありません",
+    emptySub: "見て回るライバルのページを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
   { key: "products", icon: "📦", label: "追加した商品", nameLabel: "商品名",
     accent: "#2b8a63", tint: "#e8f5ee", role: "作業リスト",
     desc: "拾った商品を追加日ごとに並べて、上から順に確認・買付まで処理していく場所。",
     kind: "added", defSort: "addedAt", urlFields: ["url"],
     search: "商品名・URL・出所で検索…", add: "＋ 商品を追加",
     emptyTtl: "まだ1件もありません",
-    emptySub: "オフェンス／ディフェンスの各行にある「＋ 商品」から追加すると、ここに追加日ごとに並びます。" },
+    emptySub: "ランキング／ライバルの各行にある「＋ 商品」から追加すると、ここに追加日ごとに並びます。" },
 ];
 const SEC = (k) => SECTIONS.find((s) => s.key === k);
 
-/* 区分（オフェンス / ディフェンス）。どちらを選ぶかでタブそのものが決まる */
+/* 区分（オフェンス / ディフェンス / ライバル）。どれを選ぶかでタブそのものが決まる */
 const SIDES = [
   { v: "offense", label: "オフェンス",   cls: "sd-off", sec: "amazon"  },
   { v: "defense", label: "ディフェンス", cls: "sd-def", sec: "rakuten" },
+  { v: "rival",   label: "ライバル",     cls: "sd-riv", sec: "rivals"  },
 ];
 const SIDE = (v) => SIDES.find((o) => o.v === v) || SIDES[0];
 const sideSecOf = (v) => SIDE(v).sec;
@@ -485,12 +493,12 @@ const isRakutenUrl = (url) => {
 function urlSideOf(url, sectionKey) {
   if (isAmazonUrl(url)) return "amazon";
   if (isRakutenUrl(url)) return "rakuten";
-  return SEC(sectionKey)?.side === "defense" ? "rakuten" : "amazon";
+  return sideKeyOf(sectionKey);
 }
 /* その行から見た代表のURL・画像（基準側を先に見る） */
-const pickUrl = (p, sec) => SEC(sec)?.side === "defense"
+const pickUrl = (p, sec) => sideKeyOf(sec) === "rakuten"
   ? (p.urlRakuten || p.urlAmazon) : (p.urlAmazon || p.urlRakuten);
-const pickImg = (p, sec) => SEC(sec)?.side === "defense"
+const pickImg = (p, sec) => sideKeyOf(sec) === "rakuten"
   ? (p.imageRakuten || p.imageAmazon) : (p.imageAmazon || p.imageRakuten);
 
 function imageCandidates(url) {
@@ -1729,7 +1737,7 @@ function renderColModal() {
   const added = isAdded(view);
   const rankKey = added ? "amazon" : view;        // 一覧表の見本にするタブ
   const all = [
-    { grp: "rank",  ttl: "amazon基準 / 楽天基準（一覧表）", note: "2つのタブで共通",
+    { grp: "rank",  ttl: "ランキング・ライバルの一覧表", note: "amazon / 楽天 / ライバルで共通",
       which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf(rankKey) },
     { grp: "pick",  ttl: "チェックした商品", note: "一覧の行を「N件表示」で開いた表",
       which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(rankKey) },

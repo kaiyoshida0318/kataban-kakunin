@@ -1,10 +1,10 @@
 # 引き継ぎメモ（型番商品確認くん）
 
-最終更新: 2026-08-25 / 現行版 **v0.63.0**
+最終更新: 2026-08-26 / 現行版 **v0.64.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.63.0full.zip`（全ファイル入り。これが唯一の正）
+1. `katabankakuninv0.64.0full.zip`（全ファイル入り。これが唯一の正）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ---
@@ -76,14 +76,23 @@ await p.goto('http://localhost:8899/index.html');
 
 ```js
 const SECTIONS = [
-  { key:"amazon",  label:"amazon基準（オフェンス）", side:"offense",
+  { key:"amazon",  label:"amazonランキング（オフェンス）", side:"offense",
     urlFields:["urlAmazon","urlRakuten"], accent:"#206acf", tint:"#eef4fd", role:"巡回リスト", … },
-  { key:"rakuten", label:"楽天基準（ディフェンス）", side:"defense",
+  { key:"rakuten", label:"楽天ランキング（ディフェンス）", side:"defense",
+    urlFields:["urlRakuten","urlAmazon"], accent:"#206acf", … },
+  { key:"rivals",  label:"楽天ライバル", side:"rival",        // v0.64.0。中身は楽天ランキングと同じ
     urlFields:["urlRakuten","urlAmazon"], accent:"#206acf", … },
   { key:"products", label:"追加した商品", kind:"added",
-    accent:"#c0392b", tint:"#fdeeec", role:"作業リスト", … },
+    accent:"#2b8a63", tint:"#e8f5ee", role:"作業リスト", … },
 ];
 ```
+
+- **タブを増やすときは SECTIONS に足して、`side` を持つなら SIDES にも1行足す**
+  （`{v,label,cls,sec}`。`cls` は `style.css` の `.sd-*` と `.src-side.sd-*` に色を書く）。
+  区分ドロップダウン・出所バッジ・出所の絞り込み・`data.sections` は SECTIONS / SIDES から作るので、
+  この2箇所を直せば他は付いてくる。
+- **`sideKeyOf()` は `urlFields[0]` で決める**（`side === "defense"` で判定しない）。
+  ライバルタブのように defense 以外でも楽天基準にしたいタブがあるため。
 
 - `kind:"added"` かどうかで表の作りが完全に分岐する（`isAdded(key)`）。
 - `side` があるタブには「区分」列が出て、ドロップダウンで**行がタブ間を移動**する（`moveItem`）。
@@ -292,7 +301,8 @@ const ST_FIELDS = [
 - v0.60.0 ＋商品を押している間は赤い「✕ キャンセル」に変わる
 - v0.61.0 追加した商品のベースカラーを赤から緑へ
 - v0.62.0 ＋商品のキャンセルで「チェックした商品」ごと閉じる
-- **v0.63.0 項目名を表をまたいで共通化、幅・揃えは表ごとに分離（最新）**
+- v0.63.0 項目名を表をまたいで共通化、幅・揃えは表ごとに分離
+- **v0.64.0 タブ名を「amazonランキング」「楽天ランキング」に変更 / 「楽天ライバル」タブを追加（最新）**
 
 ---
 
