@@ -639,6 +639,15 @@ body.resizing *{cursor:col-resize !important}
 .added-tbl .td-src{font-size:11.5px;overflow:hidden}
 .added-tbl,.pick-tbl{table-layout:fixed}
 .pick-tbl .td-url a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* URLの下の小さな印（同じURLが他にもあるか）。押せない飾り */
+.url-dup{
+  display:inline-block;margin-top:3px;padding:0 7px;
+  font-size:10px;font-weight:700;line-height:16px;border-radius:999px;
+  border:1px solid;white-space:nowrap;user-select:none;cursor:default;vertical-align:middle;
+}
+.url-dup.uniq {background:#f2f4f8;border-color:#dfe4ec;color:#8b93a1}
+.url-dup.multi{background:var(--warn-soft);border-color:#f0d5a8;color:var(--warn)}
 .added-tbl .td-sales{text-align:center;padding:4px 6px}
 .added-tbl .td-rival{text-align:center;padding:4px 6px}
 .sales-in{

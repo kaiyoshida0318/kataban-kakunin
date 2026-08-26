@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.65.0";
+const VERSION   = "0.66.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -504,6 +504,42 @@ function canonicalUrl(url) {
 const isRakutenUrl = (url) => {
   try { return /(^|\.)rakuten\.co\.jp$/i.test(new URL(url).hostname); } catch { return false; }
 };
+/* ---------- 同じURLが他にも入っていないか ----------
+   AmazonはASIN、それ以外はホスト+パスで同じものと見なす（www・末尾スラッシュ・?以降は無視）。 */
+function urlKey(u) {
+  const t = String(u || "").trim();
+  if (!t) return "";
+  const asin = asinOf(t);
+  if (asin) return "amz:" + asin;
+  try {
+    const x = new URL(t);
+    return (x.hostname.replace(/^www\./, "") + x.pathname.replace(/\/+$/, "")).toLowerCase();
+  } catch { return t.toLowerCase(); }
+}
+let urlCount = new Map();
+/* 画面を描くたびに数え直す（行・商品の両方をまとめて1つの帳簿にする） */
+function buildUrlIndex() {
+  const m = new Map();
+  const add = (u) => { const k = urlKey(u); if (k) m.set(k, (m.get(k) || 0) + 1); };
+  for (const sec of SECTIONS) {
+    if (sec.kind === "added") continue;                 // 追加した商品は他タブの商品の写し
+    for (const it of itemsOf(sec.key)) {
+      add(it.url); add(it.urlAmazon); add(it.urlRakuten);
+      for (const p of it.picks) { add(p.url); add(p.urlAmazon); add(p.urlRakuten); }
+    }
+  }
+  urlCount = m;
+}
+const urlDupes = (u) => Math.max(0, (urlCount.get(urlKey(u)) || 0) - 1);
+/* URLの下に出す小さな印（押せない） */
+function dupTag(u) {
+  if (!String(u || "").trim()) return "";
+  const n = urlDupes(u);
+  return n
+    ? `<span class="url-dup multi" title="同じURLが他に${n}件あります">他あり ${n}</span>`
+    : `<span class="url-dup uniq" title="このURLはここだけです">唯一</span>`;
+}
+
 /* URLがどちら側のものか。判別できなければタブの基準側に寄せる */
 function urlSideOf(url, sectionKey) {
   if (isAmazonUrl(url)) return "amazon";
@@ -1305,6 +1341,7 @@ function th(key, label, cls) {
 
 function renderBody() {
   closeStMenu();
+  buildUrlIndex();
   const s = SEC(view);
   const added = s.kind === "added";
   const list  = added ? visiblePicks() : visibleItems();
@@ -1695,7 +1732,7 @@ function addedRow(r) {
   const urlCell = (sd) => {
     const v = p[sd.url];
     return `<td class="td-url">${v
-      ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 52))}</a>`
+      ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 52))}</a>${dupTag(v)}`
       : '<span class="dash">—</span>'}</td>`;
   };
   const stCell = (field, cls) => {
@@ -1997,7 +2034,7 @@ function rankRow(it, idx = 0, all = []) {
     return tableEdit
       ? `<td class="c-url"><input class="cell-input mono" type="url" data-f="${c.field}" data-id="${esc(it.id)}" value="${esc(v)}" placeholder="${esc(c.label)}"></td>`
       : `<td class="c-url">${v
-          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 42))}</a>`
+          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 42))}</a>${dupTag(v)}`
           : '<span class="dash">—</span>'}</td>`;
   };
 
@@ -2142,7 +2179,7 @@ function pickPanel(it) {
       const urlCell = (x) => {
         const v = p[x.url];
         return `<td class="td-url">${v
-          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 62))}</a>`
+          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 62))}</a>${dupTag(v)}`
           : '<span class="dash">—</span>'}</td>`;
       };
       const imgEdit = (x) =>
