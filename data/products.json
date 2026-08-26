@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:24:43.266Z",
+  "updatedAt": "2026-08-26T06:25:27.314Z",
   "fields": [
     {
       "key": "rival",
@@ -412,7 +412,7 @@
               "modes": {},
               "title": "Garminケーブルナイロン",
               "check": "after",
-              "buy": "o_2zv9gp",
+              "buy": "before",
               "sales30": "1230",
               "rival": "o_9rscsw",
               "quality": "high",
@@ -436,7 +436,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:03:09.505Z",
-          "updatedAt": "2026-08-26T05:09:13.068Z"
+          "updatedAt": "2026-08-26T06:25:22.568Z"
         },
         {
           "id": "itm_l7plowx4grx",
