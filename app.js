@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.62.0";
+const VERSION   = "0.63.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -142,46 +142,51 @@ const ALIGNS = [
 /* 列の設定は data.cols にまとめる（端末をまたいで同じ見た目になる） */
 function ensureCols() {
   const c = data.cols;
-  if (!c || typeof c !== "object" || typeof c.items !== "object" || !c.items) {
-    data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF, items: (c && c.items) || {},
-                  order: (c && c.order) || {}, hide: (c && c.hide) || {} };
+  if (!c || typeof c !== "object") data.cols = { rowH: ROW_H_DEF, pickRowH: PROW_H_DEF };
+  const d = data.cols;
+  for (const k of ["labels", "layout", "order", "hide"]) {
+    if (!d[k] || typeof d[k] !== "object") d[k] = {};
   }
-  if (!data.cols.order || typeof data.cols.order !== "object") data.cols.order = {};
-  if (!data.cols.hide  || typeof data.cols.hide  !== "object") data.cols.hide  = {};
-  return data.cols;
+  return d;
 }
-const colSet = (key) => ensureCols().items[key] || {};
 const rowH  = () => ensureCols().rowH || ROW_H_DEF;
 const pRowH = () => ensureCols().pickRowH || PROW_H_DEF;
-/* 項目名・幅・揃え。未設定なら既定値 */
-/* 同じ状態フィールドを出す列（隙あり/なし・買付）は項目名を共有する */
-function colLabelOf(key) {
-  const g = colGroup(key);
-  for (let i = g.length - 1; i >= 0; i--) {   // 「チェックした商品」側（p_*）を優先
-    const l = colSet(g[i]).label;
-    if (l) return l;
-  }
-  return "";
-}
+
+/* ---------- 項目名は「意味」で共通、幅と揃えは表ごと ----------
+   同じものを指す列は、表が違ってもキーが違うことがある（商品名 = a_title / p_title）。
+   lk（label key）が同じ列は1つの項目名を共有する。data.cols.labels[lk] に入る。
+   幅・揃えは表ごとに変えたいので data.cols.layout[グループ][列キー] に入る。 */
+const LK = {
+  a_title: "title",  p_title: "title",
+  a_edit:  "edit",   p_edit:  "edit",
+  a_act:   "acts",   p_act:   "acts",
+  a_check: "st_check", p_check: "st_check",
+  a_buy:   "st_buy",   p_buy:   "st_buy",
+};
+const lkOf = (key) => LK[key] || key;
+const colLabelOf = (key) => ensureCols().labels[lkOf(key)] || "";
 const colLabel = (c) => colLabelOf(c.key) || (c.key === "name" ? SEC(view).nameLabel : c.label);
-const colAlign = (c) => colSet(c.key).align || "";
+const layoutOf = (grp) => (ensureCols().layout[grp] ||= {});
+const colBox   = (grp, key) => layoutOf(grp)[key] || {};
+const colAlign = (c, grp) => colBox(grp, c.key).align || "";
 function normCols(raw) {
   const out = {
     rowH: Number(raw?.rowH) >= 40 ? Math.min(600, Number(raw.rowH)) : ROW_H_DEF,
     pickRowH: Number(raw?.pickRowH) >= 30 ? Math.min(600, Number(raw.pickRowH)) : PROW_H_DEF,
-    items: {},
+    labels: {}, layout: {}, order: {}, hide: {},
   };
-  for (const [k, v] of Object.entries(raw?.items || {})) {
-    if (!v || typeof v !== "object") continue;
-    const o = {};
-    if (v.label) o.label = String(v.label).slice(0, 24);
-    if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
-    if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
-    if (Object.keys(o).length) out.items[k] = o;
-  }
-  out.order = {};
-  out.hide  = {};
+  const name = (v) => String(v).slice(0, 24);
+  for (const [k, v] of Object.entries(raw?.labels || {})) if (v) out.labels[k] = name(v);
+
   for (const g of COL_GROUPS) {
+    out.layout[g] = {};
+    for (const [k, v] of Object.entries(raw?.layout?.[g] || {})) {
+      if (!v || typeof v !== "object") continue;
+      const o = {};
+      if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
+      if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
+      if (Object.keys(o).length) out.layout[g][k] = o;
+    }
     const arr = raw?.order?.[g];
     if (Array.isArray(arr)) {
       const keys = arr.filter((k) => typeof k === "string" && k).slice(0, 80);
@@ -191,33 +196,21 @@ function normCols(raw) {
     out.hide[g] = Array.isArray(hid)
       ? [...new Set(hid.filter((k) => typeof k === "string" && k).slice(0, 80))] : [];
   }
-  /* v0.57.0以前は items[列].off にキー単位で持っていた。グループごとの hide へ移す */
-  for (const [k, v] of Object.entries(raw?.items || {})) {
-    if (!v || !v.off) continue;
-    for (const g of COL_GROUPS) if (!out.hide[g].includes(k)) out.hide[g].push(k);
-  }
-  unifyStCols(out.items);
-  for (const [k, v] of Object.entries(out.items)) if (!Object.keys(v).length) delete out.items[k];
-  return out;
-}
 
-/* 状態列は表ごとに別々の項目名を持てたので、食い違っていたら片方に合わせて共通化する。
-   合わせる先は「チェックした商品」側（p_*）。ここは元から正しい名前が入っている場所なので、
-   X件表示で開いた表の見た目は変えずに、「追加した商品」側の別名（最強配送 等）だけが消える。
-   p_* に名前が無ければ両方消して既定（隙あり/なし・買付）に戻す。 */
-function unifyStCols(items) {
-  for (const f of ST_FIELDS) {
-    const cols = f.cols || [];
-    if (cols.length < 2) continue;
-    const labs = cols.map((c) => items[c]?.label || "");
-    if (labs.every((l) => l === labs[0])) continue;          // 既に揃っている
-    const win = labs[labs.length - 1];                        // p_* を正とする
-    for (const c of cols) {
-      if (win) (items[c] ||= {}).label = win;
-      else delete items[c]?.label;
+  /* v0.62.0以前は items[列] に {label,w,align,off} をキー単位で持っていた。
+     項目名は lk ごとにまとめ、幅・揃えはその列を持つ表すべてに配る。 */
+  for (const [k, v] of Object.entries(raw?.items || {})) {
+    if (!v || typeof v !== "object") continue;
+    if (v.label && !out.labels[lkOf(k)]) out.labels[lkOf(k)] = name(v.label);
+    for (const g of COL_GROUPS) {
+      const o = out.layout[g][k] || {};
+      if (Number(v.w) >= 40 && o.w == null) o.w = Math.min(1600, Math.round(Number(v.w)));
+      if (ALIGNS.some((a) => a.v === v.align) && !o.align) o.align = v.align;
+      if (Object.keys(o).length) out.layout[g][k] = o;
+      if (v.off && !out.hide[g].includes(k)) out.hide[g].push(k);   // v0.57.0以前の非表示
     }
   }
-  return items;
+  return out;
 }
 
 /* ---------- セクション定義 ---------- */
@@ -294,14 +287,7 @@ const ST_FIELDS = [
   ] },
 ];
 const ST_DEF = (key) => ST_FIELDS.find((f) => f.key === key);
-/* 同じ状態フィールドを出す列は1つの項目名を共有する（a_check と p_check など） */
-const ST_COL_GROUP = (() => {
-  const m = {};
-  for (const f of ST_FIELDS) for (const ck of f.cols || []) m[ck] = f.cols;
-  return m;
-})();
-const colGroup = (key) => ST_COL_GROUP[key] || [key];
-/* 見出しは「項目編集」で付けた名前に合わせる */
+/* 見出しは「列管理」で付けた項目名に合わせる（a_check と p_check は lk が同じ＝同じ名前） */
 function stTitle(key) {
   const f = ST_DEF(key);
   return colLabelOf((f.cols || [])[0] || "") || f.title;
@@ -951,11 +937,12 @@ function loadCols() {
 function migrateColsFromLocal() {
   const c = ensureCols();
   if (!colW || !Object.keys(colW).length) return;
-  if (Object.keys(c.items).length) return;              // すでに設定済みなら触らない
+  /* すでに設定済みなら触らない */
+  if (COL_GROUPS.some((g) => Object.keys(c.layout[g] || {}).length)) return;
   for (const [k, v] of Object.entries(colW)) {
     if (k === "_rowH") c.rowH = Number(v) || ROW_H_DEF;
     else if (k === "_pickRowH") c.pickRowH = Number(v) || PROW_H_DEF;
-    else if (Number(v) >= 40) c.items[k] = { w: Number(v) };
+    else if (Number(v) >= 40) for (const g of COL_GROUPS) (c.layout[g] ||= {})[k] = { w: Number(v) };
   }
   data.cols = normCols(c);
 }
@@ -972,9 +959,9 @@ function saveSort() {
   localStorage.setItem(LS_SORT, JSON.stringify(
     Object.fromEntries(Object.entries(filters).map(([k, v]) => [k, { sort: v.sort, dir: v.dir }]))));
 }
-const colWidth = (c) => (colSet(c.key).w ?? c.w);
-/* 表編集中は画像URL欄が入るので画像列を広げる */
-const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c), 170) : colWidth(c));
+const colWidth = (c, grp) => (colBox(grp, c.key).w ?? c.w);
+/* 表編集中は画像URL欄が入るので画像列を広げる（一覧表だけ） */
+const effWidth = (c) => (tableEdit && c.key === "img" ? Math.max(colWidth(c, "rank"), 170) : colWidth(c, "rank"));
 
 /* stamp=false のときは updatedAt を触らない（GitHubから読んだ内容をそのまま控える用） */
 function persistLocal(stamp = true) {
@@ -1572,7 +1559,7 @@ function rankTable(list) {
 
   /* 行の高さに収まる行数だけ、ジャンル名を折り返して見せる */
   const nameLines = Math.max(1, Math.floor((rowH() - 16) / 19));
-  return `${alignStyle(COLS, "table.rank-tbl", "tbody tr.r-main")}<div class="tbl-wrap"><table class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
+  return `${alignStyle(COLS, "rank", "table.rank-tbl", "tbody tr.r-main")}<div class="tbl-wrap"><table data-grp="rank" class="grid-tbl rank-tbl${tableEdit ? " editing" : ""}" style="--row-h:${rowH()}px;--name-lines:${nameLines}">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${list.map(rankRow).join("")}</tbody>
@@ -1581,10 +1568,10 @@ function rankTable(list) {
 
 /* 列ごとの揃えを nth-child で流し込む（セルの生成箇所を触らずに済む）。
    セルの中身は文字だけでなく、入力欄・画像・flexの塊もあるのでまとめて寄せる。 */
-function alignStyle(cols, tableSel, rowSel = "tbody tr") {
+function alignStyle(cols, grp, tableSel, rowSel = "tbody tr") {
   const FLEX = { left: "flex-start", center: "center", right: "flex-end" };
   const rules = cols.map((c, i) => {
-    const a = colAlign(c);
+    const a = colAlign(c, grp);
     if (!a) return "";
     const n = i + 1;
     const S = `#list ${tableSel}`;
@@ -1609,7 +1596,7 @@ function addedTable(rows) {
 
   const COLS = colsOf("products");
   const cols = COLS.map((c) => {
-    const w = colWidth(c);
+    const w = colWidth(c, "added");
     return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
   }).join("");
   const heads = COLS.map((c) =>
@@ -1633,7 +1620,7 @@ function addedTable(rows) {
       </td></tr>` + g.list.map(addedRow).join("");
   }).join("");
 
-  return `${alignStyle(COLS, "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
+  return `${alignStyle(COLS, "added", "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table data-grp="added" class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${body}</tbody>
@@ -1756,17 +1743,18 @@ function renderColModal() {
 
   /* 1列＝1行。左から 番号 / 表示 / 項目名 / 幅 / 揃え / 上下 */
   const row = (c, i, list, grp) => {
-    const st = colSet(c.key);
-    const al = colAlign(c);
+    const st = colBox(grp, c.key);
+    const al = colAlign(c, grp);
     const off = colOff(c.key, grp);
-    return `<div class="col-row${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}">
+    return `<div class="col-row${off ? " off" : ""}" data-col="${esc(c.key)}" data-grp="${esc(grp)}" data-lk="${esc(lkOf(c.key))}">
       <input class="col-no" type="number" min="1" max="${list.length}" value="${i + 1}"
              data-no title="この番号の位置へ動かします">
       <label class="col-chk" title="${off ? "この列を表示する" : "この列を隠す"}">
         <input type="checkbox" data-eye${off ? "" : " checked"}>
         <span></span>
       </label>
-      <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名">
+      <input class="col-name" type="text" maxlength="24" value="${esc(colLabel(c))}" placeholder="項目名"
+             title="項目名はどの表でも共通です">
       <span class="col-w-box">
         <input class="col-w" type="number" min="40" max="1600" step="4" value="${st.w ?? (c.w || "")}" placeholder="${c.w || "自動"}">
         <span class="col-unit">px</span>
@@ -1796,7 +1784,7 @@ function renderColModal() {
         <button type="button" class="btn btn-ghost btn-xs" data-allon="${esc(g.grp)}">全部表示</button>
       </h3>
       <div class="col-rows-head">
-        <span>順番</span><span>表示</span><span>項目名</span><span>幅</span><span>揃え</span><span>移動</span>
+        <span>順番</span><span>表示</span><span>項目名 <em>共通</em></span><span>幅 <em>表ごと</em></span><span>揃え <em>表ごと</em></span><span>移動</span>
       </div>
       <div class="col-rows">${g.cols.map((c, i) => row(c, i, g.cols, g.grp)).join("")}</div>
     </section>`;
@@ -1804,6 +1792,11 @@ function renderColModal() {
 
   /* グループの今の並び（非表示も含む全部）を返す */
   const groupCols = (grp) => (groups.find((g) => g.grp === grp) || { cols: [] }).cols;
+  /* その行の既定の項目名（名前を消したときに戻す値） */
+  const defLabelOf = (rowEl) => {
+    const c = groupCols(rowEl.dataset.grp).find((x) => x.key === rowEl.dataset.col);
+    return c ? (c.key === "name" ? SEC(view).nameLabel : c.label) : "";
+  };
   const reorder = (grp, from, to) => {
     const list = groupCols(grp).map((c) => c.key);
     if (from < 0 || to < 0 || to >= list.length || from === to) return false;
@@ -1835,7 +1828,7 @@ function renderColModal() {
   $("colModalBody").querySelectorAll(".col-row[data-col]").forEach((cd) => {
     const key = cd.dataset.col;
     const grp = cd.dataset.grp;
-    const box = () => (ensureCols().items[key] ||= {});
+    const box = () => (layoutOf(grp)[key] ||= {});
     const idx = () => groupCols(grp).findIndex((c) => c.key === key);
 
     /* 表示 / 非表示 */
@@ -1865,27 +1858,30 @@ function renderColModal() {
       };
     });
 
-    cd.querySelector(".col-name").oninput = (e) => {
+    /* 項目名は lk 単位＝表をまたいで共通。他の表の同じ項目の欄も一緒に書き換える */
+    const nameIn = cd.querySelector(".col-name");
+    nameIn.oninput = (e) => {
       const v = e.target.value.slice(0, 24).trim();
-      /* 状態列は両方の表に同じ項目名を入れる（別名になると別項目に見えるため） */
-      for (const ck of colGroup(key)) {
-        if (v) (ensureCols().items[ck] ||= {}).label = v;
-        else delete ensureCols().items[ck]?.label;
-      }
+      const lk = cd.dataset.lk;
+      if (v) ensureCols().labels[lk] = v; else delete ensureCols().labels[lk];
+      $("colModalBody").querySelectorAll(`.col-row[data-lk="${lk}"] .col-name`).forEach((o) => {
+        if (o !== e.target) o.value = v || defLabelOf(o.closest(".col-row"));
+      });
       saveCols(); renderBody();
     };
+    /* 幅と揃えは表ごと */
     cd.querySelector(".col-w").oninput = (e) => {
       const v = parseInt(e.target.value, 10);
-      if (Number.isFinite(v) && v >= 40) box().w = v; else delete ensureCols().items[key]?.w;
+      if (Number.isFinite(v) && v >= 40) box().w = v; else delete layoutOf(grp)[key]?.w;
       saveCols(); renderBody();
     };
     cd.querySelectorAll("[data-al]").forEach((b) => {
       b.onclick = () => {
-        const cur = colAlign({ key });
-        if (cur === b.dataset.al) delete ensureCols().items[key]?.align;
+        const cur = colAlign({ key }, grp);
+        if (cur === b.dataset.al) delete layoutOf(grp)[key]?.align;
         else box().align = b.dataset.al;
         cd.querySelectorAll("[data-al]").forEach((x) =>
-          x.classList.toggle("on", x.dataset.al === colAlign({ key })));
+          x.classList.toggle("on", x.dataset.al === colAlign({ key }, grp)));
         saveCols(); renderBody();
       };
     });
@@ -1921,8 +1917,8 @@ function bindResizers(root) {
         document.body.classList.remove("resizing");
         rz.classList.remove("dragging");
         const px = parseInt(col.style.width, 10);
-        const it = (ensureCols().items[rz.dataset.col] ||= {});
-        it.w = px;
+        const grp = table.dataset.grp || "rank";
+        (layoutOf(grp)[rz.dataset.col] ||= {}).w = px;
         saveCols();
         const inp = document.querySelector(`[data-colw="${rz.dataset.col}"]`);
         if (inp) inp.value = px;
@@ -1933,7 +1929,7 @@ function bindResizers(root) {
     // ダブルクリックで既定値に戻す
     rz.ondblclick = (e) => {
       e.stopPropagation();
-      delete ensureCols().items[rz.dataset.col];
+      delete layoutOf(rz.closest("table").dataset.grp || "rank")[rz.dataset.col];
       saveCols(); renderBody(); if (colModalOpen()) renderColModal();
     };
   });
@@ -2166,10 +2162,10 @@ function pickPanel(it) {
       <button class="btn btn-ghost btn-xs pick-close" data-rowclose="${esc(it.id)}">✕ 閉じる</button>
     </div>
 
-    ${alignStyle(cols, "table.pick-tbl:not(.added-tbl)")}
-    <div class="pick-tbl-wrap"><table class="pick-tbl" style="--pick-row-h:${pRowH()}px">
+    ${alignStyle(cols, "pick", "table.pick-tbl:not(.added-tbl)")}
+    <div class="pick-tbl-wrap"><table data-grp="pick" class="pick-tbl" style="--pick-row-h:${pRowH()}px">
       <colgroup>${cols.map((c) => {
-        const w = colWidth(c);
+        const w = colWidth(c, "pick");
         return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
       }).join("")}</colgroup>
       <thead><tr>${cols.map((c) => `<th class="${c.cls}">${esc(colLabel(c))}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("")}</tr></thead>
