@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T06:13:00.329Z",
+  "updatedAt": "2026-08-26T06:13:19.902Z",
   "labels": {
     "rival": [
       {
@@ -554,7 +554,7 @@
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/pet-supplies/2155362051",
           "urlRakuten": "https://ranking.rakuten.co.jp/daily/215391/",
-          "nameAmazon": "The most popular items in Cat Collars",
+          "nameAmazon": "猫用首輪の売れ筋ランキング",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-20",
@@ -606,7 +606,7 @@
             }
           ],
           "createdAt": "2026-08-20T06:29:00.631Z",
-          "updatedAt": "2026-08-26T05:20:12.998Z"
+          "updatedAt": "2026-08-26T06:13:15.244Z"
         }
       ]
     },
