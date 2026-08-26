@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.73.0";
+const VERSION   = "0.74.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -66,8 +66,9 @@ const catList = (key) => (SEC(key)?.cats || []).map((o) => ({
      rank  … amazon基準 / 楽天基準の一覧表（共通）
      added … 追加した商品の表
      pick  … 一覧の行を開いた「チェックした商品」の表 */
-const COL_GROUPS = ["rank", "added", "pick"];
-const colGroupOf = (key) => (isAdded(key) ? "added" : "rank");
+const COL_GROUPS = ["rank", "rivals", "added", "pick"];
+/* rank = amazonランキング + 楽天ランキング（共通） / rivals = 楽天ライバル（独立） */
+const colGroupOf = (key) => (isAdded(key) ? "added" : key === "rivals" ? "rivals" : "rank");
 function arrangeCols(defs, group, secKey) {
   const ord = ensureCols().order?.[group];
   let out = defs.slice();
@@ -79,7 +80,7 @@ function arrangeCols(defs, group, secKey) {
       .map((x) => x.c);
   }
   /* URL列だけは、そのタブの基準側を必ず先に置く（並びは2タブ共通なので、ここで入れ替える） */
-  if (group === "rank" && secKey) {
+  if ((group === "rank" || group === "rivals") && secKey) {
     const want = urlFieldsOf(secKey).map((f) => URL_COLS[f]?.key).filter(Boolean);
     const at = out.map((c, i) => (want.includes(c.key) ? i : -1)).filter((i) => i >= 0);
     if (at.length === 2 && out[at[0]].key !== want[0]) {
@@ -96,7 +97,9 @@ const colOff = (key, grp) => hideSet(grp).includes(key);
 /* 表示する列だけ。全部消すことはできない（最後の1列は残す） */
 const shownCols = (list, grp) => { const v = list.filter((c) => !colOff(c.key, grp)); return v.length ? v : list; };
 /* 非表示も含む全部（列管理モーダル用） */
-const allColsOf = (key) => (isAdded(key) ? arrangeCols(ADDED_COLS, "added") : arrangeCols(rankDefs(key), "rank", key));
+const allColsOf = (key) => (isAdded(key)
+  ? arrangeCols(ADDED_COLS, "added")
+  : arrangeCols(rankDefs(key), colGroupOf(key), key));
 const colsOf    = (key) => shownCols(allColsOf(key), colGroupOf(key));
 /* そのタブで使うURL項目と並び順 */
 const urlFieldsOf = (key) => SEC(key)?.urlFields || ["url"];
@@ -201,6 +204,13 @@ function normCols(raw) {
     const hid = raw?.hide?.[g];
     out.hide[g] = Array.isArray(hid)
       ? [...new Set(hid.filter((k) => typeof k === "string" && k).slice(0, 80))] : [];
+  }
+
+  /* v0.73.0以前は楽天ライバルも rank の設定を使っていた。初回だけ rank から写して見た目を保つ */
+  if (!raw?.order?.rivals && out.order.rank) out.order.rivals = [...out.order.rank];
+  if (!raw?.hide?.rivals && out.hide.rank.length) out.hide.rivals = [...out.hide.rank];
+  if (!raw?.layout?.rivals && Object.keys(out.layout.rank).length) {
+    out.layout.rivals = JSON.parse(JSON.stringify(out.layout.rank));
   }
 
   /* v0.62.0以前は items[列] に {label,w,align,off} をキー単位で持っていた。
@@ -1954,21 +1964,24 @@ function fitColumns() {
 
 /* 列管理モーダル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
 function renderColModal() {
-  /* グループ＝設定のまとまり。3つとも常に出す（どのタブからでも設定できるように）。
-     amazon基準/楽天基準は列キーが同じなので自動的に共通、
-     追加した商品（added）とチェックした商品（pick）はそれぞれ別に持つ。 */
+  /* グループ＝設定のまとまり。4つとも常に出す（どのタブからでも設定できるように）。
+     amazonランキングと楽天ランキングは列キーが同じなので共通、
+     楽天ライバル（rivals）・追加した商品（added）・チェックした商品（pick）はそれぞれ別に持つ。 */
   const added = isAdded(view);
-  const rankKey = added ? "amazon" : view;        // 一覧表の見本にするタブ
+  const rankKey = (view === "amazon" || view === "rakuten") ? view : "amazon";   // 一覧表の見本にするタブ
+  const pickKey = added ? "amazon" : view;
   const all = [
-    { grp: "rank",  ttl: "ランキング・ライバルの一覧表", note: "amazon / 楽天 / ライバルで共通",
+    { grp: "rank",  ttl: "amazonランキング / 楽天ランキング", note: "2つのタブで共通",
       which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf(rankKey) },
+    { grp: "rivals", ttl: "楽天ライバル", note: "このタブだけの設定",
+      which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf("rivals") },
     { grp: "pick",  ttl: "チェックした商品", note: "一覧の行を「N件表示」で開いた表",
-      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(rankKey) },
+      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(pickKey) },
     { grp: "added", ttl: "追加した商品", note: "「追加した商品」タブの表",
       which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allColsOf("products") },
   ];
   /* いま開いているタブの表を先頭に */
-  const mine = added ? "added" : "rank";
+  const mine = added ? "added" : colGroupOf(view);
   const groups = [...all].sort((x, y) => (y.grp === mine) - (x.grp === mine));
   for (const g of groups) if (g.grp === mine) g.now = true;
 
