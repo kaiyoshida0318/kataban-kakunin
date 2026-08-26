@@ -676,7 +676,7 @@ body.resizing *{cursor:col-resize !important}
 .day-rel{margin-left:9px;font-size:11px;font-weight:700;color:#fff;background:var(--sec,var(--accent));
   border-radius:999px;padding:2px 9px}
 .day-cnt{margin-left:8px;font-size:11px;color:var(--muted)}
-.added-tbl .td-src{font-size:11.5px;overflow:hidden}
+.added-tbl .td-src{font-size:11.5px}
 .added-tbl,.pick-tbl{table-layout:fixed}
 .pick-tbl .td-url a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -728,9 +728,9 @@ body.resizing *{cursor:col-resize !important}
 .src-side.sd-off{background-color:#e8f0fb;border:1px solid #c3d7f2;color:#1a55a6}
 .src-side.sd-def{background-color:var(--green-soft);border:1px solid #cbe6da;color:#22795a}
 .src-side.sd-riv{background-color:#f3ecfb;border:1px solid #ddc9f0;color:#6b3fa0}
+/* ジャンル名は途中で切らずに全部出す（v0.91.0）。段数ぶん行が伸びる */
 .src-name{
-  color:var(--muted);max-width:100%;overflow:hidden;overflow-wrap:anywhere;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--src-lines,2);
+  color:var(--muted);max-width:100%;overflow-wrap:anywhere;display:block;
 }
 .src-name:hover{color:var(--accent)}
 

@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.90.0";
+const VERSION   = "0.92.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1989,11 +1989,7 @@ function addedTable(rows) {
       </td></tr>` + g.list.map(addedRow).join("");
   }).join("");
 
-  /* 出所のジャンル名を何段まで見せるか。1行目の区分バッジ（約22px）と余白を引いた残り。
-     行の高さを上げれば段数が増える（一覧の --name-lines と同じ考え方） */
-  const srcLines = Math.max(1, Math.floor((pRowH() - 30) / 16));
-
-  return `${alignStyle(COLS, "added", "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table data-grp="added" class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px;--src-lines:${srcLines}">
+  return `${alignStyle(COLS, "added", "table.added-tbl", "tbody tr:not(.day-row)")}<div class="tbl-wrap"><table data-grp="added" class="grid-tbl pick-tbl added-tbl" style="--pick-row-h:${pRowH()}px">
     <colgroup>${cols}</colgroup>
     <thead><tr>${heads}</tr></thead>
     <tbody>${body}</tbody>
@@ -2008,7 +2004,7 @@ function addedRow(r) {
   const editing = editPicks.has(key);
 
   /* 出所は2行（1行目＝区分、2行目＝ジャンル名）。
-     ジャンル名は一覧と同じく breadcrumbHtml() で「>」ごとに改行する（v0.88.0） */
+     ジャンル名は一覧と同じく breadcrumbHtml() で「>」ごとに改行し、途中で切らずに全部出す（v0.91.0） */
   const srcCell = `<td class="td-src">
       ${side ? `<div><span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label.replace(/\n/g, " "))}</span></div>` : ""}
       ${it.name
@@ -2530,10 +2526,11 @@ function cntMix(picks) {
   return mix.sort((a, b) => ord(a) - ord(b));
 }
 
-/* linear-gradient の文字列。商品が無い / 全部ふつう なら空（既定の青のまま） */
+/* linear-gradient の文字列。商品が0件なら白、全部ふつうなら空（既定の青のまま） */
 function cntBg(picks) {
   const mix = cntMix(picks);
-  if (!mix.length || mix.every((m) => m.k === "plain")) return "";
+  if (!mix.length) return CNT_TONES[0].bg;          /* 0件＝白（v0.92.0） */
+  if (mix.every((m) => m.k === "plain")) return "";
   if (mix.length === 1) return mix[0].bg;
   const n = mix.length;
   return `linear-gradient(90deg,${mix.map((m, i) =>
