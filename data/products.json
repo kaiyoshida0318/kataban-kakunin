@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T03:23:33.657Z",
+  "updatedAt": "2026-08-26T03:26:35.690Z",
   "labels": {
     "rival": [
       {
@@ -416,6 +416,21 @@
     },
     "rakuten": {
       "items": [
+        {
+          "id": "itm_mpff4sc7s84",
+          "name": "楽天市場トップ  >  ランキングトップ  >  靴  >  靴ケア用品・アクセサリー  >  修理・補修用品",
+          "category": "未分類",
+          "image": "https://tshop.r10s.jp/eleplaza/cabinet/09412263/imgrc0085612137.jpg?fitin=128:128",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://ranking.rakuten.co.jp/weekly/216184/",
+          "checkNote": "",
+          "checkedAt": "2026-08-26",
+          "picks": [],
+          "createdAt": "2026-08-26T03:26:09.316Z",
+          "updatedAt": "2026-08-26T03:26:31.106Z",
+          "modes": {}
+        },
         {
           "id": "itm_z3q7p368bm7",
           "name": "楽天市場トップ  >  ランキングトップ  >  靴  >  靴ケア用品・アクセサリー  >  外反母趾サポート用品",
