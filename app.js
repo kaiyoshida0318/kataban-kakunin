@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.83.0";
+const VERSION   = "0.84.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -18,7 +18,7 @@ const URL_COLS = {
   url:        { key: "url",    label: "URL",        w: 240, cls: "c-url", field: "url"        },
 };
 /* ---------- 「追加した商品」ビューの列 ---------- */
-const ADDED_COLS = [
+const ADDED_STATIC = [
   { key: "a_src",   label: "出所",            w: 190, cls: "td-src"   },
   { key: "p_aimg",  label: "amazon画像",      w: 74,  cls: "td-img"   },
   { key: "p_rimg",  label: "楽天画像",        w: 74,  cls: "td-img"   },
@@ -26,13 +26,12 @@ const ADDED_COLS = [
   { key: "p_aurl",  label: "amazonURL",       w: 0,   cls: "td-url"   },
   { key: "p_rurl",  label: "楽天URL",         w: 0,   cls: "td-url"   },
   { key: "a_sales", label: "30日販売数",      w: 106, cls: "td-sales" },
-  { key: "a_check", label: "隙あり/なし",      w: 108, cls: "td-st"    },
-  { key: "a_rival", label: "楽天ライバル状況", w: 130, cls: "td-rival" },
-  { key: "a_qual",  label: "商品品質",         w: 104, cls: "td-rival" },
-  { key: "a_buy",   label: "買付",            w: 92,  cls: "td-st"    },
+  { key: "@st" },                                   // ここに項目のぶんが入る
   { key: "a_edit",  label: "編集",            w: 70,  cls: "td-edit"  },
   { key: "a_act",   label: "操作",            w: 68,  cls: "td-acts"  },
 ];
+const ADDED_COLS_OF = () =>
+  ADDED_STATIC.flatMap((c) => (c.key === "@st" ? stCols("added") : [c]));
 const isAdded = (key) => SEC(key)?.kind === "added";
 
 /* ---------- 一覧表の列（そのタブのURL列を挟み込む） ---------- */
@@ -103,7 +102,7 @@ const colOff = (key, grp) => hideSet(grp).includes(key);
 const shownCols = (list, grp) => { const v = list.filter((c) => !colOff(c.key, grp)); return v.length ? v : list; };
 /* 非表示も含む全部（列管理モーダル用） */
 const allColsOf = (key) => (isAdded(key)
-  ? arrangeCols(ADDED_COLS, "added")
+  ? arrangeCols(ADDED_COLS_OF(), "added")
   : arrangeCols(rankDefs(key), colGroupOf(key), key));
 const colsOf    = (key) => shownCols(allColsOf(key), colGroupOf(key));
 /* そのタブで使うURL項目と並び順 */
@@ -135,13 +134,16 @@ function pickDefs(sectionKey) {
     { key: od.urlCol, label: `${od.label}URL`,      w: 0,   cls: "td-url"   },
     { key: "a_sales", label: "30日販売数",          w: 106, cls: "td-sales" },
     { key: "p_edit",  label: "編集",                w: 74,  cls: "td-edit"  },
-    { key: "p_check", label: "隙あり/なし",        w: 108, cls: "td-st"    },
-    { key: "a_rival", label: "楽天ライバル状況",    w: 130, cls: "td-rival" },
-    { key: "a_qual",  label: "商品品質",            w: 104, cls: "td-rival" },
-    { key: "p_buy",   label: "買付",                w: 96,  cls: "td-st"    },
+    ...stCols("pick"),
     { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
   ];
 }
+/* ドロップダウン項目の列。項目管理で足したぶんもここに出る */
+const ST_COL_W = { rival: 130, quality: 104, check: 108, buy: 96 };
+const stCols = (where) => stFields().map((f) => ({
+  key: fieldCol(f.key, where), label: f.title, w: ST_COL_W[f.key] || 112,
+  cls: (ST_COL_W[f.key] || 112) > 110 ? "td-rival" : "td-st", field: f.key,
+}));
 const allPickColsOf = (key) => arrangeCols(pickDefs(key), pickGroupOf(key), key);
 const pickColsOf    = (key) => shownCols(allPickColsOf(key), pickGroupOf(key));
 
@@ -328,7 +330,8 @@ const SWATCHES = [
 ];
 const SWATCH_OK = (c) => SWATCHES.some((x) => x.c === c);
 
-const ST_FIELDS = [
+/* 商品行のドロップダウン項目。既定の4つ。ユーザーは列管理の「項目管理」で増減できる */
+const ST_DEFAULT_FIELDS = [
   { key: "rival", title: "楽天ライバル状況", cols: ["a_rival"], opts: [
     { v: "",      label: "未調査",       color: "gray"  },
     { v: "few",   label: "少数",         color: "blue"  },
@@ -351,18 +354,52 @@ const ST_FIELDS = [
     { v: "skip",   label: "スキップ", color: "purple" },
   ] },
 ];
-const ST_DEF = (key) => ST_FIELDS.find((f) => f.key === key);
-/* 見出しは「列管理」で付けた項目名に合わせる（a_check と p_check は lk が同じ＝同じ名前） */
+const ST_DEFAULT = (key) => ST_DEFAULT_FIELDS.find((f) => f.key === key);
+
+/* ---------- 項目そのものの増減（data.fields） ----------
+   既定の4つは列キーが決まっている（既存の設定を壊さないため）。
+   増やした項目は added / pick どちらの表でも `st_<key>` を使う。 */
+const FIELD_COLS = {
+  rival:   { added: "a_rival", pick: "a_rival" },
+  quality: { added: "a_qual",  pick: "a_qual"  },
+  check:   { added: "a_check", pick: "p_check" },
+  buy:     { added: "a_buy",   pick: "p_buy"   },
+};
+const fieldCol = (key, where) => FIELD_COLS[key]?.[where] || ("st_" + key);
+/* 商品に値をどこへ持つか。既定の4つは今まで通り直下、増やしたぶんは st の中 */
+const BUILTIN_VAL = { check: "check", buy: "buy", rival: "rival", quality: "quality" };
+const pickVal = (p, key) => String((BUILTIN_VAL[key] ? p?.[BUILTIN_VAL[key]] : p?.st?.[key]) ?? "");
+function setPickVal(p, key, v) {
+  if (BUILTIN_VAL[key]) p[BUILTIN_VAL[key]] = v;
+  else (p.st ||= {})[key] = v;
+}
+function ensureFields() {
+  if (!Array.isArray(data.fields) || !data.fields.length) {
+    data.fields = ST_DEFAULT_FIELDS.map((f) => ({ key: f.key, title: f.title }));
+  }
+  return data.fields;
+}
+const stFields = () => ensureFields();
+const ST_DEF = (key) => ensureFields().find((f) => f.key === key) || ST_DEFAULT(key);
+const hasField = (key) => ensureFields().some((f) => f.key === key);
+const newFieldKey = () => "f_" + Math.random().toString(36).slice(2, 7);
+
+/* 見出しは「列管理」で付けた項目名に合わせる（両方の表で同じ lk なので名前は共通） */
 function stTitle(key) {
   const f = ST_DEF(key);
-  return colLabelOf((f.cols || [])[0] || "") || f.title;
+  return colLabelOf(fieldCol(key, "added")) || f?.title || "項目";
 }
 const newOptVal = () => "o_" + Math.random().toString(36).slice(2, 8);
 
 /* 設定（data.labels）を反映した選択肢を返す */
+const NEW_FIELD_OPTS = [
+  { v: "", label: "未設定", color: "gray" },
+  { v: "ok", label: "○", color: "green" },
+  { v: "ng", label: "×", color: "red" },
+];
 function stList(key) {
   const saved = data?.labels?.[key];
-  const src = Array.isArray(saved) && saved.length ? saved : ST_DEF(key).opts;
+  const src = Array.isArray(saved) && saved.length ? saved : (ST_DEFAULT(key)?.opts || NEW_FIELD_OPTS);
   return src.map((o) => ({
     v: String(o.v ?? ""),
     label: o.label || "(未設定)",
@@ -380,25 +417,26 @@ const LEGACY_CHECK = ["確認前", "確認後", "スキップ"];
 function upgradeLabels(labels) {
   const c = labels.check;
   if (Array.isArray(c) && c.length === 3 && c.every((o, i) => o.label === LEGACY_CHECK[i])) {
-    labels.check = ST_DEF("check").opts.map((o) => ({ ...o }));
+    labels.check = ST_DEFAULT("check").opts.map((o) => ({ ...o }));
   }
   return labels;
 }
 
 /* 既にきちんとした形なら作り直さない（同じ配列を返し続ける） */
 function ensureLabels() {
-  const ok = data.labels && ST_FIELDS.every((f) =>
+  const ok = data.labels && stFields().every((f) =>
     Array.isArray(data.labels[f.key]) && data.labels[f.key].length);
-  if (!ok) data.labels = normLabels(data.labels);
+  if (!ok) data.labels = normLabels(data.labels, stFields());
   return data.labels;
 }
 
 /* 保存用に整える。項目の増減・並べ替えができるので中身は自由 */
-function normLabels(raw) {
+function normLabels(raw, fields) {
   const out = {};
-  for (const f of ST_FIELDS) {
+  for (const f of (fields || ST_DEFAULT_FIELDS)) {
+    const def = ST_DEFAULT(f.key)?.opts || NEW_FIELD_OPTS;
     const saved = Array.isArray(raw?.[f.key]) ? raw[f.key] : null;
-    const src = saved && saved.length ? saved : f.opts;
+    const src = saved && saved.length ? saved : def;
     const list = src
       .filter((o) => o && typeof o === "object")
       .map((o) => ({
@@ -407,7 +445,7 @@ function normLabels(raw) {
         color: SWATCH_OK(o.color) ? o.color : "gray",
       }))
       .filter((o, i, a) => a.findIndex((x) => x.v === o.v) === i);   // 値の重複は落とす
-    out[f.key] = list.length ? list : f.opts.map((o) => ({ ...o }));
+    out[f.key] = list.length ? list : def.map((o) => ({ ...o }));
   }
   return out;
 }
@@ -1053,13 +1091,19 @@ function emptyData() {
   return {
     version: 3,
     updatedAt: "",
-    labels: normLabels(null),
+    fields: normFields(null),
+    labels: normLabels(null, null),
     cols: normCols(null),
     sections: Object.fromEntries(SECTIONS.map((s) => [s.key, { items: [] }])),
   };
 }
 const itemsOf = (key) => (data.sections[key] ||= { items: [] }).items;
 
+const normSt = (o) => {
+  const out = {};
+  for (const [k, v] of Object.entries(o || {})) if (v != null) out[String(k).slice(0, 24)] = String(v).slice(0, 40);
+  return out;
+};
 function normRank(it) {
   return {
     id:        it.id || uid(),
@@ -1090,6 +1134,7 @@ function normRank(it) {
         sales30: p.sales30 == null ? "" : String(p.sales30),      // 30日販売数（自由入力）
         rival:   String(p.rival ?? ""),
         quality: String(p.quality ?? ""),
+        st:      normSt(p.st),                     // 増やした項目の値
       })),
     createdAt: it.createdAt || nowIso(),
     updatedAt: it.updatedAt || it.createdAt || nowIso(),
@@ -1138,7 +1183,8 @@ function migrateUrl(x, fields) {
 function normalize(d) {
   const out = emptyData();
   out.updatedAt = d?.updatedAt || "";
-  out.labels = upgradeLabels(normLabels(d?.labels));
+  out.fields = normFields(d?.fields);
+  out.labels = upgradeLabels(normLabels(d?.labels, out.fields));
   out.cols   = normCols(d?.cols);
   const s = d?.sections || {};
   // v1（items が直下）からの移行
@@ -1159,13 +1205,23 @@ function normalize(d) {
 }
 
 /* 選択肢が消された場合、その値を使っている商品を先頭の選択肢に寄せる */
+/* 項目そのもの（並び・名前）の保存用 */
+function normFields(raw) {
+  const list = (Array.isArray(raw) ? raw : ST_DEFAULT_FIELDS)
+    .filter((f) => f && typeof f === "object" && f.key)
+    .map((f) => ({ key: String(f.key).slice(0, 24), title: String(f.title || "").slice(0, 24) || "項目" }))
+    .filter((f, i, a) => a.findIndex((x) => x.key === f.key) === i)
+    .slice(0, 20);
+  return list;
+}
+
 function reconcileLabels(d) {
-  for (const f of ST_FIELDS) {
+  for (const f of (d.fields || ST_DEFAULT_FIELDS)) {
     const ok = new Set((d.labels[f.key] || []).map((o) => o.v));
     const first = (d.labels[f.key] || [{ v: "" }])[0].v;
     for (const sec of Object.values(d.sections)) {
       for (const it of sec.items) {
-        for (const p of it.picks) if (!ok.has(p[f.key])) p[f.key] = first;
+        for (const p of it.picks) if (!ok.has(pickVal(p, f.key))) setPickVal(p, f.key, first);
       }
     }
   }
@@ -1323,14 +1379,14 @@ function renderSecBand() {
   if (s.kind === "added") {
     const rows = allPicks();
     const chip = (field, o) => {
-      const n = rows.filter((r) => r.p[field] === o.v).length;
+      const n = rows.filter((r) => pickVal(r.p, field) === o.v).length;
       return n ? `<span class="sec-chip ${o.cls}">${esc(o.label)} <b>${n}</b></span>` : "";
     };
     const today0 = rows.filter((r) => r.p.addedAt === today()).length;
     band.innerHTML = pill +
       `<span class="sec-stat">今日 <b>${today0}</b> 件 / 全 <b>${rows.length}</b> 件</span>` +
-      `<span class="sec-chips">${stList("check").map((o) => chip("check", o)).join("")}</span>` +
-      `<span class="sec-chips">${stList("buy").map((o) => chip("buy", o)).join("")}</span>`;
+      (hasField("check") ? `<span class="sec-chips">${stList("check").map((o) => chip("check", o)).join("")}</span>` : "") +
+      (hasField("buy") ? `<span class="sec-chips">${stList("buy").map((o) => chip("buy", o)).join("")}</span>` : "");
     return;
   }
   const n = itemsOf(view).length;
@@ -1726,9 +1782,9 @@ function renderBody() {
         [sd.img]: image,
         [od.url]: url2,
         [od.img]: val(".pick-image2"),
-        sales30: val(".pick-sales"), rival: stFirst("rival"), quality: stFirst("quality"),
-        check:   stFirst("check"),
-        buy:     stFirst("buy"),
+        sales30: val(".pick-sales"),
+        ...Object.fromEntries(Object.values(BUILTIN_VAL).map((k) => [k, stFirst(k)])),
+        st: Object.fromEntries(stFields().filter((f) => !BUILTIN_VAL[f.key]).map((f) => [f.key, stFirst(f.key)])),
       });
       it.updatedAt = nowIso();
       const sec = view;
@@ -1774,10 +1830,10 @@ function renderBody() {
       const at0 = locatePick(`${id}|${pid}`);
       if (!at0) return;
       const list = stList(field);
-      openStMenu(btn, list, at0.p[field], (v) => {
+      openStMenu(btn, list, pickVal(at0.p, field), (v) => {
         const at = locatePick(`${id}|${pid}`);
         if (!at) return;
-        at.p[field] = v;
+        setPickVal(at.p, field, v);
         at.it.updatedAt = nowIso();
         persistLocal(); markDirty(true);
         const cur = list.find((o) => o.v === v) || list[0];
@@ -1956,10 +2012,6 @@ function addedRow(r) {
   const imgCell = (sd) =>
     `<td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>`;
   const urlCell = (sd) => `<td class="td-url">${urlCellHtml(p, sd.url, 52)}</td>`;
-  const stCell = (field, cls) => {
-    const list = stList(field);
-    return `<td class="${cls}">${stButton(list, p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
-  };
 
   /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
   const cells = editing ? {
@@ -1970,10 +2022,7 @@ function addedRow(r) {
     p_aurl:  urlEditCell(p, "urlAmazon", "amazonURL"),
     p_rurl:  urlEditCell(p, "urlRakuten", "楽天URL"),
     a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
-    a_check: stCell("check", "td-st"),
-    a_rival: stCell("rival", "td-rival"),
-    a_qual:  stCell("quality", "td-rival"),
-    a_buy:   stCell("buy", "td-st"),
+    ...stCellsFor(p, it.id, "added"),
     a_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
     a_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
   } : {
@@ -1987,10 +2036,7 @@ function addedRow(r) {
       <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
              data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
     </td>`,
-    a_check: stCell("check", "td-st"),
-    a_rival: stCell("rival", "td-rival"),
-    a_qual:  stCell("quality", "td-rival"),
-    a_buy:   stCell("buy", "td-st"),
+    ...stCellsFor(p, it.id, "added"),
     a_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
     a_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
   };
@@ -1999,8 +2045,9 @@ function addedRow(r) {
 
   if (editing) return `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`;
 
-  const chkColor = (stList("check").find((o) => o.v === p.check) || {}).color || "gray";
-  const done = p.buy !== stFirst("buy");        // 買付の判断が済んだ行は落ち着かせる
+  const chkColor = hasField("check")
+    ? ((stList("check").find((o) => o.v === pickVal(p, "check")) || {}).color || "gray") : "gray";
+  const done = hasField("buy") && pickVal(p, "buy") !== stFirst("buy");   // 買付が済んだ行は落ち着かせる
   return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}">${tds}</tr>`;
 }
 
@@ -2073,12 +2120,24 @@ function renderColModal() {
     }).join("");
   $("colTabs").innerHTML =
     `<div class="col-tabs-row">${`<span class="col-tabs-ttl">■ 項目管理</span>` +
-      ST_FIELDS.map((f) => tab("lab_" + f.key, stTitle(f.key), false)).join("")}</div>` +
+      stFields().map((f) => tab("lab_" + f.key, stTitle(f.key), false)).join("") +
+      `<button type="button" class="col-tab col-tab-add" id="btnFieldAdd" title="項目を増やす">＋ 項目</button>`}</div>` +
     `<div class="col-tabs-row">${tabRow("■ ランキング", ["amazon", "rakuten", "rivals", "added"])}</div>` +
     `<div class="col-tabs-row">${tabRow("■ 展開部分", ROAM_KEYS.map((k) => "pick_" + k))}</div>`;
   $("colTabs").querySelectorAll("[data-ctab]").forEach((b) => {
     b.onclick = () => { colTab = b.dataset.ctab; colLabShown = ""; renderColModal(); };
   });
+
+  /* 項目を増やす */
+  $("btnFieldAdd").onclick = () => {
+    const f = { key: newFieldKey(), title: "新しい項目" };
+    stFields().push(f);
+    ensureLabels()[f.key] = NEW_FIELD_OPTS.map((o) => ({ ...o }));
+    persistLocal(); markDirty(true);
+    colTab = "lab_" + f.key; colLabShown = "";
+    renderBody(); renderColModal();
+    toast("項目を追加しました");
+  };
 
   /* 項目管理：選択肢の文言と色をここで編集する（設定の🏷ラベルと同じもの） */
   if (isLab) {
@@ -2206,6 +2265,12 @@ function renderColModal() {
       $("colModalBody").querySelectorAll(`.col-row[data-lk="${lk}"] .col-name`).forEach((o) => {
         if (o !== e.target) o.value = v || defLabelOf(o.closest(".col-row"));
       });
+      /* ドロップダウン項目の列なら、上の「項目管理」タブの名前も直す */
+      const fk = stFields().find((f) => fieldCol(f.key, "added") === key || fieldCol(f.key, "pick") === key)?.key;
+      if (fk) {
+        const t = $("colTabs").querySelector(`[data-ctab="lab_${fk}"]`);
+        if (t) t.textContent = stTitle(fk);
+      }
       saveCols(); renderBody();
     };
     /* 幅と揃えは表ごと */
@@ -2409,6 +2474,16 @@ function thumbTag(src, cls, id) {
 }
 
 /* サムネ1枚。side は "amazon" / "rakuten" */
+/* 商品1件ぶんの「項目」のセル。列キー → セル で返す */
+function stCellsFor(p, itemId, where) {
+  const out = {};
+  for (const c of stCols(where)) {
+    out[c.key] = `<td class="${c.cls}">${stButton(stList(c.field), pickVal(p, c.field),
+      `data-pickstatus="${esc(itemId)}|${esc(p.id)}|${esc(c.field)}"`)}</td>`;
+  }
+  return out;
+}
+
 function pickThumb(itemId, p, side) {
   const sd = PSIDE(side);
   const key = `${itemId}|${p.id}|${sd.k}`;
@@ -2437,8 +2512,6 @@ function pickPanel(it) {
     .map((p) => {
       const key = `${it.id}|${p.id}`;
       const editing = editPicks.has(key);
-      const stCell = (field, cls = "td-st") =>
-        `<td class="${cls}">${stButton(stList(field), p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
       const imgCell = (x) =>
         `<td class="td-img" data-pickimg="${esc(key)}|${x.k}">${pickThumb(it.id, p, x.k)}</td>`;
       const urlCell = (x) => `<td class="td-url">${urlCellHtml(p, x.url, 62)}</td>`;
@@ -2456,10 +2529,7 @@ function pickPanel(it) {
         [od.urlCol]: urlEdit(od),
         a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
         p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
-        p_check: stCell("check"),
-        a_rival: stCell("rival", "td-rival"),
-        a_qual:  stCell("quality", "td-rival"),
-        p_buy:   stCell("buy"),
+        ...stCellsFor(p, it.id, "pick"),
         p_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
       } : {
         p_date:  `<td class="td-date">${esc(p.addedAt || "—")}</td>`,
@@ -2473,10 +2543,7 @@ function pickPanel(it) {
                  data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
         </td>`,
         p_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
-        p_check: stCell("check"),
-        a_rival: stCell("rival", "td-rival"),
-        a_qual:  stCell("quality", "td-rival"),
-        p_buy:   stCell("buy"),
+        ...stCellsFor(p, it.id, "pick"),
         p_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
       };
       const tds = cols.map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
@@ -2954,10 +3021,12 @@ function renderLabelEditor(boxId = "labEditor", only = "") {
   const L = ensureLabels;
   const box = $(boxId);
 
-  box.innerHTML = ST_FIELDS.filter((f) => !only || f.key === only).map((f) => {
+  box.innerHTML = stFields().filter((f) => !only || f.key === only).map((f) => {
     const list = stList(f.key);
     return `<div class="lab-grp" data-grp="${esc(f.key)}">
-      <p class="cfg-sec-ttl">${esc(stTitle(f.key))}</p>
+      <p class="cfg-sec-ttl">${esc(stTitle(f.key))}${only ? `
+        <span class="grow"></span>
+        <button type="button" class="btn btn-ghost btn-xs btn-danger" data-fdel="${esc(f.key)}">この項目を削除</button>` : ""}</p>
       ${list.map((o, i) => `
         <div class="lab-row" data-lab="${esc(f.key)}|${esc(o.v)}">
           <span class="lab-move">
@@ -3018,7 +3087,7 @@ function renderLabelEditor(boxId = "labEditor", only = "") {
       const { arr, i } = at();
       if (i < 0) return;
       if (arr.length < 2) { toast("選択肢は1つ以上必要です", true); return; }
-      const used = allPicks().filter((r) => r.p[key] === v).length;
+      const used = allPicks().filter((r) => pickVal(r.p, key) === v).length;
       const name = arr[i].label;
       const moveTo = (arr[0].v === v ? arr[1] : arr[0]).label;
       if (!confirm(used
@@ -3028,6 +3097,27 @@ function renderLabelEditor(boxId = "labEditor", only = "") {
       reconcileLabels(data);
       commit(true);
       toast(used ? `削除しました（商品 ${used} 件を付け替え）` : "削除しました");
+    };
+  });
+
+  box.querySelectorAll("[data-fdel]").forEach((b) => {
+    b.onclick = () => {
+      const key = b.dataset.fdel;
+      const name = stTitle(key);
+      const used = allPicks().filter((r) => {
+        const v = pickVal(r.p, key);
+        return v && v !== (stList(key)[0]?.v ?? "");
+      }).length;
+      if (!confirm(`項目「${name}」を消します。表からこの列が無くなります` +
+        (used ? `（${used} 件に付いている値は残りますが見えなくなります）` : "") + "。よろしいですか？")) return;
+      data.fields = stFields().filter((f) => f.key !== key);
+      delete data.labels[key];
+      persistLocal(); markDirty(true);
+      colTab = "lab_" + (stFields()[0]?.key || "");
+      if (!stFields().length) colTab = "amazon";
+      colLabShown = "";
+      renderBody(); renderColModal();
+      toast(`「${name}」を消しました`);
     };
   });
 
