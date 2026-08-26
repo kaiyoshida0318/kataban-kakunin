@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:09:28.744Z",
+  "updatedAt": "2026-08-26T05:09:37.580Z",
   "labels": {
     "rival": [
       {
@@ -337,13 +337,13 @@
         },
         {
           "id": "itm_d19g7p56jye",
-          "name": "スマートウォッチ交換ベルトの売れ筋ランキング",
+          "name": "",
           "category": "スマートウォッチアクセサリ",
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71hHfQpD8EL._AC_UL600_SR600,400_.jpg",
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/18195127051/ref=zg_bs_nav_electronics_4_14616561051",
           "urlRakuten": "https://ranking.rakuten.co.jp/daily/568380/",
-          "nameAmazon": "",
+          "nameAmazon": "スマートウォッチ交換ベルトの売れ筋ランキング",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-19",
@@ -365,7 +365,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
-          "updatedAt": "2026-08-20T09:25:38.492Z"
+          "updatedAt": "2026-08-26T05:09:33.063Z"
         },
         {
           "id": "itm_c0u7ctd2eau",
