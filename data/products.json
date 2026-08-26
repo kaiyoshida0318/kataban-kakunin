@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T05:10:41.885Z",
+  "updatedAt": "2026-08-26T05:10:51.825Z",
   "labels": {
     "rival": [
       {
@@ -337,7 +337,7 @@
         },
         {
           "id": "itm_d19g7p56jye",
-          "name": "",
+          "name": "スマートフォン・タブレット > スマートウォッチアクセサリー",
           "category": "スマートウォッチアクセサリ",
           "image": "https://images-fe.ssl-images-amazon.com/images/I/71hHfQpD8EL._AC_UL600_SR600,400_.jpg",
           "url": "",
@@ -365,7 +365,7 @@
             }
           ],
           "createdAt": "2026-08-19T02:59:30.566Z",
-          "updatedAt": "2026-08-26T05:09:33.063Z"
+          "updatedAt": "2026-08-26T05:10:47.331Z"
         },
         {
           "id": "itm_c0u7ctd2eau",
