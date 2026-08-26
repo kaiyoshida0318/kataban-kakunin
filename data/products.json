@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T07:39:22.956Z",
+  "updatedAt": "2026-08-26T07:44:20.316Z",
   "fields": [
     {
       "key": "rival",
@@ -756,6 +756,22 @@
     },
     "rivals": {
       "items": [
+        {
+          "id": "itm_xwroabkf6ox",
+          "name": "コペルスタイル R",
+          "category": "",
+          "image": "https://thumbnail.image.rakuten.co.jp/@0_mall/copelstyler/logo/logo1.jpg?_ex=128x128",
+          "url": "",
+          "urlAmazon": "",
+          "urlRakuten": "https://item.rakuten.co.jp/copelstyler/gb-09/",
+          "checkNote": "",
+          "checkedAt": "2026-08-26",
+          "picks": [],
+          "createdAt": "2026-08-26T07:43:51.201Z",
+          "updatedAt": "2026-08-26T07:44:15.756Z",
+          "modes": {},
+          "nameAmazon": ""
+        },
         {
           "id": "itm_7ah1fntlc4x",
           "name": "ShotR 楽天市場店",
