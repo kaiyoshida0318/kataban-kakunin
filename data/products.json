@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T07:46:44.707Z",
+  "updatedAt": "2026-08-26T07:53:37.602Z",
   "fields": [
     {
       "key": "rival",
@@ -389,6 +389,22 @@
   "sections": {
     "amazon": {
       "items": [
+        {
+          "id": "itm_5czjtwnqio5",
+          "name": "",
+          "category": "",
+          "image": "https://images-fe.ssl-images-amazon.com/images/I/616rgsux9KL._AC_UL600_SR600,400_.jpg",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/electronics/85405051/ref=zg_bs_nav_electronics_2_2285140051",
+          "urlRakuten": "",
+          "checkNote": "",
+          "checkedAt": "2026-08-26",
+          "picks": [],
+          "createdAt": "2026-08-26T07:52:39.941Z",
+          "updatedAt": "2026-08-26T07:53:33.022Z",
+          "modes": {},
+          "nameAmazon": "イヤーピースの売れ筋ランキング"
+        },
         {
           "id": "itm_f8u59p96341",
           "name": "スマートフォン・タブレット > スマートウォッチアクセサリー",
