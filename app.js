@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.66.0";
+const VERSION   = "0.68.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -225,6 +225,7 @@ const SECTIONS = [
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "Amazon側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlAmazon", "urlRakuten"], side: "offense",
+    catLabel: "カテゴリー名",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "amazonランキングで見るジャンルを登録しておくと、AmazonとURLの対になる楽天ページを一発で開けます。" },
@@ -232,6 +233,7 @@ const SECTIONS = [
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
     desc: "楽天側を起点に、決まったランキングを見て回る場所。気になった商品は各行の「＋ 商品」から拾う。",
     defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "defense",
+    catLabel: "カテゴリー名",
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天ランキングで見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
@@ -504,6 +506,37 @@ function canonicalUrl(url) {
 const isRakutenUrl = (url) => {
   try { return /(^|\.)rakuten\.co\.jp$/i.test(new URL(url).hostname); } catch { return false; }
 };
+/* ---------- URL欄を「URL」で扱うか「文字」で扱うか ----------
+   楽天/AmazonのURL欄には、URLではなく覚え書きを書きたいことがある。
+   modes[項目] === "text" のときはリンクにせず、そのまま文字として出す。 */
+const URL_MODE_FIELDS = ["url", "urlAmazon", "urlRakuten"];
+const normModes = (m) => {
+  const out = {};
+  for (const f of URL_MODE_FIELDS) if (m?.[f] === "text") out[f] = "text";
+  return out;
+};
+const isTextMode = (o, field) => o?.modes?.[field] === "text";
+function setUrlMode(o, field, mode) {
+  o.modes = o.modes || {};
+  if (mode === "text") o.modes[field] = "text"; else delete o.modes[field];
+}
+/* URL / 文字 の切り替え（右端の小さなボタン） */
+const modeToggle = (attr, text) => `<span class="url-mode">
+    <button type="button" class="${text ? "on" : ""}" ${attr} data-mode="text" title="文字として扱う">文字</button>
+    <button type="button" class="${text ? "" : "on"}" ${attr} data-mode="url" title="URLとして扱う">URL</button>
+  </span>`;
+/* セルの中身（左に値・右に切り替え） */
+function urlCellHtml(o, field, cut, attr) {
+  const v = o[field] || "";
+  const text = isTextMode(o, field);
+  const main = !v
+    ? '<span class="dash">—</span>'
+    : text
+      ? `<span class="url-plain" title="${esc(v)}">${esc(v)}</span>`
+      : `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, cut))}</a>${dupTag(v)}`;
+  return `<div class="url-cell"><span class="url-main">${main}</span>${modeToggle(attr, text)}</div>`;
+}
+
 /* ---------- 同じURLが他にも入っていないか ----------
    AmazonはASIN、それ以外はホスト+パスで同じものと見なす（www・末尾スラッシュ・?以降は無視）。 */
 function urlKey(u) {
@@ -524,8 +557,8 @@ function buildUrlIndex() {
   for (const sec of SECTIONS) {
     if (sec.kind === "added") continue;                 // 追加した商品は他タブの商品の写し
     for (const it of itemsOf(sec.key)) {
-      add(it.url); add(it.urlAmazon); add(it.urlRakuten);
-      for (const p of it.picks) { add(p.url); add(p.urlAmazon); add(p.urlRakuten); }
+      for (const f of URL_MODE_FIELDS) if (!isTextMode(it, f)) add(it[f]);
+      for (const p of it.picks) for (const f of URL_MODE_FIELDS) if (!isTextMode(p, f)) add(p[f]);
     }
   }
   urlCount = m;
@@ -880,6 +913,7 @@ function normRank(it) {
     url:       it.url || "",
     urlAmazon: it.urlAmazon || "",        // Amazon側のURL
     urlRakuten: it.urlRakuten || "",      // 楽天側のURL
+    modes:     normModes(it.modes),         // URL欄を文字として扱うか
     checkNote: it.checkNote || "",          // 確認内容
     checkedAt: ymd(it.checkedAt) || "",     // 最終確認日 (YYYY-MM-DD)
     picks: (Array.isArray(it.picks) ? it.picks : [])
@@ -890,6 +924,7 @@ function normRank(it) {
         urlRakuten:   p.urlRakuten || "",
         imageAmazon:  p.imageAmazon || "",
         imageRakuten: p.imageRakuten || "",
+        modes:   normModes(p.modes),               // URL欄を文字として扱うか
         image:   p.image || "",                    // 旧形式（移行に使う）
         url:     p.url || "",                      // 同上
         title:   p.title || p.note || p.name || "", // 商品名（旧 note / name から移行）
@@ -1403,6 +1438,27 @@ function renderBody() {
       moveRow(id, dir === "up" ? -1 : 1);
     };
   });
+  // URL / 文字 の切り替え
+  root.querySelectorAll("[data-urlmode]").forEach((b) => {
+    b.onclick = () => {
+      const [id, field] = b.dataset.urlmode.split("|");
+      const it = itemsOf(view).find((i) => i.id === id);
+      if (!it || isTextMode(it, field) === (b.dataset.mode === "text")) return;
+      setUrlMode(it, field, b.dataset.mode);
+      it.updatedAt = nowIso();
+      upsert(view, it);
+    };
+  });
+  root.querySelectorAll("[data-pickurlmode]").forEach((b) => {
+    b.onclick = () => {
+      const [id, pid, field] = b.dataset.pickurlmode.split("|");
+      const at = locatePick(`${id}|${pid}`);
+      if (!at || isTextMode(at.p, field) === (b.dataset.mode === "text")) return;
+      setUrlMode(at.p, field, b.dataset.mode);
+      at.it.updatedAt = nowIso();
+      upsert(at.sec, at.it);
+    };
+  });
   // 大カテゴリ（決まった選択肢のタブ）
   root.querySelectorAll("[data-cat]").forEach((btn) => {
     btn.onclick = () => {
@@ -1729,12 +1785,8 @@ function addedRow(r) {
 
   const imgCell = (sd) =>
     `<td class="td-img" data-pickimg="${esc(key)}|${sd.k}">${pickThumb(it.id, p, sd.k)}</td>`;
-  const urlCell = (sd) => {
-    const v = p[sd.url];
-    return `<td class="td-url">${v
-      ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 52))}</a>${dupTag(v)}`
-      : '<span class="dash">—</span>'}</td>`;
-  };
+  const urlCell = (sd) =>
+    `<td class="td-url">${urlCellHtml(p, sd.url, 52, `data-pickurlmode="${esc(it.id)}|${esc(p.id)}|${esc(sd.url)}"`)}</td>`;
   const stCell = (field, cls) => {
     const list = stList(field);
     return `<td class="${cls}">${stButton(list, p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
@@ -1746,8 +1798,8 @@ function addedRow(r) {
     p_aimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="imageAmazon" value="${esc(p.imageAmazon)}" placeholder="amazon画像"></td>`,
     p_rimg:  `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="imageRakuten" value="${esc(p.imageRakuten)}" placeholder="楽天画像"></td>`,
     a_title: `<td class="td-title"><input class="input-sm pe-title" type="text" data-pf="title" value="${esc(p.title)}" placeholder="商品名"></td>`,
-    p_aurl:  `<td class="td-url"><input class="input-sm pe-url" type="url" data-pf="urlAmazon" value="${esc(p.urlAmazon)}" placeholder="amazonURL"></td>`,
-    p_rurl:  `<td class="td-url"><input class="input-sm pe-url" type="url" data-pf="urlRakuten" value="${esc(p.urlRakuten)}" placeholder="楽天URL"></td>`,
+    p_aurl:  `<td class="td-url"><input class="input-sm pe-url" type="${isTextMode(p, "urlAmazon") ? "text" : "url"}" data-pf="urlAmazon" value="${esc(p.urlAmazon)}" placeholder="${isTextMode(p, "urlAmazon") ? "文字" : "amazonURL"}"></td>`,
+    p_rurl:  `<td class="td-url"><input class="input-sm pe-url" type="${isTextMode(p, "urlRakuten") ? "text" : "url"}" data-pf="urlRakuten" value="${esc(p.urlRakuten)}" placeholder="${isTextMode(p, "urlRakuten") ? "文字" : "楽天URL"}"></td>`,
     a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
     a_check: stCell("check", "td-st"),
     a_rival: stCell("rival", "td-rival"),
@@ -2031,11 +2083,15 @@ function rankRow(it, idx = 0, all = []) {
 
   const urlCell = (c) => {
     const v = it[c.field] || "";
+    const attr = `data-urlmode="${esc(it.id)}|${esc(c.field)}"`;
+    const text = isTextMode(it, c.field);
     return tableEdit
-      ? `<td class="c-url"><input class="cell-input mono" type="url" data-f="${c.field}" data-id="${esc(it.id)}" value="${esc(v)}" placeholder="${esc(c.label)}"></td>`
-      : `<td class="c-url">${v
-          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 42))}</a>${dupTag(v)}`
-          : '<span class="dash">—</span>'}</td>`;
+      ? `<td class="c-url"><div class="url-cell">
+           <input class="cell-input mono url-main" type="${text ? "text" : "url"}" data-f="${c.field}" data-id="${esc(it.id)}"
+                  value="${esc(v)}" placeholder="${esc(text ? "文字" : c.label)}">
+           ${modeToggle(attr, text)}
+         </div></td>`
+      : `<td class="c-url">${urlCellHtml(it, c.field, 42, attr)}</td>`;
   };
 
   const cell = (c) => {
@@ -2176,16 +2232,15 @@ function pickPanel(it) {
         `<td class="${cls}">${stButton(stList(field), p[field], `data-pickstatus="${esc(it.id)}|${esc(p.id)}|${field}"`)}</td>`;
       const imgCell = (x) =>
         `<td class="td-img" data-pickimg="${esc(key)}|${x.k}">${pickThumb(it.id, p, x.k)}</td>`;
-      const urlCell = (x) => {
-        const v = p[x.url];
-        return `<td class="td-url">${v
-          ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer" title="${esc(v)}">${esc(prettyUrl(v, 62))}</a>${dupTag(v)}`
-          : '<span class="dash">—</span>'}</td>`;
-      };
+      const urlCell = (x) =>
+        `<td class="td-url">${urlCellHtml(p, x.url, 62, `data-pickurlmode="${esc(it.id)}|${esc(p.id)}|${esc(x.url)}"`)}</td>`;
       const imgEdit = (x) =>
         `<td class="td-img"><input class="input-sm pe-image" type="url" data-pf="${x.img}" value="${esc(p[x.img])}" placeholder="${esc(x.label)}画像"></td>`;
-      const urlEdit = (x) =>
-        `<td class="td-url"><input class="input-sm pe-url" type="url" data-pf="${x.url}" value="${esc(p[x.url])}" placeholder="${esc(x.label)}のURL  https://…"></td>`;
+      const urlEdit = (x) => {
+        const t = isTextMode(p, x.url);
+        return `<td class="td-url"><input class="input-sm pe-url" type="${t ? "text" : "url"}" data-pf="${x.url}"
+          value="${esc(p[x.url])}" placeholder="${t ? "文字" : esc(x.label) + "のURL  https://…"}"></td>`;
+      };
 
       /* 列キー → セル。列の並べ替え・非表示にそのまま追従する */
       const cells = editing ? {

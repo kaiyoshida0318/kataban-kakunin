@@ -640,6 +640,25 @@ body.resizing *{cursor:col-resize !important}
 .added-tbl,.pick-tbl{table-layout:fixed}
 .pick-tbl .td-url a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* URL欄の中身と、右端の「文字 / URL」切り替え */
+.url-cell{display:flex;align-items:center;gap:6px;min-width:0}
+.url-main{flex:1 1 auto;min-width:0}
+.url-plain{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:12.5px;color:var(--text);
+}
+.url-mode{
+  display:inline-flex;flex:0 0 auto;align-self:center;
+  border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--surface);
+}
+.url-mode button{
+  border:0;background:transparent;cursor:pointer;
+  font-size:9.5px;font-weight:700;color:#9aa3b0;padding:2px 5px;line-height:14px;
+}
+.url-mode button + button{border-left:1px solid var(--border)}
+.url-mode button:hover{background:var(--row-alt);color:var(--accent)}
+.url-mode button.on{background:var(--sec,var(--accent));color:#fff}
+
 /* URLの下の小さな印（同じURLが他にもあるか）。押せない飾り */
 .url-dup{
   display:inline-block;margin-top:3px;padding:0 7px;
