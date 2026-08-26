@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.92.0";
+const VERSION   = "0.93.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1838,8 +1838,8 @@ function renderBody() {
         btn.className = "st-sel " + cur.cls;
         btn.title = cur.label;
         btn.querySelector(".st-lb").textContent = cur.label;
-        const row = btn.closest("tr");
-        if (row) row.classList.toggle("pk-ng", pickAlert(at.p));
+        paintPickRow(btn.closest("tr"), at.p);
+        renderSecBand();                      /* 上の帯の「買付前 N 件」も合わせる */
       });
     };
   });
@@ -2054,7 +2054,7 @@ function addedRow(r) {
   if (editing) return `<tr class="pick-editing" data-row="${esc(key)}">${tds}</tr>`;
 
   const chkColor = pickBarColor(p);   /* 行の左端の帯。「隙あり/なし」の色（件表示ボタンとは別もの） */
-  const done = hasField("buy") && pickVal(p, "buy") !== stFirst("buy");   // 買付が済んだ行は落ち着かせる
+  const done = pickDone(p);           /* 買付が済んだ行は落ち着かせる */
   return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}${pickAlert(p) ? " pk-ng" : ""}">${tds}</tr>`;
 }
 
@@ -2494,6 +2494,23 @@ function pickAlert(p) {
     if (cur && NG_COLORS.has(cur.color)) return true;
   }
   return false;
+}
+
+/* 買付の判断が済んだか（＝先頭の選択肢以外）。行を薄くするのに使う */
+const pickDone = (p) => hasField("buy") && pickVal(p, "buy") !== stFirst("buy");
+
+/* 商品の行に付ける印（左の帯・薄く・赤）を、今の値から付け直す（v0.93.0）。
+   ドロップダウンで選び直した直後は表を描き直さないので、ここだけ直接当てる。
+   **印を増やしたらここにも足すこと。** 片方だけ直すと、表示と行の見た目が食い違ったまま残る
+   （「買付前」に戻したのに行が薄いまま、が実際に起きた） */
+function paintPickRow(row, p) {
+  if (!row) return;
+  if (row.classList.contains("wk-row")) {          /* 追加した商品の行だけ帯と薄くするのがある */
+    for (const c of [...row.classList]) if (c.startsWith("bar-")) row.classList.remove(c);
+    row.classList.add("bar-" + pickBarColor(p));
+    row.classList.toggle("wk-done", pickDone(p));
+  }
+  row.classList.toggle("pk-ng", pickAlert(p));
 }
 
 /* ---------- 「N 件表示」ボタンの色（v0.90.0） ----------
