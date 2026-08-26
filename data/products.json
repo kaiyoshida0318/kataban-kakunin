@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T03:21:12.637Z",
+  "updatedAt": "2026-08-26T03:22:23.162Z",
   "labels": {
     "rival": [
       {
@@ -437,14 +437,16 @@
           "category": "未分類",
           "image": "https://tshop.r10s.jp/jw-oomiya/cabinet/garmin-14zi/gm-vivo1.jpg?fitin=128:128",
           "url": "",
-          "urlAmazon": "",
+          "urlAmazon": "必要なし",
           "urlRakuten": "https://ranking.rakuten.co.jp/keyword/garmin/",
-          "modes": {},
+          "modes": {
+            "urlAmazon": "text"
+          },
           "checkNote": "",
           "checkedAt": "2026-08-26",
           "picks": [],
           "createdAt": "2026-08-26T02:54:31.221Z",
-          "updatedAt": "2026-08-26T02:54:57.009Z"
+          "updatedAt": "2026-08-26T03:22:18.532Z"
         },
         {
           "id": "itm_se7mgyhsmi8",
