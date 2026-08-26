@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.85.0";
+const VERSION   = "0.87.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -27,8 +27,7 @@ const ADDED_STATIC = [
   { key: "p_rurl",  label: "楽天URL",         w: 0,   cls: "td-url"   },
   { key: "a_sales", label: "30日販売数",      w: 106, cls: "td-sales" },
   { key: "@st" },                                   // ここに項目のぶんが入る
-  { key: "a_edit",  label: "編集",            w: 70,  cls: "td-edit"  },
-  { key: "a_act",   label: "操作",            w: 68,  cls: "td-acts"  },
+  { key: "a_act",   label: "操作",            w: 116, cls: "td-acts"  },
 ];
 const ADDED_COLS_OF = () =>
   ADDED_STATIC.flatMap((c) => (c.key === "@st" ? stCols("added") : [c]));
@@ -133,9 +132,8 @@ function pickDefs(sectionKey) {
     { key: od.imgCol, label: `${od.label}画像`,     w: 76,  cls: "td-img"   },
     { key: od.urlCol, label: `${od.label}URL`,      w: 0,   cls: "td-url"   },
     { key: "a_sales", label: "30日販売数",          w: 106, cls: "td-sales" },
-    { key: "p_edit",  label: "編集",                w: 74,  cls: "td-edit"  },
     ...stCols("pick"),
-    { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
+    { key: "p_act",   label: "操作",                w: 116, cls: "td-acts"  },
   ];
 }
 /* ドロップダウン項目の列。項目管理で足したぶんもここに出る */
@@ -2005,8 +2003,9 @@ function addedRow(r) {
   const [AMZ, RAK] = PICK_SIDES;
   const editing = editPicks.has(key);
 
+  /* 出所は2行（1行目＝区分、2行目＝ジャンル名） */
   const srcCell = `<td class="td-src">
-      ${side ? `<span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label.replace(/\n/g, " "))}</span>` : ""}
+      ${side ? `<div><span class="src-side ${SIDE(side).cls}">${esc(SIDE(side).label.replace(/\n/g, " "))}</span></div>` : ""}
       <a class="src-name" href="${esc(mainUrl(it, sec))}" target="_blank" rel="noopener noreferrer"
          title="${esc(it.name)}">${esc(it.name)}</a>
     </td>`;
@@ -2025,8 +2024,10 @@ function addedRow(r) {
     p_rurl:  urlEditCell(p, "urlRakuten", "楽天URL"),
     a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
     ...stCellsFor(p, it.id, "added"),
-    a_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
-    a_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
+    a_act:   `<td class="td-acts">
+      <button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button>
+      <button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button>
+    </td>`,
   } : {
     a_src:   srcCell,
     p_aimg:  imgCell(AMZ),
@@ -2039,8 +2040,10 @@ function addedRow(r) {
              data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
     </td>`,
     ...stCellsFor(p, it.id, "added"),
-    a_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
-    a_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
+    a_act:   `<td class="td-acts">
+      <button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button>
+      <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
+    </td>`,
   };
   const tds = colsOf("products")
     .map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
@@ -2540,9 +2543,11 @@ function pickPanel(it) {
         [od.imgCol]: imgEdit(od),
         [od.urlCol]: urlEdit(od),
         a_sales: `<td class="td-sales"><input class="input-sm pe-sales" type="text" inputmode="numeric" data-pf="sales30" value="${esc(p.sales30)}" placeholder="30日販売数"></td>`,
-        p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button></td>`,
         ...stCellsFor(p, it.id, "pick"),
-        p_act:   `<td class="td-acts"><button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button></td>`,
+        p_act:   `<td class="td-acts">
+          <button class="btn btn-add btn-xs" data-picksave="${esc(key)}">保存</button>
+          <button class="icon-btn" data-pickcancel="${esc(key)}" title="やめる">↩</button>
+        </td>`,
       } : {
         p_date:  `<td class="td-date">${esc(p.addedAt || "—")}</td>`,
         p_title: `<td class="td-title${p.title ? "" : " none"}">${esc(p.title || "—")}</td>`,
@@ -2554,9 +2559,11 @@ function pickPanel(it) {
           <input class="sales-in" type="text" inputmode="numeric" value="${esc(p.sales30)}"
                  data-picksales="${esc(key)}" placeholder="—" title="30日販売数">
         </td>`,
-        p_edit:  `<td class="td-edit"><button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button></td>`,
         ...stCellsFor(p, it.id, "pick"),
-        p_act:   `<td class="td-acts"><button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button></td>`,
+        p_act:   `<td class="td-acts">
+          <button class="btn btn-edit btn-xs" data-pickedit="${esc(key)}">編集</button>
+          <button class="icon-btn" data-pickdel="${esc(key)}" title="削除">✕</button>
+        </td>`,
       };
       const tds = cols.map((c) => cells[c.key] || `<td class="${c.cls}"></td>`).join("");
       return editing
@@ -2573,13 +2580,13 @@ function pickPanel(it) {
     [od.imgCol]: `<td class="td-img"><input class="input-sm pick-image2" type="url" placeholder="画像URL"></td>`,
     [od.urlCol]: `<td class="td-url"><input class="input-sm pick-url2" type="url" placeholder="${esc(od.label)}の商品URL（任意）"></td>`,
     a_sales: `<td class="td-sales"><input class="input-sm pick-sales" type="text" inputmode="numeric" placeholder="30日販売数"></td>`,
-    p_edit:  `<td class="td-edit"><button class="btn btn-add btn-xs pick-add">追加</button></td>`,
+    p_act:   `<td class="td-acts"><button class="btn btn-add btn-xs pick-add">追加</button></td>`,
   };
   let newRow = "";
   if (addRows.has(it.id)) {
     const tds = cols.map((c) => newCells[c.key] || `<td class="${c.cls}"></td>`);
-    /* 「編集」列を非表示にしていると追加ボタンの居場所が無くなるので、最後の列に置く */
-    if (!cols.some((c) => c.key === "p_edit") && tds.length) {
+    /* 「操作」列を非表示にしていると追加ボタンの居場所が無くなるので、最後の列に置く */
+    if (!cols.some((c) => c.key === "p_act") && tds.length) {
       tds[tds.length - 1] = `<td class="${cols[cols.length - 1].cls}"><button class="btn btn-add btn-xs pick-add">追加</button></td>`;
     }
     newRow = `<tr class="pick-new" data-for="${esc(it.id)}">${tds.join("")}</tr>`;

@@ -658,6 +658,7 @@ body.resizing *{cursor:col-resize !important}
   background-repeat:no-repeat;background-position:right 10px center;background-size:11px;
 }
 .pick-tbl .td-acts{white-space:nowrap;text-align:center;padding:3px 4px}
+.pick-tbl .td-acts .btn-xs{margin-right:2px}
 
 /* --- 追加した商品（追加日ごと） --- */
 .added-tbl{width:100%;table-layout:fixed}
@@ -715,14 +716,19 @@ body.resizing *{cursor:col-resize !important}
 }
 .sales-in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .sales-in::placeholder{color:#c3c8d1;font-weight:400}
+/* 出所は2行。1行目に区分のバッジ、2行目にジャンル名 */
+.added-tbl .td-src{white-space:normal;line-height:1.35}
 .src-side{
-  display:inline-block;font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-right:6px;
-  vertical-align:middle;
+  display:inline-block;font-size:9.5px;font-weight:700;border-radius:5px;padding:1px 6px;
+  margin:0 0 3px;vertical-align:middle;
 }
 .src-side.sd-off{background-color:#e8f0fb;border:1px solid #c3d7f2;color:#1a55a6}
 .src-side.sd-def{background-color:var(--green-soft);border:1px solid #cbe6da;color:#22795a}
 .src-side.sd-riv{background-color:#f3ecfb;border:1px solid #ddc9f0;color:#6b3fa0}
-.src-name{color:var(--muted);display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.src-name{
+  color:var(--muted);max-width:100%;overflow:hidden;overflow-wrap:anywhere;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+}
 .src-name:hover{color:var(--accent)}
 
 .pick-thumb{
