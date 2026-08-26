@@ -378,6 +378,9 @@ img.pick-thumb,.rank-tbl img.thumb{cursor:zoom-in}
 }
 .cnt-btn:hover{border-color:var(--accent);background:#dbe8fa;color:var(--accent)}
 .cnt-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 中の商品の色で塗り分けたとき（v0.89.0）。背景は帯なのでインラインで当てる。枠と文字は中立に */
+.cnt-btn.tinted{border-color:var(--border);color:var(--text);text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.cnt-btn.tinted:hover{border-color:var(--accent);color:var(--text);filter:brightness(.97)}
 
 .r-sub > td{padding:0;background:var(--row-alt)}
 

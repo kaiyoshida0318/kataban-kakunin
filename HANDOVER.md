@@ -1,17 +1,17 @@
 # 引き継ぎメモ（型番商品確認くん）
 
-最終更新: 2026-08-26 / 現行版 **v0.88.0**
+最終更新: 2026-08-26 / 現行版 **v0.89.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.88.0full.zip`（全ファイル入り。**これが唯一の正**）
+1. `katabankakuninv0.89.0full.zip`（全ファイル入り。**これが唯一の正**）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ### 新しいチャットの最初にやること
 
 ```bash
 mkdir -p /root/work/katabank && cd /root/work/katabank
-unzip -oq /mnt/user-data/uploads/katabankakuninv0.88.0full.zip -d /root/work/katabank
+unzip -oq /mnt/user-data/uploads/katabankakuninv0.89.0full.zip -d /root/work/katabank
 nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
 ```
 
@@ -53,10 +53,10 @@ HANDOVER.md         これ（作る側向け）
 ### 環境
 
 - 作業ディレクトリ: `/root/work/katabank`（zipを展開したもの）
-- テストスクリプト: `/root/work/t*.js`（49本。`katabank-tests.zip` で渡している）
+- テストスクリプト: `/root/work/t*.js`（50本。`katabank-tests.zip` で渡している）
   - よく回すもの: **t53**(列管理の並び/非表示) **t54**(列を隠した状態での追加・保存・リロード)
     **t56**(列管理モーダル) **t59**(チェックした商品の列) **t85/t86**(項目管理・項目の増減)
-    **t89**(赤系で行が赤くなる) **t90**(出所2行) **t91**(操作列に編集ボタン) **t92**(ジャンル名の改行)
+    **t89**(赤系で行が赤くなる) **t90**(出所2行) **t91**(操作列に編集ボタン) **t92**(ジャンル名の改行) **t93**(件表示ボタンの色)
 - ローカルサーバ: `cd /root/work/katabank && nohup python3 -m http.server 8899 &`
 - Playwright: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` を `executablePath` に指定して使う
 
@@ -258,6 +258,19 @@ v0.56.0ではヘッダー直下のインラインパネルだったが、ユー�
 - **赤系（red / pink）の選択肢が1つでも付いた商品は行ごと赤くする**（v0.85.0）。判定は `pickAlert(p)`、
   クラスは `tr.pk-ng`。追加した商品・チェックした商品の両方に付ける。ドロップダウンで選び直した直後は
   再描画しないので、`openStMenu` のコールバックで `row.classList.toggle("pk-ng", …)` を直接当てている。
+
+**「N 件表示」ボタンは中の商品の色で塗り分ける（v0.89.0）。** 商品1件の色は `pickBarColor(p)`
+＝「隙あり/なし」（`check`）で選ばれている選択肢の色。行の左端の帯（`bar-*`）と同じ引き方で、
+**帯とボタンで必ず同じ関数を通すこと**（別々に書くとズレる）。
+
+- `pickColorMix(picks)` が出てくる色を**選択肢の並び順**で1回ずつ返す（`[{color,label,n,i}]`）。
+  `cntBg()` がそれを等分の `linear-gradient(90deg, …)` にする。**件数比ではなく等分**（ユーザー指定。
+  3色=33%ずつ / 2色=50%ずつ）。件数は `title` の内訳にだけ出す。
+- 色→薄い色は `CNT_TINT`。設定チップ（`.sw-*`）より少し濃い（小さいボタンで見分けるため）。
+  背景は幅で決まるのでインライン `style="background:…"`、枠と文字は `.cnt-btn.tinted` が中立に戻す。
+  **`.cnt-btn:hover{background}` はインラインに負けるのでそのままでよい。**
+- **開いている間（`.on`）は塗らない。** 下に表そのものが出ているため。
+- `check` 項目は消せる（v0.84.0）ので `hasField("check")` が偽なら全部 gray。
 
 ```js
 const ST_DEFAULT_FIELDS = [
@@ -467,7 +480,8 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.85.0 赤系の項目が付いた商品は行ごと赤く（両方の表で）
 - v0.86.0 追加した商品の「出所」を2行に（区分バッジ / ジャンル名）
 - v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）
-- **v0.88.0 「追加した商品」の出所のジャンル名も「>」で改行（段数は行の高さ追従）（最新）**
+- v0.88.0 「追加した商品」の出所のジャンル名も「>」で改行（段数は行の高さ追従）
+- **v0.89.0 「N 件表示」ボタンを中の商品の色で塗り分け（3色=33%ずつ / 2色=50%ずつ）（最新）**
 
 ---
 
