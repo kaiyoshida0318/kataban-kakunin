@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.81.0";
+const VERSION   = "0.82.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -69,8 +69,11 @@ const catList = (key) => (SEC(key)?.cats || []).map((o) => ({
      added … 追加した商品の表
      pick  … 一覧の行を開いた「チェックした商品」の表 */
 /* 巡回タブは1つずつ独立。added / pick はそれぞれの表 */
-const COL_GROUPS = ["amazon", "rakuten", "rivals", "added", "pick"];
+const ROAM_KEYS = ["amazon", "rakuten", "rivals"];                 // 巡回タブ
+const COL_GROUPS = [...ROAM_KEYS, "added", ...ROAM_KEYS.map((k) => "pick_" + k)];
 const colGroupOf = (key) => (isAdded(key) ? "added" : key);
+/* 行を開いた「チェックした商品」も、どのタブの中かで分ける */
+const pickGroupOf = (key) => "pick_" + (isAdded(key) ? "amazon" : key);
 function arrangeCols(defs, group, secKey) {
   const ord = ensureCols().order?.[group];
   let out = defs.slice();
@@ -82,7 +85,7 @@ function arrangeCols(defs, group, secKey) {
       .map((x) => x.c);
   }
   /* URL列だけは、そのタブの基準側を必ず先に置く（並びは2タブ共通なので、ここで入れ替える） */
-  if (secKey && !isAdded(secKey) && group !== "pick") {
+  if (secKey && !isAdded(secKey) && !group.startsWith("pick")) {
     const want = urlFieldsOf(secKey).map((f) => URL_COLS[f]?.key).filter(Boolean);
     const at = out.map((c, i) => (want.includes(c.key) ? i : -1)).filter((i) => i >= 0);
     if (at.length === 2 && out[at[0]].key !== want[0]) {
@@ -139,8 +142,8 @@ function pickDefs(sectionKey) {
     { key: "p_act",   label: "操作",                w: 72,  cls: "td-acts"  },
   ];
 }
-const allPickColsOf = (key) => arrangeCols(pickDefs(key), "pick");
-const pickColsOf    = (key) => shownCols(allPickColsOf(key), "pick");
+const allPickColsOf = (key) => arrangeCols(pickDefs(key), pickGroupOf(key), key);
+const pickColsOf    = (key) => shownCols(allPickColsOf(key), pickGroupOf(key));
 
 let colW = {};                 // 旧localStorage（移行にだけ使う）
 const ROW_H_DEF  = 96;
@@ -209,8 +212,24 @@ function normCols(raw) {
   }
 
   /* v0.78.0以前は巡回タブが1つの "rank" 設定を共有していた。初回だけ各タブへ写して見た目を保つ */
+  /* v0.81.0以前は「チェックした商品」も1つの "pick" 設定を共有していた */
+  const oldPick = { order: raw?.order?.pick, hide: raw?.hide?.pick, layout: raw?.layout?.pick };
+  for (const g of ROAM_KEYS.map((k) => "pick_" + k)) {
+    if (!raw?.order?.[g] && Array.isArray(oldPick.order) && oldPick.order.length) out.order[g] = [...oldPick.order];
+    if (!raw?.hide?.[g] && Array.isArray(oldPick.hide) && oldPick.hide.length) out.hide[g] = [...oldPick.hide];
+    if (!raw?.layout?.[g] && oldPick.layout && Object.keys(oldPick.layout).length) {
+      for (const [k, v] of Object.entries(oldPick.layout)) {
+        if (!v || typeof v !== "object") continue;
+        const o = {};
+        if (Number(v.w) >= 40) o.w = Math.min(1600, Math.round(Number(v.w)));
+        if (ALIGNS.some((a) => a.v === v.align)) o.align = v.align;
+        if (Object.keys(o).length) out.layout[g][k] = o;
+      }
+    }
+  }
+
   const oldRank = { order: raw?.order?.rank, hide: raw?.hide?.rank, layout: raw?.layout?.rank };
-  for (const g of ["amazon", "rakuten", "rivals"]) {
+  for (const g of ROAM_KEYS) {
     if (!raw?.order?.[g] && Array.isArray(oldRank.order) && oldRank.order.length) out.order[g] = [...oldRank.order];
     if (!raw?.hide?.[g] && Array.isArray(oldRank.hide) && oldRank.hide.length) out.hide[g] = [...oldRank.hide];
     if (!raw?.layout?.[g] && oldRank.layout && Object.keys(oldRank.layout).length) {
@@ -2026,29 +2045,33 @@ function renderColModal() {
       which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf("rakuten") },
     { grp: "rivals", ttl: "楽天ライバル", note: "このタブだけの設定",
       which: "rowH", val: rowH(), def: ROW_H_DEF, cols: allColsOf("rivals") },
-    { grp: "pick",  ttl: "チェックした商品", note: "一覧の行を「N件表示」で開いた表",
-      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(pickKey) },
+    ...ROAM_KEYS.map((k) => ({
+      grp: "pick_" + k, ttl: SEC(k).label, note: `「${SEC(k).label}」の行を「N件表示」で開いた表`,
+      which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allPickColsOf(k),
+    })),
     { grp: "added", ttl: "追加した商品", note: "「追加した商品」タブの表",
       which: "pickRowH", val: pRowH(), def: PROW_H_DEF, cols: allColsOf("products") },
   ];
   /* 上のタブで1つ選んで、その表だけを出す */
   const mine = added ? "added" : colGroupOf(view);
+  const alsoMine = added ? "" : pickGroupOf(view);           // 開いているタブの「チェックした商品」
   if (colTabView !== view) { colTab = mine; colTabView = view; }        // タブを切り替えたら追従
   if (!all.some((g) => g.grp === colTab)) colTab = mine;
   const cur = all.find((g) => g.grp === colTab);
-  cur.now = cur.grp === mine;
+  cur.now = cur.grp === mine || cur.grp === alsoMine;
   const groups = [cur];
 
   const tabRow = (ttl, keys) => `<span class="col-tabs-ttl">${esc(ttl)}</span>` +
     keys.map((k) => {
       const g = all.find((x) => x.grp === k);
       const on = g.grp === colTab;
-      return `<button type="button" class="col-tab${on ? " on" : ""}${g.grp === mine ? " mine" : ""}"
+      const own = g.grp === mine || g.grp === alsoMine;
+      return `<button type="button" class="col-tab${on ? " on" : ""}${own ? " mine" : ""}"
         data-ctab="${esc(g.grp)}">${esc(g.ttl)}</button>`;
     }).join("");
   $("colTabs").innerHTML =
     `<div class="col-tabs-row">${tabRow("■ ランキング", ["amazon", "rakuten", "rivals", "added"])}</div>` +
-    `<div class="col-tabs-row">${tabRow("■ 展開部分", ["pick"])}</div>`;
+    `<div class="col-tabs-row">${tabRow("■ 展開部分", ROAM_KEYS.map((k) => "pick_" + k))}</div>`;
   $("colTabs").querySelectorAll("[data-ctab]").forEach((b) => {
     b.onclick = () => { colTab = b.dataset.ctab; renderColModal(); };
   });
@@ -2388,6 +2411,7 @@ function pickThumb(itemId, p, side) {
 }
 
 function pickPanel(it) {
+  const pickGrp = pickGroupOf(view);
   const cols = pickColsOf(view);
   const sd = PSIDE(sideKeyOf(view));                                  // このタブの基準側
   const od = PSIDE(sd.k === "amazon" ? "rakuten" : "amazon");         // もう片方
@@ -2474,10 +2498,10 @@ function pickPanel(it) {
       <button class="btn btn-ghost btn-xs pick-close" data-rowclose="${esc(it.id)}">✕ 閉じる</button>
     </div>
 
-    ${alignStyle(cols, "pick", "table.pick-tbl:not(.added-tbl)")}
-    <div class="pick-tbl-wrap"><table data-grp="pick" class="pick-tbl" style="--pick-row-h:${pRowH()}px">
+    ${alignStyle(cols, pickGrp, "table.pick-tbl:not(.added-tbl)")}
+    <div class="pick-tbl-wrap"><table data-grp="${esc(pickGrp)}" class="pick-tbl" style="--pick-row-h:${pRowH()}px">
       <colgroup>${cols.map((c) => {
-        const w = colWidth(c, "pick");
+        const w = colWidth(c, pickGrp);
         return `<col data-col="${c.key}"${w ? ` style="width:${w}px"` : ""}>`;
       }).join("")}</colgroup>
       <thead><tr>${cols.map((c) => `<th class="${c.cls}">${esc(colLabel(c))}<span class="col-resizer" data-col="${c.key}"></span></th>`).join("")}</tr></thead>
