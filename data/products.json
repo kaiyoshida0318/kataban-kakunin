@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-26T02:41:18.198Z",
+  "updatedAt": "2026-08-26T02:45:04.982Z",
   "labels": {
     "rival": [
       {
@@ -479,17 +479,17 @@
       "items": [
         {
           "id": "itm_7ah1fntlc4x",
-          "name": "インソール専門店 PhoenixSole",
+          "name": "ShotR 楽天市場店",
           "category": "未分類",
-          "image": "https://thumbnail.image.rakuten.co.jp/@0_mall/insole-phoenix/logo/logo1.jpg?_ex=128x128",
+          "image": "https://thumbnail.image.rakuten.co.jp/@0_mall/shotr-/logo/logo1.jpg?_ex=100x100",
           "url": "",
           "urlAmazon": "",
-          "urlRakuten": "https://www.rakuten.co.jp/insole-phoenix/",
+          "urlRakuten": "https://item.rakuten.co.jp/shotr-/008/",
           "checkNote": "",
           "checkedAt": "2026-08-26",
           "picks": [],
           "createdAt": "2026-08-26T02:40:42.417Z",
-          "updatedAt": "2026-08-26T02:41:13.677Z"
+          "updatedAt": "2026-08-26T02:45:00.408Z"
         }
       ]
     },
