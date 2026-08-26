@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.64.0";
+const VERSION   = "0.65.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -39,11 +39,12 @@ const isAdded = (key) => SEC(key)?.kind === "added";
 function rankDefs(key) {
   const urls = urlFieldsOf(key).map((f) => URL_COLS[f]);
   const sided = Boolean(SEC(key)?.side);
+  const omit = SEC(key)?.omit || [];
   return [
     { key: "ord", label: "並び", w: 68, cls: "c-ord" },
     ...(sided ? [{ key: "side", label: "区分", w: 118, cls: "c-side" }] : []),
     { key: "img",   label: "画像",       w: 66,  cls: "c-img"   },
-    { key: "cat",   label: "大カテゴリ", w: 116, cls: "c-cat",   sort: "category"  },
+    { key: "cat",   label: SEC(key)?.catLabel || "大カテゴリ", w: 116, cls: "c-cat", sort: "category" },
     { key: "name",  label: "ジャンル名", w: 240, cls: "c-name",  sort: "name"      },
     ...urls,
     { key: "note",  label: "確認内容",   w: 0,   cls: "c-note"  },   // 0 = 自動（残り幅を吸収）
@@ -51,8 +52,13 @@ function rankDefs(key) {
     { key: "cnt",   label: "商品",       w: 86,  cls: "c-cnt",   sort: "picks"     },
     { key: "addp",  label: "商品追加",   w: 96,  cls: "c-addp"  },
     { key: "act",   label: "操作",       w: 76,  cls: "c-act"   },
-  ];
+  ].filter((c) => !omit.includes(c.key));
 }
+/* 大カテゴリを決まった選択肢から選ぶタブ（楽天ライバルの「強さ」）*/
+const catList = (key) => (SEC(key)?.cats || []).map((o) => ({
+  v: String(o.v ?? ""), label: o.label || "(未設定)",
+  cls: "sw-" + (SWATCH_OK(o.color) ? o.color : "gray"),
+}));
 
 /* ---------- 列管理（並び順と表示/非表示） ----------
    並び順は data.cols.order[グループ]、非表示は data.cols.hide[グループ] に入る。
@@ -229,13 +235,22 @@ const SECTIONS = [
     search: "ジャンル名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
     emptySub: "楽天ランキングで見るジャンルを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
-  { key: "rivals",   icon: "🥊", label: "楽天ライバル", nameLabel: "ジャンル名",
+  { key: "rivals",   icon: "🥊", label: "楽天ライバル", nameLabel: "ショップ名",
     accent: "#206acf", tint: "#eef4fd", role: "巡回リスト",
-    desc: "楽天のライバルを見て回る場所。中身は楽天ランキングと同じで、気になった商品は各行の「＋ 商品」から拾う。",
-    defSort: "checkedAt", urlFields: ["urlRakuten", "urlAmazon"], side: "rival",
-    search: "ジャンル名・URLで検索…", add: "＋ 追加",
+    desc: "楽天のライバル店を見て回る場所。強さで仕分けて、気になった商品は各行の「＋ 商品」から拾う。",
+    defSort: "checkedAt", urlFields: ["urlRakuten"], side: "rival",
+    catLabel: "強さ",                       // 大カテゴリの代わり
+    unit: "ショップ",                        // 帯の数え方
+    cats: [                                 // 選択肢。値がそのまま category に入る
+      { v: "",     label: "未設定", color: "gray"  },
+      { v: "弱小", label: "弱小",   color: "blue"  },
+      { v: "中堅", label: "中堅",   color: "amber" },
+      { v: "競合", label: "競合",   color: "red"   },
+    ],
+    omit: ["note"],                         // 確認内容は使わない
+    search: "ショップ名・URLで検索…", add: "＋ 追加",
     emptyTtl: "まだ登録がありません",
-    emptySub: "見て回るライバルのページを登録しておくと、楽天とURLの対になるAmazonページを一発で開けます。" },
+    emptySub: "見て回るライバル店を登録しておくと、強さごとに並べて巡回できます。" },
   { key: "products", icon: "📦", label: "追加した商品", nameLabel: "商品名",
     accent: "#2b8a63", tint: "#e8f5ee", role: "作業リスト",
     desc: "拾った商品を追加日ごとに並べて、上から順に確認・買付まで処理していく場所。",
@@ -1093,7 +1108,7 @@ function renderSecBand() {
   const picks = itemsOf(view).reduce((t, it) => t + it.picks.length, 0);
   const stale = itemsOf(view).filter((it) => { const d = daysSince(it.checkedAt); return d == null || d > STALE_DAYS; }).length;
   band.innerHTML = pill +
-    `<span class="sec-stat">ジャンル <b>${n}</b> / 拾った商品 <b>${picks}</b>` +
+    `<span class="sec-stat">${esc(s.unit || "ジャンル")} <b>${n}</b> / 拾った商品 <b>${picks}</b>` +
     (stale ? ` / <span class="sec-stale">${STALE_DAYS}日以上みてない <b>${stale}</b></span>` : "") + `</span>` +
     `<span class="sec-desc">${esc(s.desc || "")}</span>`;
 }
@@ -1105,6 +1120,13 @@ function renderHeadBits() {
 }
 
 function categories(key) {
+  const fixed = catList(key);
+  if (fixed.length) {                       // 決まった選択肢のタブ（強さ など）
+    const used = new Set(itemsOf(key).map((i) => i.category || "未分類"));
+    const out = fixed.filter((o) => o.v).map((o) => o.v);
+    if (used.has("未分類")) out.unshift("未分類");
+    return out;
+  }
   return Array.from(new Set(itemsOf(key).map((i) => i.category || "未分類")))
     .sort((a, b) => a.localeCompare(b, "ja"));
 }
@@ -1221,7 +1243,15 @@ function comparator() {
     switch (sort) {
       case "name":      return it.name || it.model || "";
       case "model":     return it.model || "";
-      case "category":  return it.category || "";
+      case "category": {
+        /* 決まった選択肢のタブ（強さ）は、選択肢の並び順で揃える */
+        const list = catList(view);
+        if (list.length) {
+          const i = list.findIndex((o) => o.v === (it.category || ""));
+          return String(i < 0 ? 99 : i).padStart(3, "0");
+        }
+        return it.category || "";
+      }
       case "checkedAt": return it.checkedAt || "";
       case "picks":     return String((it.picks || []).length).padStart(6, "0");
       case "links":     return String((it.links || []).length).padStart(6, "0");
@@ -1334,6 +1364,18 @@ function renderBody() {
     b.onclick = () => {
       const [id, dir] = b.dataset.move.split("|");
       moveRow(id, dir === "up" ? -1 : 1);
+    };
+  });
+  // 大カテゴリ（決まった選択肢のタブ）
+  root.querySelectorAll("[data-cat]").forEach((btn) => {
+    btn.onclick = () => {
+      const it = itemsOf(view).find((i) => i.id === btn.dataset.cat);
+      if (!it) return;
+      openStMenu(btn, catList(view), it.category || "", (v) => {
+        it.category = v;
+        it.updatedAt = nowIso();
+        upsert(view, it);
+      });
     };
   });
   // 区分：選び直すとその区分のタブへ行が移る
@@ -1990,10 +2032,15 @@ function rankRow(it, idx = 0, all = []) {
           : `<td class="c-name">${head
               ? `<a class="r-name" href="${esc(head)}" target="_blank" rel="noopener noreferrer">${esc(it.name || hostOf(head))}</a>`
               : `<span class="r-name">${esc(it.name)}</span>`}</td>`;
-      case "cat":
+      case "cat": {
+        const list = catList(view);
+        if (list.length) return `<td class="c-cat">
+            ${stButton(list, it.category || "", `data-cat="${esc(it.id)}"`)}
+          </td>`;
         return tableEdit
           ? `<td class="c-cat"><input class="cell-input" type="text" list="rankCatList" data-f="category" data-id="${esc(it.id)}" value="${esc(it.category)}"></td>`
           : `<td class="c-cat">${esc(it.category || "未分類")}</td>`;
+      }
       case "note":
         return tableEdit
           ? `<td class="c-note"><textarea class="cell-input cell-area" data-f="checkNote" data-id="${esc(it.id)}" rows="2">${esc(it.checkNote)}</textarea></td>`
@@ -2244,7 +2291,23 @@ function openRank(item) {
   $("rankModalTtl").textContent = `${SEC(view).label}を${isNew ? "追加" : "編集"}`;
   $("rNameLabel").textContent = SEC(view).nameLabel;
   $("rName").value    = entry.name;
-  $("rCat").value     = isNew ? "" : entry.category;
+
+  /* 大カテゴリ。決まった選択肢のタブ（強さ）はドロップダウンにする */
+  const cats = catList(view);
+  $("rCatLabel").textContent = SEC(view).catLabel || "大カテゴリ";
+  $("rCat").hidden    = cats.length > 0;
+  $("rCatSel").hidden = !cats.length;
+  if (cats.length) {
+    const cur = isNew ? "" : (entry.category || "");
+    $("rCatSel").innerHTML = cats.map((o) =>
+      `<option value="${esc(o.v)}"${o.v === cur ? " selected" : ""}>${esc(o.label)}</option>`).join("");
+    $("rCatSel").value = cats.some((o) => o.v === cur) ? cur : "";
+    $("rCatSel").className = "side-sel side-sel-lg " + (cats.find((o) => o.v === $("rCatSel").value) || cats[0]).cls;
+  } else {
+    $("rCat").value = isNew ? "" : entry.category;
+  }
+  /* 使わない項目は出さない（楽天ライバルの確認内容など） */
+  $("fNote").hidden = (SEC(view).omit || []).includes("note");
   $("rUrl").value     = entry.url;
   $("rUrlAmz").value  = entry.urlAmazon || "";
   $("rUrlRak").value  = entry.urlRakuten || "";
@@ -2318,13 +2381,13 @@ function saveRank() {
     return;
   }
 
-  entry.name       = name;
-  entry.url        = vals.url || "";
-  entry.urlAmazon  = vals.urlAmazon || "";
-  entry.urlRakuten = vals.urlRakuten || "";
-  entry.category  = $("rCat").value.trim() || "未分類";
+  entry.name = name;
+  /* 画面に出ていないURL欄は今の値のまま（タブを移してきた行の反対側を消さない） */
+  for (const f of ["url", "urlAmazon", "urlRakuten"]) if (fields.includes(f)) entry[f] = vals[f] || "";
+  const cats = catList(view);
+  entry.category  = cats.length ? $("rCatSel").value : ($("rCat").value.trim() || "未分類");
   entry.image     = $("rImage").value.trim();
-  entry.checkNote = $("rNote").value.trim();
+  if (!$("fNote").hidden) entry.checkNote = $("rNote").value.trim();
   entry.checkedAt = $("rChecked").value || "";
   entry.updatedAt = nowIso();
 
@@ -2985,6 +3048,10 @@ function bind() {
   };
   $("rSide").onchange = () => {
     $("rSide").className = "side-sel side-sel-lg " + SIDE($("rSide").value).cls;
+  };
+  $("rCatSel").onchange = () => {
+    const o = catList(view).find((x) => x.v === $("rCatSel").value);
+    $("rCatSel").className = "side-sel side-sel-lg " + (o ? o.cls : "sw-gray");
   };
   ["rUrl", "rUrlAmz", "rUrlRak"].forEach((id) => {
     $(id).onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveRank(); } };

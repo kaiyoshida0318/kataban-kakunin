@@ -25,7 +25,7 @@
     </div>
     <div class="head-actions">
       <span class="repo-badge" id="repoBadge" title="保存先リポジトリ">未設定</span>
-      <span class="ver-badge" id="verLabel">v0.64.0</span>
+      <span class="ver-badge" id="verLabel">v0.65.0</span>
       <span class="dirty-badge" id="saveState" hidden title=""></span>
       <button class="btn btn-primary btn-sm" id="btnSaveGh">💾 保存</button>
       <button class="btn btn-ghost btn-sm" id="btnSettings">⚙️ 設定</button>
@@ -89,8 +89,9 @@
               <select id="rSide" class="side-sel side-sel-lg"></select>
             </div>
             <div class="field" id="fCat">
-              <label for="rCat">大カテゴリ</label>
+              <label for="rCat" id="rCatLabel">大カテゴリ</label>
               <input id="rCat" type="text" list="rankCatList" placeholder="未分類">
+              <select id="rCatSel" class="side-sel side-sel-lg" hidden></select>
               <datalist id="rankCatList"></datalist>
             </div>
             <div class="field">
@@ -119,7 +120,7 @@
               <input id="rUrlRak" type="url" placeholder="https://ranking.rakuten.co.jp/…">
             </div>
           </div>
-          <div class="field">
+          <div class="field" id="fNote">
             <label for="rNote">確認内容</label>
             <textarea id="rNote" rows="3" placeholder="何を見るか・気づいたこと（例：上位の価格帯が下がってきている）"></textarea>
           </div>
