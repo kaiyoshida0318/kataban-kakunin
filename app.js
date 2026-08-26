@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.82.0";
+const VERSION   = "0.83.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2029,7 +2029,8 @@ function fitColumns() {
   fixed.forEach((c) => setW(c.key, Math.max(40, Math.floor(effWidth(c) * factor))));
 }
 
-let colTab = "";            // 列管理モーダルでいま見ている表
+let colTab = "";            // 列管理モーダルでいま見ている表（"lab_xxx" なら項目管理）
+let colLabShown = "";       // 項目管理をいま描いてある項目
 let colTabView = "";        // そのときのタブ（画面のタブを変えたら追従させる）
 /* 列管理モーダル（上部の「▦ 列管理」）。表示する列・並び順・項目名・幅・揃え・行の高さ */
 function renderColModal() {
@@ -2056,25 +2057,39 @@ function renderColModal() {
   const mine = added ? "added" : colGroupOf(view);
   const alsoMine = added ? "" : pickGroupOf(view);           // 開いているタブの「チェックした商品」
   if (colTabView !== view) { colTab = mine; colTabView = view; }        // タブを切り替えたら追従
-  if (!all.some((g) => g.grp === colTab)) colTab = mine;
-  const cur = all.find((g) => g.grp === colTab);
-  cur.now = cur.grp === mine || cur.grp === alsoMine;
-  const groups = [cur];
+  const isLab = colTab.startsWith("lab_");                              // 項目管理（選択肢の中身）
+  if (!isLab && !all.some((g) => g.grp === colTab)) colTab = mine;
+  const cur = isLab ? null : all.find((g) => g.grp === colTab);
+  if (cur) cur.now = cur.grp === mine || cur.grp === alsoMine;
+  const groups = cur ? [cur] : [];
 
+  const tab = (key, ttl, own) =>
+    `<button type="button" class="col-tab${key === colTab ? " on" : ""}${own ? " mine" : ""}"
+      data-ctab="${esc(key)}">${esc(ttl)}</button>`;
   const tabRow = (ttl, keys) => `<span class="col-tabs-ttl">${esc(ttl)}</span>` +
     keys.map((k) => {
       const g = all.find((x) => x.grp === k);
-      const on = g.grp === colTab;
-      const own = g.grp === mine || g.grp === alsoMine;
-      return `<button type="button" class="col-tab${on ? " on" : ""}${own ? " mine" : ""}"
-        data-ctab="${esc(g.grp)}">${esc(g.ttl)}</button>`;
+      return tab(g.grp, g.ttl, g.grp === mine || g.grp === alsoMine);
     }).join("");
   $("colTabs").innerHTML =
+    `<div class="col-tabs-row">${`<span class="col-tabs-ttl">■ 項目管理</span>` +
+      ST_FIELDS.map((f) => tab("lab_" + f.key, stTitle(f.key), false)).join("")}</div>` +
     `<div class="col-tabs-row">${tabRow("■ ランキング", ["amazon", "rakuten", "rivals", "added"])}</div>` +
     `<div class="col-tabs-row">${tabRow("■ 展開部分", ROAM_KEYS.map((k) => "pick_" + k))}</div>`;
   $("colTabs").querySelectorAll("[data-ctab]").forEach((b) => {
-    b.onclick = () => { colTab = b.dataset.ctab; renderColModal(); };
+    b.onclick = () => { colTab = b.dataset.ctab; colLabShown = ""; renderColModal(); };
   });
+
+  /* 項目管理：選択肢の文言と色をここで編集する（設定の🏷ラベルと同じもの） */
+  if (isLab) {
+    if (colLabShown !== colTab) {          // 入力中に描き直すと打った字が消えるので、同じ項目なら触らない
+      $("colModalBody").innerHTML = "";
+      renderLabelEditor("colModalBody", colTab.slice(4));
+      colLabShown = colTab;
+    }
+    return;
+  }
+  colLabShown = "";
 
   /* 1列＝1行。左から 番号 / 表示 / 項目名 / 幅 / 揃え / 上下 */
   const row = (c, i, list, grp) => {
@@ -2935,10 +2950,11 @@ function flushSave() {
 /* =========================================================
    ドロップダウンのラベル編集
    ========================================================= */
-function renderLabelEditor() {
+function renderLabelEditor(boxId = "labEditor", only = "") {
   const L = ensureLabels;
+  const box = $(boxId);
 
-  $("labEditor").innerHTML = ST_FIELDS.map((f) => {
+  box.innerHTML = ST_FIELDS.filter((f) => !only || f.key === only).map((f) => {
     const list = stList(f.key);
     return `<div class="lab-grp" data-grp="${esc(f.key)}">
       <p class="cfg-sec-ttl">${esc(stTitle(f.key))}</p>
@@ -2961,10 +2977,10 @@ function renderLabelEditor() {
 
   const commit = (redraw) => {
     persistLocal(); markDirty(true); renderBody();
-    if (redraw) renderLabelEditor();
+    if (redraw) renderLabelEditor(boxId, only);
   };
 
-  $("labEditor").querySelectorAll(".lab-row").forEach((row) => {
+  box.querySelectorAll(".lab-row").forEach((row) => {
     const [key, v] = row.dataset.lab.split("|");
     const at = () => { const arr = L()[key]; return { arr, i: arr.findIndex((x) => x.v === v) }; };
 
@@ -3015,12 +3031,12 @@ function renderLabelEditor() {
     };
   });
 
-  $("labEditor").querySelectorAll("[data-add]").forEach((b) => {
+  box.querySelectorAll("[data-add]").forEach((b) => {
     b.onclick = () => {
       const key = b.closest(".lab-grp").dataset.grp;
       L()[key].push({ v: newOptVal(), label: "新しい選択肢", color: "gray" });
       commit(true);
-      const rows = $("labEditor").querySelectorAll(`.lab-grp[data-grp="${key}"] .lab-row .lab-in`);
+      const rows = box.querySelectorAll(`.lab-grp[data-grp="${key}"] .lab-row .lab-in`);
       const last = rows[rows.length - 1];
       if (last) { last.focus(); last.select(); }
     };
