@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-27T06:52:21.829Z",
+  "updatedAt": "2026-08-27T06:53:03.100Z",
   "fields": [
     {
       "key": "rival",
@@ -643,13 +643,13 @@
           "category": "",
           "image": "https://tshop.r10s.jp/yukaiya/cabinet/baby/bg-02-b-01a.jpg?fitin=128:128",
           "url": "",
-          "urlAmazon": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/baby/1910048051",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/205219/",
           "checkNote": "",
           "checkedAt": "2026-08-27",
           "picks": [],
           "createdAt": "2026-08-27T06:51:54.343Z",
-          "updatedAt": "2026-08-27T06:52:17.269Z",
+          "updatedAt": "2026-08-27T06:52:58.304Z",
           "modes": {},
           "nameAmazon": ""
         },
