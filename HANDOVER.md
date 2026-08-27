@@ -1,17 +1,17 @@
 # 引き継ぎメモ（型番商品確認くん）
 
-最終更新: 2026-08-27 / 現行版 **v0.88.0**
+最終更新: 2026-08-27 / 現行版 **v0.89.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.88.0full.zip`（全ファイル入り。**これが唯一の正**）
+1. `katabankakuninv0.89.0full.zip`（全ファイル入り。**これが唯一の正**）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ### 新しいチャットの最初にやること
 
 ```bash
 mkdir -p /root/work/katabank && cd /root/work/katabank
-unzip -oq /mnt/user-data/uploads/katabankakuninv0.88.0full.zip -d /root/work/katabank
+unzip -oq /mnt/user-data/uploads/katabankakuninv0.89.0full.zip -d /root/work/katabank
 nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
 ```
 
@@ -58,6 +58,7 @@ HANDOVER.md         これ（作る側向け）
     **t56**(列管理モーダル) **t59**(チェックした商品の列) **t85/t86**(項目管理・項目の増減)
     **t89**(赤系で行が赤くなる) **t90**(出所2行) **t91**(操作列に編集ボタン)
     **t92/t93**(ジャンル一括取得。`window.fetchGenre` を差し替えて実ネットを叩かない)
+    **t94**(日本語で取る。`window.fetch` を差し替えて英語/日本語のHTMLを返す)
 - ローカルサーバ: `cd /root/work/katabank && nohup python3 -m http.server 8899 &`
 - Playwright: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` を `executablePath` に指定して使う
 
@@ -350,6 +351,19 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - 中継は普通に失敗する（実測で `r.jina.ai` が 429 を返した）。**失敗しても何もしない**のが約束。
   ⚙️設定の画像取得テストに楽天URLを入れると `fetchGenre` のログも出る。
 
+**必ず日本語で取る（v0.89.0）** — 中継サービスは日本語ブラウザではないので、**Amazonが英語のページを返す**。
+3段構えで日本語に寄せている。
+
+- `jaUrl(url)` … AmazonのURLを日本語版に直す。`/-/en/` を外し、ASINがあれば `/-/ja/dp/<ASIN>`、
+  無ければ `/-/ja` を頭に足して、`language=ja_JP` を付ける。楽天は素通し。
+- `JA_HEADERS = { "Accept-Language": "ja-JP,ja;q=0.9" }` を fetch に付ける。
+  **Accept-Language はCORSの安全リストなので preflight は出ない**（他のヘッダを足すと中継が全部落ちる）。
+- `looksJa(s)`（**非ASCIIが1文字でもあるか**）で判定し、英語なら採用せず次の中継へ。
+  `CD・DVD` のような見た目ASCIIの分類も `・` が非ASCIIなので通る。**3本続けて英語なら打ち切る**
+  （そのページは中継相手には英語でしか出てこない。粘ると一括取得が何十秒も止まる）。
+- 最後まで日本語が取れなければ **英語は書き込まず `""` を返す**。表は「—」のまま残り、手で入れられる。
+  ⚙️設定の取得テストのログには英語で何が取れたかを出す。
+
 **一括取得（v0.88.0）** — ツールバーの `#btnGenreAll` → `runGenreAll()`。
 
 - 対象は `genreAllTargets()`。**`visibleItems()`（＝検索・絞り込み後の行）× そのタブの `urlFields`** を回して、
@@ -475,7 +489,8 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.85.0 赤系の項目が付いた商品は行ごと赤く（両方の表で）
 - v0.86.0 追加した商品の「出所」を2行に（区分バッジ / ジャンル名）
 - v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）
-- **v0.88.0 ジャンル名の一括取得ボタン（空の「—」だけ、途中で止められる）（最新）**
+- v0.88.0 ジャンル名の一括取得ボタン（空の「—」だけ、途中で止められる）
+- **v0.89.0 ジャンル名を必ず日本語で取る（英語は入れない）（最新）**
 
 ---
 

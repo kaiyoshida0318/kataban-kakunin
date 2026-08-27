@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.88.0";
+const VERSION   = "0.89.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -1003,28 +1003,60 @@ function amazonGenreFromHtml(txt) {
   return GENRE_DROP.test(x) ? "" : x.slice(0, 60);
 }
 
-/* 中継サービスを順に試して、最初に取れたものを返す */
+/* ---------- 日本語で取ってくるための細工（v0.89.0） ----------
+   中継サービスは日本語ブラウザではないので、Amazonが英語のページを返してくることがある。
+   ①URLで日本語を指定する ②Accept-Language を日本語で送る ③英語が返ってきたら採用しない、の3段構え。 */
+const looksJa = (s) => /[^\x00-\x7F]/.test(String(s || ""));   // 非ASCII＝日本語が混じっている
+const JA_HEADERS = { "Accept-Language": "ja-JP,ja;q=0.9" };     // CORSの安全リスト。preflightは出ない
+
+/* Amazonは `/-/ja/` と `language=ja_JP` で日本語のページになる。楽天はそのまま */
+function jaUrl(url) {
+  try {
+    const u = new URL(url);
+    if (!isAmazonUrl(url)) return url;
+    u.pathname = u.pathname.replace(/^\/-\/[a-z]{2}(_[A-Za-z]{2})?\//i, "/");   // /-/en/ を外す
+    const asin = asinOf(url);
+    if (asin) u.pathname = `/-/ja/dp/${asin}`;
+    else u.pathname = "/-/ja" + u.pathname;
+    u.searchParams.set("language", "ja_JP");
+    return u.href;
+  } catch { return url; }
+}
+
+/* 中継サービスを順に試して、最初に取れた「日本語の」ジャンル名を返す */
 async function fetchGenre(url, log = () => {}) {
   const amazon = isAmazonUrl(url);
   if (!amazon && !isRakutenUrl(url)) { log("ジャンル", "楽天/AmazonのURLではない"); return ""; }
   const list = proxyList();
   if (!list.length) { log("ジャンル", "中継なしの設定のためスキップ"); return ""; }
+  const target = jaUrl(url);
+  if (target !== url) log("ジャンル", `日本語で開く → ${target}`);
+  let en = "", enTries = 0;                                     // 英語で返ってきたぶん（保険）
   for (const tpl of list) {
     const via = (() => { try { return new URL(tpl.replace("{url}", "")).hostname; } catch { return tpl; } })();
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 9000);
-      const res = await fetch(tpl.replace("{url}", encodeURIComponent(url)), { signal: ctrl.signal });
+      const res = await fetch(tpl.replace("{url}", encodeURIComponent(target)),
+        { signal: ctrl.signal, headers: JA_HEADERS });
       clearTimeout(timer);
       if (!res.ok) { log("ジャンル", `${via} → HTTP ${res.status}`); continue; }
       const body = (await res.text()).slice(0, 900000);
       const name = amazon ? amazonGenreFromHtml(body) : genreFromPage(body);
-      if (name) { log("ジャンル", `${via} → ${name}`); return name; }
+      if (name && looksJa(name)) { log("ジャンル", `${via} → ${name}`); return name; }
+      if (name) {
+        en = en || name; enTries++;
+        log("ジャンル", `${via} → 英語で返ってきた（${name}）。次の中継を試す`);
+        /* 3本続けて英語なら、そのページは中継相手には英語でしか出てこない。粘らず切り上げる */
+        if (enTries >= 3) { log("ジャンル", "3本続けて英語だったので打ち切る"); break; }
+        continue;
+      }
       log("ジャンル", `${via} → 取れたがパンくずが見つからない`);
     } catch (e) {
       log("ジャンル", `${via} → ${e.name === "AbortError" ? "タイムアウト" : "つながらない"}`);
     }
   }
+  if (en) log("ジャンル", `日本語では取れなかった（英語では「${en}」）。英語は入れずにおく`);
   return "";
 }
 /* ジャンル名を自動で入れるタブか（ランキングの2つだけ。ライバルは店名なので対象外） */
