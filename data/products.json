@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-27T07:07:49.662Z",
+  "updatedAt": "2026-08-27T07:12:27.021Z",
   "fields": [
     {
       "key": "rival",
@@ -759,7 +759,7 @@
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/hpc/169822011",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/402786/",
-          "nameAmazon": "The most popular items in Bunion Pads",
+          "nameAmazon": "足用保護パッドの売れ筋ランキング",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-25",
@@ -814,7 +814,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-27T07:07:21.497Z"
+          "updatedAt": "2026-08-27T07:12:22.450Z"
         }
       ]
     },
