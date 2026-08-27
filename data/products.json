@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-27T07:07:03.431Z",
+  "updatedAt": "2026-08-27T07:07:49.662Z",
   "fields": [
     {
       "key": "rival",
@@ -645,13 +645,13 @@
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/baby/1910048051",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/205219/",
-          "nameAmazon": "",
+          "nameAmazon": "The most popular items in Electrical Safety Baby Products",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-27",
           "picks": [],
           "createdAt": "2026-08-27T06:51:54.343Z",
-          "updatedAt": "2026-08-27T06:52:58.304Z"
+          "updatedAt": "2026-08-27T07:07:18.163Z"
         },
         {
           "id": "itm_lqfi703ayxs",
@@ -709,13 +709,13 @@
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/most-gifted/hpc/4520885051",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/304108/",
-          "nameAmazon": "",
+          "nameAmazon": "ドラッグストア > Amazonランキング > 医薬品 > 衛生用品 > ビューティー > ダイエット > サプリメント > 日用品 > 介護 > ベビー > アダルトグッズ > 便利・おトク",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-26",
           "picks": [],
           "createdAt": "2026-08-26T02:58:34.831Z",
-          "updatedAt": "2026-08-26T05:06:38.228Z"
+          "updatedAt": "2026-08-27T07:07:44.737Z"
         },
         {
           "id": "itm_g6va2jv33n9",
@@ -743,13 +743,13 @@
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/fashion/346103011",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/205176/",
-          "nameAmazon": "",
+          "nameAmazon": "The most popular items in Baby Gloves & Mittens",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-19",
           "picks": [],
           "createdAt": "2026-08-19T07:56:36.464Z",
-          "updatedAt": "2026-08-26T05:06:26.517Z"
+          "updatedAt": "2026-08-27T07:07:16.198Z"
         },
         {
           "id": "itm_iynsrce6nrc",
@@ -759,7 +759,7 @@
           "url": "",
           "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/hpc/169822011",
           "urlRakuten": "https://ranking.rakuten.co.jp/weekly/402786/",
-          "nameAmazon": "",
+          "nameAmazon": "The most popular items in Bunion Pads",
           "modes": {},
           "checkNote": "",
           "checkedAt": "2026-08-25",
@@ -814,7 +814,7 @@
             }
           ],
           "createdAt": "2026-08-20T03:15:15.528Z",
-          "updatedAt": "2026-08-26T07:33:56.475Z"
+          "updatedAt": "2026-08-27T07:07:21.497Z"
         }
       ]
     },
