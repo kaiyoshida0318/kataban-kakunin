@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-27T06:30:46.306Z",
+  "updatedAt": "2026-08-27T06:32:55.603Z",
   "fields": [
     {
       "key": "rival",
@@ -637,6 +637,22 @@
     },
     "rakuten": {
       "items": [
+        {
+          "id": "itm_lqfi703ayxs",
+          "name": "日用品雑貨・文房具・手芸 > 防災関連グッズ > 笛・ホイッスル",
+          "category": "",
+          "image": "https://tshop.r10s.jp/neshexst/cabinet/12362571/whistle_rakuten_01.jpg?fitin=128:128",
+          "url": "",
+          "urlAmazon": "https://www.amazon.co.jp/gp/bestsellers/sports/2201155051",
+          "urlRakuten": "https://ranking.rakuten.co.jp/daily/301614/",
+          "checkNote": "",
+          "checkedAt": "2026-08-27",
+          "picks": [],
+          "createdAt": "2026-08-27T06:32:15.712Z",
+          "updatedAt": "2026-08-27T06:32:50.759Z",
+          "modes": {},
+          "nameAmazon": "アウトドア用ホイッスル"
+        },
         {
           "id": "itm_khs0mzi6m10",
           "name": "スポーツ・アウトドア > アウトドア > ホイッスル",
