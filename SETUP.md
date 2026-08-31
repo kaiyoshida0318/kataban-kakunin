@@ -1,6 +1,6 @@
 # セットアップ手順
 
-リポジトリ `kataban-kakunin`（Public）+ GitHub Pages で公開する構成。
+リポジトリ `syohin-junkai`（Public）+ GitHub Pages で公開する構成。
 Publicなので中身は誰でも見られる。非公開にしたい情報は書かないこと。
 
 ---
@@ -33,7 +33,7 @@ data/products.json
 3. **Save**（初回は1〜2分かかる）
 
 ```
-https://kaiyoshida0318.github.io/kataban-kakunin/
+https://kaiyoshida0318.github.io/syohin-junkai/
 ```
 
 ---
@@ -44,9 +44,9 @@ https://kaiyoshida0318.github.io/kataban-kakunin/
 
 1. https://github.com/settings/personal-access-tokens/new
 2. 入力する
-   - **Token name**: `kataban-kakunin`
+   - **Token name**: `syohin-junkai`
    - **Expiration**: 1年など
-   - **Repository access**: **Only select repositories** → `kataban-kakunin`
+   - **Repository access**: **Only select repositories** → `syohin-junkai`
    - **Repository permissions** → **Contents** を **Read and write**
      （`Metadata: Read-only` が自動で付くのはそのまま。他はNo access）
 3. **Generate token** → 表示された `github_pat_…` をその場でコピー
@@ -62,7 +62,7 @@ https://kaiyoshida0318.github.io/kataban-kakunin/
 1. Pages のURLを開く
 2. 右上 **⚙️ 設定**
    - オーナー: `kaiyoshida0318`
-   - リポジトリ: `kataban-kakunin`
+   - リポジトリ: `syohin-junkai`
    - ブランチ: `main`
    - Personal Access Token: コピーしたもの
 3. **⤓ GitHubから読み込む** →「読み込み完了」が出れば疎通OK
@@ -108,11 +108,44 @@ AmazonアソシエイトのトラッキングID（`yourname-22` の形）を持�
 
 ---
 
+## 付録: リポジトリ名を変えたとき（`kataban-kakunin` → `syohin-junkai`）
+
+GitHubのリネームは**中身を作り直さなくてよい**。コミット履歴もIssueもそのまま引き継がれる。
+
+1. リポジトリの **Settings → General** → いちばん上の **Repository name** を `syohin-junkai` に → **Rename**
+2. **Pages のURLが変わる。** ブックマークを取り直すこと
+
+   ```
+   旧: https://kaiyoshida0318.github.io/kataban-kakunin/
+   新: https://kaiyoshida0318.github.io/syohin-junkai/
+   ```
+
+   GitHubは旧リポジトリの**ページ**（github.com/…）へのアクセスは新しい方へ転送してくれるが、
+   **Pagesの公開URLの転送はあてにしない**。新しいURLを開き直す。
+   Pages自体の設定（Deploy from a branch / main / root）は引き継がれるので触らなくてよい。
+3. **アプリの ⚙️設定 → リポジトリ を `syohin-junkai` に直して保存**。
+   そのあと **⤓ GitHubから読み込む** で「読み込み完了」が出れば疎通OK。
+   設定はブラウザごと（localStorage）に入っているので、**使っている端末・ブラウザすべてで直す**。
+4. **PATは基本そのままで動く。** fine-grained tokenの対象リポジトリはリポジトリ名ではなく内部IDで
+   紐づいているため、リネームしても選択が外れない。
+   もし 404 が出るようなら https://github.com/settings/personal-access-tokens で
+   該当トークンの **Repository access** を開き、新しい名前で選び直す。
+5. PCにgit cloneしてある場合だけ、転送先を差し替える（Web上でアップロードしているだけなら不要）
+
+   ```bash
+   git remote set-url origin https://github.com/kaiyoshida0318/syohin-junkai.git
+   ```
+
+> 旧名 `kataban-kakunin` は**空いた状態になる**。同じ名前で新しいリポジトリを作ると
+> GitHubの転送が効かなくなるので、しばらく作らないでおくのが無難。
+
+---
+
 ## つまずいたとき
 
 | 症状 | 原因と対処 |
 |---|---|
-| 保存失敗: 404 | オーナー/リポジトリ名のtypo、またはPATの対象リポジトリにこれが入っていない |
+| 保存失敗: 404 | オーナー/リポジトリ名のtypo、またはPATの対象リポジトリにこれが入っていない。**リポジトリ名を変えた直後**なら⚙️設定を直す（上の付録） |
 | 保存失敗: 403 | PATの **Contents** が Read and write になっていない |
 | 保存失敗: 401 | PATが失効 or 貼り間違い。作り直して入れ直す |
 | 保存失敗: 409 | 別端末から先に保存された。**⤓ 読み込む** で最新を取ってからやり直す |

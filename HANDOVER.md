@@ -1,10 +1,10 @@
 # 引き継ぎメモ（商品URL巡回くん）
 
-最終更新: 2026-08-31 / 現行版 **v0.91.0**
+最終更新: 2026-08-31 / 現行版 **v0.93.0**
 
 次のチャットに渡すもの:
 
-1. `syohinurl-junkai-v0.91.0-full.zip`（全ファイル入り。**これが唯一の正**）
+1. `syohinurl-junkai-v0.93.0-full.zip`（全ファイル入り。**これが唯一の正**）
    ※ v0.90.0以前は `katabankakuninvX.Y.Zfull.zip` という名前だった（アプリ名を変える前の名残）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
@@ -12,7 +12,7 @@
 
 ```bash
 mkdir -p /root/work/syohinurl-junkai && cd /root/work/syohinurl-junkai
-unzip -oq /mnt/user-data/uploads/syohinurl-junkai-v0.91.0-full.zip -d /root/work/syohinurl-junkai
+unzip -oq /mnt/user-data/uploads/syohinurl-junkai-v0.93.0-full.zip -d /root/work/syohinurl-junkai
 nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
 ```
 
@@ -256,7 +256,9 @@ v0.56.0ではヘッダー直下のインラインパネルだったが、ユー�
 - 値は `pickVal(p,key)` / `setPickVal(p,key,v)`。既定の4つは `p.check` などそのまま、
   増やしたぶんは `p.st[key]`。**直接 `p[field]` を読まないこと。**
 - 削除しても商品の値は消さない（見えなくなるだけ）。`check` / `buy` が消えたときのために、
-  色帯・薄くする処理・帯のチップは `hasField()` で守ってある。
+  色帯・帯のチップは `hasField()` で守ってある。
+  ※ 買付が済んだ行を薄くする `.wk-done` は **v0.93.0 で廃止**（読みにくいとユーザーから指摘）。
+  `addedRow()` の行クラスからも CSS からも消してある。復活させるなら両方に戻すこと。
 - 表のセルは `stCellsFor(p, itemId, where)` が「列キー → セル」で返す。
 - **赤系（red / pink）の選択肢が1つでも付いた商品は行ごと赤くする**（v0.85.0）。判定は `pickAlert(p)`、
   クラスは `tr.pk-ng`。追加した商品・チェックした商品の両方に付ける。ドロップダウンで選び直した直後は
@@ -499,7 +501,9 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.88.0 ジャンル名の一括取得ボタン（空の「—」だけ、途中で止められる）
 - v0.89.0 ジャンル名を必ず日本語で取る（英語は入れない）
 - v0.90.0 ロゴを「商品URL巡回くん」に差し替え
-- **v0.91.0 ロゴを差し替え直し / zip・作業フォルダ名を `syohinurl-junkai` に（最新）**
+- v0.91.0 ロゴを差し替え直し / zip・作業フォルダ名を `syohinurl-junkai` に
+- v0.92.0 GitHubリポジトリ名を `syohin-junkai` に変える手順をSETUP.mdに
+- **v0.93.0 買付が済んだ行を薄くする処理を廃止（最新）**
 
 ---
 

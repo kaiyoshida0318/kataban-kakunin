@@ -4,7 +4,7 @@
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.91.0";
+const VERSION   = "0.93.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";
@@ -2087,8 +2087,8 @@ function addedRow(r) {
 
   const chkColor = hasField("check")
     ? ((stList("check").find((o) => o.v === pickVal(p, "check")) || {}).color || "gray") : "gray";
-  const done = hasField("buy") && pickVal(p, "buy") !== stFirst("buy");   // 買付が済んだ行は落ち着かせる
-  return `<tr class="wk-row bar-${esc(chkColor)}${done ? " wk-done" : ""}${pickAlert(p) ? " pk-ng" : ""}">${tds}</tr>`;
+  /* v0.93.0: 買付が済んだ行を薄くする処理は廃止（読みにくいのでユーザーの指示で削除） */
+  return `<tr class="wk-row bar-${esc(chkColor)}${pickAlert(p) ? " pk-ng" : ""}">${tds}</tr>`;
 }
 
 /* 画面が狭いときは、はみ出さないよう全列を比率のまま縮める（横スクロールを出さない） */
