@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-31T08:49:47.182Z",
+  "updatedAt": "2026-08-31T08:49:58.061Z",
   "fields": [
     {
       "key": "rival",
@@ -89,12 +89,12 @@
       {
         "v": "o_2zv9gp",
         "label": "買付不可",
-        "color": "gray"
+        "color": "red"
       },
       {
         "v": "skip",
         "label": "スキップ",
-        "color": "gray"
+        "color": "pink"
       }
     ]
   },
