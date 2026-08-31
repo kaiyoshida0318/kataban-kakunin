@@ -1,10 +1,10 @@
 /* =========================================================
-   型番商品確認くん / app.js
+   商品URL巡回くん / app.js
    型番商品・楽天ランキング・AmazonランキングのURL置き場
    データ: data/products.json（GitHub Contents API で読み書き）
    ========================================================= */
 
-const VERSION   = "0.89.0";
+const VERSION   = "0.90.0";
 const DATA_PATH = "data/products.json";
 const LS_CFG    = "kata_cfg_v1";
 const LS_DATA   = "kata_data_v2";

@@ -1,17 +1,17 @@
-# 引き継ぎメモ（型番商品確認くん）
+# 引き継ぎメモ（商品URL巡回くん）
 
-最終更新: 2026-08-27 / 現行版 **v0.89.0**
+最終更新: 2026-08-31 / 現行版 **v0.90.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.89.0full.zip`（全ファイル入り。**これが唯一の正**）
+1. `katabankakuninv0.90.0full.zip`（全ファイル入り。**これが唯一の正**）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ### 新しいチャットの最初にやること
 
 ```bash
 mkdir -p /root/work/katabank && cd /root/work/katabank
-unzip -oq /mnt/user-data/uploads/katabankakuninv0.89.0full.zip -d /root/work/katabank
+unzip -oq /mnt/user-data/uploads/katabankakuninv0.90.0full.zip -d /root/work/katabank
 nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
 ```
 
@@ -411,6 +411,12 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 
 ### 3-7. その他
 
+- **ロゴ（v0.90.0）** … `logo.png`（846×96、透過PNG）1枚にアイコンと文字が入っている。
+  以前は `.brand-icon`（青い角丸に白抜きの文字）＋ `logo.png`（文字だけ）の2枚組だったが、
+  新しいロゴに絵が含まれるので `.brand-icon` は廃止した。`favicon.png` はそのロゴの左のアイコンを
+  切り出して64pxにしたもの。**差し替えるときは `src="logo.png?v=N"` の N も上げる**（キャッシュ対策）。
+  表示は `.brand-logo{height:36px}`、スクロール時は `body.scrolled .brand-logo{height:26px}`。
+  ヘッダーの高さが変わると `--head-h` も変わるが `ResizeObserver` が拾うので、固定の数値は書かないこと。
 - ウィンドウを2つ開ける（`btnNewWin`）。`storage` イベントで中身を同期するが、
   **モーダルを開いている／インライン編集中は割り込まない**（入力が消えないように）。
 - 履歴から復元: 直近Nコミットを取って `mergeVersions()` で合成する。事故ったときの命綱。
@@ -490,7 +496,8 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.86.0 追加した商品の「出所」を2行に（区分バッジ / ジャンル名）
 - v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）
 - v0.88.0 ジャンル名の一括取得ボタン（空の「—」だけ、途中で止められる）
-- **v0.89.0 ジャンル名を必ず日本語で取る（英語は入れない）（最新）**
+- v0.89.0 ジャンル名を必ず日本語で取る（英語は入れない）
+- **v0.90.0 ロゴを「商品URL巡回くん」に差し替え（最新）**
 
 ---
 

@@ -1,4 +1,4 @@
-/* ===== 型番商品確認くん ===== */
+/* ===== 商品URL巡回くん ===== */
 :root{
   --bg:#f1f3f7;
   --surface:#ffffff;
@@ -66,12 +66,8 @@ a:hover{text-decoration:underline}
 /* --- 1段目: ブランド --- */
 .head-brand{padding-bottom:8px}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
-.brand-icon{
-  width:40px;height:40px;border-radius:10px;flex:0 0 auto;
-  background:var(--accent);display:grid;place-items:center;overflow:hidden;
-}
-.brand-icon img{width:29px;height:29px;filter:brightness(0) invert(1)}
-.brand-logo{height:32px;width:auto;display:block}
+/* .brand-icon はロゴ画像にアイコンが入ったので廃止（v0.90.0） */
+.brand-logo{height:36px;width:auto;display:block}
 .head-actions{margin-left:auto;display:flex;align-items:center;gap:7px}
 
 .repo-badge{
@@ -169,8 +165,7 @@ body[data-kind="added"] .list .tbl-wrap{border-radius:var(--radius)}
 
 /* --- スクロール中はヘッダーを薄くして表を広く見せる --- */
 body.scrolled .head-brand{padding-top:5px;padding-bottom:3px}
-body.scrolled .brand-icon{width:28px;height:28px;border-radius:8px}
-body.scrolled .brand-logo{height:23px}
+body.scrolled .brand-logo{height:26px}
 body.scrolled .head-tools{padding-top:6px;padding-bottom:6px}
 body.scrolled .sec-band{padding-top:4px;padding-bottom:4px}
 body.scrolled .sec-desc{display:none}
