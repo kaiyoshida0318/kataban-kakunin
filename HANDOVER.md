@@ -1,24 +1,25 @@
 # 引き継ぎメモ（商品URL巡回くん）
 
-最終更新: 2026-08-31 / 現行版 **v0.90.0**
+最終更新: 2026-08-31 / 現行版 **v0.91.0**
 
 次のチャットに渡すもの:
 
-1. `katabankakuninv0.90.0full.zip`（全ファイル入り。**これが唯一の正**）
+1. `syohinurl-junkai-v0.91.0-full.zip`（全ファイル入り。**これが唯一の正**）
+   ※ v0.90.0以前は `katabankakuninvX.Y.Zfull.zip` という名前だった（アプリ名を変える前の名残）
 2. このファイル（zipの中にも `HANDOVER.md` として入っている）
 
 ### 新しいチャットの最初にやること
 
 ```bash
-mkdir -p /root/work/katabank && cd /root/work/katabank
-unzip -oq /mnt/user-data/uploads/katabankakuninv0.90.0full.zip -d /root/work/katabank
+mkdir -p /root/work/syohinurl-junkai && cd /root/work/syohinurl-junkai
+unzip -oq /mnt/user-data/uploads/syohinurl-junkai-v0.91.0-full.zip -d /root/work/syohinurl-junkai
 nohup python3 -m http.server 8899 >/dev/null 2>&1 &     # 検証用サーバ
 ```
 
-検証用テストは別zip（`katabank-tests.zip`）で渡している。展開先は `/root/work`:
+検証用テストは別zip（`syohinurl-junkai-tests.zip`）で渡している。展開先は `/root/work`:
 
 ```bash
-unzip -oq /mnt/user-data/uploads/katabank-tests.zip -d /root/work
+unzip -oq /mnt/user-data/uploads/syohinurl-junkai-tests.zip -d /root/work
 node /root/work/t91.js        # 動くか確認（サーバが上がっていること）
 ```
 
@@ -52,14 +53,14 @@ HANDOVER.md         これ（作る側向け）
 
 ### 環境
 
-- 作業ディレクトリ: `/root/work/katabank`（zipを展開したもの）
-- テストスクリプト: `/root/work/t*.js`（48本。`katabank-tests.zip` で渡している）
+- 作業ディレクトリ: `/root/work/syohinurl-junkai`（zipを展開したもの）
+- テストスクリプト: `/root/work/t*.js`（52本。`syohinurl-junkai-tests.zip` で渡している）
   - よく回すもの: **t53**(列管理の並び/非表示) **t54**(列を隠した状態での追加・保存・リロード)
     **t56**(列管理モーダル) **t59**(チェックした商品の列) **t85/t86**(項目管理・項目の増減)
     **t89**(赤系で行が赤くなる) **t90**(出所2行) **t91**(操作列に編集ボタン)
     **t92/t93**(ジャンル一括取得。`window.fetchGenre` を差し替えて実ネットを叩かない)
     **t94**(日本語で取る。`window.fetch` を差し替えて英語/日本語のHTMLを返す)
-- ローカルサーバ: `cd /root/work/katabank && nohup python3 -m http.server 8899 &`
+- ローカルサーバ: `cd /root/work/syohinurl-junkai && nohup python3 -m http.server 8899 &`
 - Playwright: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` を `executablePath` に指定して使う
 
 ### 1サイクルの流れ
@@ -70,7 +71,7 @@ HANDOVER.md         これ（作る側向け）
 4. 既存テストを回してデグレを見る（列管理まわり＝列の並び/非表示、項目管理＝項目の増減、
    赤行、列を隠した状態での追加・保存、あたりを毎回見ておくと事故が減る）
 5. `VERSION`（app.js 7行目）と `index.html` の `verLabel` を上げる
-6. `zip -qr /root/work/katabankakuninvX.Y.Zfull.zip . -x "*.git*"` → `SendUserFile` で納品
+6. `zip -qr /root/work/syohinurl-junkai-vX.Y.Z-full.zip . -x "*.git*"` → `SendUserFile` で納品
 7. 返信は「何を直したか」＋**検証ログの実出力**を短く貼る。日本語。
 
 ### テストの書き方の型
@@ -497,7 +498,8 @@ HTMLパースだけにすると取りこぼす）。読む順は **JSON-LD の B
 - v0.87.0 商品の「編集」ボタンを操作列にまとめる（編集列を廃止）
 - v0.88.0 ジャンル名の一括取得ボタン（空の「—」だけ、途中で止められる）
 - v0.89.0 ジャンル名を必ず日本語で取る（英語は入れない）
-- **v0.90.0 ロゴを「商品URL巡回くん」に差し替え（最新）**
+- v0.90.0 ロゴを「商品URL巡回くん」に差し替え
+- **v0.91.0 ロゴを差し替え直し / zip・作業フォルダ名を `syohinurl-junkai` に（最新）**
 
 ---
 
