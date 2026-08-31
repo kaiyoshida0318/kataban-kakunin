@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-31T02:45:07.534Z",
+  "updatedAt": "2026-08-31T08:49:47.182Z",
   "fields": [
     {
       "key": "rival",
@@ -35,7 +35,7 @@
       {
         "v": "o_ww912j",
         "label": "売れそうにない",
-        "color": "gray"
+        "color": "red"
       },
       {
         "v": "few",
