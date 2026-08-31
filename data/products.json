@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "updatedAt": "2026-08-31T09:23:27.435Z",
+  "updatedAt": "2026-08-31T09:23:40.018Z",
   "fields": [
     {
       "key": "rival",
@@ -62,12 +62,12 @@
       {
         "v": "low",
         "label": "評価低すぎかも",
-        "color": "gray"
+        "color": "red"
       },
       {
         "v": "o_mk4n54",
         "label": "場所取りすぎ",
-        "color": "gray"
+        "color": "red"
       },
       {
         "v": "high",
